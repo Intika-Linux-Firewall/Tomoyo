@@ -1,0 +1,59 @@
+About this package:
+
+This package contains userland programs for TOMOYO Linux version 2.5.
+This package is released under the GPLv2.
+
+http://tomoyo.sourceforge.jp/
+
+ChangeLog:
+
+Version 2.5.0   2011/09/29   Major update release.
+
+  Rebased using ccs-tools-1.8.3.
+
+Version 2.5.0p1 2011/10/25   Bug fix release.
+
+  /usr/sbin/tomoyo-queryd
+    Use query id rather than global PID when reading or updating target
+    process's domain policy.
+
+  /usr/lib/tomoyo/init_policy
+    Add "socket:[family=\\$:type=\\$:protocol=\\$]" to ANY_PATHNAME group.
+
+Version 2.5.0p2 2012/04/14   Bug fix release.
+
+  /sbin/tomoyo-init
+    Parse statistics lines correctly.
+
+  /usr/sbin/tomoyo-editpolicy
+    Print number of selected entries if any.
+
+  /usr/lib/libtomoyotools.so
+    Fix IP address parsing.
+
+Version 2.5.0p3 2012/08/05   Bug fix release.
+
+  /usr/sbin/tomoyo-checkpolicy
+    Fix namespace prefix parsing in exception policy.
+
+  Rename manpage for init_policy to tomoyo_init_policy
+  (to allow parallel installation of ccs-tools package).
+
+Version 2.5.0p4 2013/02/14   Packaging fix release.
+
+  Change Makefile's build flags, as suggested by Simon Ruderich and Hideki
+  Yamane. (Debian bug 674723)
+
+  Change / to /* in rpm's %files section because Fedora 18 complains conflicts.
+
+Version 2.5.0p5 2013/04/06   Packaging fix release.
+
+  Fix compile warning from clang.
+
+Version 2.5.0p6 2014/01/05   Bug fix release.
+
+  /usr/lib/tomoyo/init_policy
+    Add path to systemd , as suggested by Shawn Landden.
+
+  /usr/sbin/tomoyo-queryd
+    Use poll() rather than select().
