@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.5.0+   2011/10/25
+ * Version: 2.5.0+   2014/01/05
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -300,11 +300,12 @@ ok:
 			}
 			break;
 		} else {
-			fd_set rfds;
-			FD_ZERO(&rfds);
-			FD_SET(ccs_query_fd, &rfds);
-			select(ccs_query_fd + 1, &rfds, NULL, NULL, NULL);
-			if (!FD_ISSET(ccs_query_fd, &rfds))
+			struct pollfd pfd;
+			pfd.fd = ccs_query_fd;
+			pfd.events = POLLIN;
+			pfd.revents = 0;
+			poll(&pfd, 1, -1);
+			if (!(pfd.revents & POLLIN))
 				continue;
 			if (read(ccs_query_fd, ccs_buffer,
 				 sizeof(ccs_buffer) - 1) <= 0)
