@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 20's 3.12 kernel.
+# This is a kernel build script for Fedora 20's 3.13 kernel.
 #
 
 die () {
@@ -12,12 +12,12 @@ yum -y install tar wget rpm-build make gcc patch redhat-rpm-config xmlto asciido
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.12.10-300.fc20.src.rpm ]
+if [ ! -r kernel-3.13.3-201.fc20.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/kernel-3.12.10-300.fc20.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/kernel-3.13.3-201.fc20.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.12.10-300.fc20.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.12.10-300.fc20.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.13.3-201.fc20.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.13.3-201.fc20.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20131225.tar.gz ]
@@ -78,18 +78,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides less commonly used kernel modules for the %{?2:%{2} }kernel package.\
  %{nil}
  
-@@ -1491,6 +1496,10 @@
+@@ -1493,6 +1498,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.3-20131225.tar.gz
-+patch -sp1 < patches/ccs-patch-3.12-fedora-20.diff
++patch -sp1 < patches/ccs-patch-3.13-fedora-20.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1515,6 +1524,18 @@
+@@ -1517,6 +1526,18 @@
  for i in *.config
  do
    mv $i .config
