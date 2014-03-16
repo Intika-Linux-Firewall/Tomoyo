@@ -12,17 +12,17 @@ yum -y install tar wget rpm-build make gcc patch redhat-rpm-config xmlto asciido
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.13.3-201.fc20.src.rpm ]
+if [ ! -r kernel-3.13.6-200.fc20.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/kernel-3.13.3-201.fc20.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/kernel-3.13.6-200.fc20.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.13.3-201.fc20.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.13.3-201.fc20.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.13.6-200.fc20.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.13.6-200.fc20.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20131225.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20140222.tar.gz ]
 then
-    wget -O ccs-patch-1.8.3-20131225.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20131225.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20140222.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20140222.tar.gz' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2 and Redistributable, no modification permitted
  URL: http://www.kernel.org/
-@@ -953,7 +958,7 @@
+@@ -980,7 +985,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -973,7 +978,7 @@
+@@ -1000,7 +1005,7 @@
  Provides: kernel%{?1:-%{1}}-modules-extra-uname-r = %{KVERREL}%{?1:+%{1}}\
  Requires: kernel-uname-r = %{KVERREL}%{?1:+%{1}}\
  AutoReqProv: no\
@@ -78,18 +78,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides less commonly used kernel modules for the %{?2:%{2} }kernel package.\
  %{nil}
  
-@@ -1493,6 +1498,10 @@
+@@ -1546,6 +1551,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.3-20131225.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.3-20140222.tar.gz
 +patch -sp1 < patches/ccs-patch-3.13-fedora-20.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1517,6 +1526,18 @@
+@@ -1570,6 +1579,18 @@
  for i in *.config
  do
    mv $i .config

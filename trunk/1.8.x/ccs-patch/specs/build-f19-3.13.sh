@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 19's 3.12 kernel.
+# This is a kernel build script for Fedora 19's 3.13 kernel.
 #
 
 die () {
@@ -12,17 +12,17 @@ yum -y install tar wget rpm-build make gcc patch redhat-rpm-config xmlto asciido
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.12.11-201.fc19.src.rpm ]
+if [ ! -r kernel-3.13.6-100.fc19.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/kernel-3.12.11-201.fc19.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/kernel-3.13.6-100.fc19.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.12.11-201.fc19.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.12.11-201.fc19.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.13.6-100.fc19.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.13.6-100.fc19.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20131225.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20140222.tar.gz ]
 then
-    wget -O ccs-patch-1.8.3-20131225.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20131225.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20140222.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20140222.tar.gz' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -39,9 +39,9 @@ patch << "EOF" || die "Can't patch spec file."
  ###################################################################
  
  # The buildid can also be specified on the rpmbuild command line
-@@ -428,6 +428,11 @@
- # to versions below the minimum
+@@ -434,6 +434,11 @@
  #
+ %define kernel_dot_org_conflicts  ppp < 2.4.3-3, isdn4k-utils < 3.2-32, nfs-utils < 1.2.5-7.fc17, e2fsprogs < 1.37-4, util-linux < 2.12, jfsutils < 1.1.7-2, reiserfs-utils < 3.6.19-2, xfsprogs < 2.6.13-4, procps < 3.2.5-6.3, oprofile < 0.9.1-2, device-mapper-libs < 1.02.63-2, mdadm < 3.2.1-5
  
 +# TOMOYO Linux
 +%define with_modsign 0
@@ -49,8 +49,8 @@ patch << "EOF" || die "Can't patch spec file."
 +%define with_debuginfo 0
 +
  #
- # First the general kernel 2.6 required versions as per
- # Documentation/Changes
+ # Then a series of requirements that are distribution specific, either
+ # because we add patches for something, or the older versions have
 @@ -490,7 +495,7 @@
  AutoProv: yes\
  %{nil}
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2 and Redistributable, no modification permitted
  URL: http://www.kernel.org/
-@@ -971,7 +976,7 @@
+@@ -986,7 +991,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -991,7 +996,7 @@
+@@ -1006,7 +1011,7 @@
  Provides: kernel%{?1:-%{1}}-modules-extra-uname-r = %{KVERREL}%{?1:.%{1}}\
  Requires: kernel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
@@ -78,18 +78,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides less commonly used kernel modules for the %{?2:%{2} }kernel package.\
  %{nil}
  
-@@ -1510,6 +1515,10 @@
+@@ -1548,6 +1553,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.3-20131225.tar.gz
-+patch -sp1 < patches/ccs-patch-3.12-fedora-19.diff
++tar -zxf %_sourcedir/ccs-patch-1.8.3-20140222.tar.gz
++patch -sp1 < patches/ccs-patch-3.13-fedora-19.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1532,6 +1541,18 @@
+@@ -1570,6 +1579,18 @@
  for i in *.config
  do
    mv $i .config
