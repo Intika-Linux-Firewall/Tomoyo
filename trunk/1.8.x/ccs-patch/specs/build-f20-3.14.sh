@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 20's 3.13 kernel.
+# This is a kernel build script for Fedora 20's 3.14 kernel.
 #
 
 die () {
@@ -8,16 +8,16 @@ die () {
     exit 1
 }
 
-yum -y install tar wget rpm-build make gcc patch redhat-rpm-config xmlto asciidoc gnupg elfutils-devel zlib-devel binutils-devel newt-devel python-devel perl-ExtUtils-Embed pciutils-devel hmaccalc bison net-tools audit-libs-devel pesign bc
+yum -y install tar wget rpm-build make gcc patch redhat-rpm-config xmlto asciidoc gnupg elfutils-devel zlib-devel binutils-devel newt-devel python-devel perl-ExtUtils-Embed pciutils-devel hmaccalc bison net-tools audit-libs-devel pesign bc ncurses-devel
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.13.6-200.fc20.src.rpm ]
+if [ ! -r kernel-3.14.3-200.fc20.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/kernel-3.13.6-200.fc20.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/kernel-3.14.3-200.fc20.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.13.6-200.fc20.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.13.6-200.fc20.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.14.3-200.fc20.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.14.3-200.fc20.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20140401.tar.gz ]
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2 and Redistributable, no modification permitted
  URL: http://www.kernel.org/
-@@ -980,7 +985,7 @@
+@@ -973,7 +978,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -1000,7 +1005,7 @@
+@@ -993,7 +998,7 @@
  Provides: kernel%{?1:-%{1}}-modules-extra-uname-r = %{KVERREL}%{?1:+%{1}}\
  Requires: kernel-uname-r = %{KVERREL}%{?1:+%{1}}\
  AutoReqProv: no\
@@ -78,18 +78,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides less commonly used kernel modules for the %{?2:%{2} }kernel package.\
  %{nil}
  
-@@ -1546,6 +1551,10 @@
+@@ -1530,6 +1535,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.3-20140401.tar.gz
-+patch -sp1 < patches/ccs-patch-3.13-fedora-20.diff
++patch -sp1 < patches/ccs-patch-3.14-fedora-20.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1570,6 +1579,18 @@
+@@ -1554,6 +1563,18 @@
  for i in *.config
  do
    mv $i .config
