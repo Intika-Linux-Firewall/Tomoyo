@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.5.0   2011/09/29
+ * Version: 2.5.0+   2014/05/12
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -327,6 +327,7 @@ enum ccs_editpolicy_directives {
 	CCS_DIRECTIVE_FILE_PIVOT_ROOT,
 	CCS_DIRECTIVE_FILE_READ,
 	CCS_DIRECTIVE_FILE_RENAME,
+	CCS_DIRECTIVE_FILE_SWAPNAME,
 	CCS_DIRECTIVE_FILE_RMDIR,
 	CCS_DIRECTIVE_FILE_SYMLINK,
 	CCS_DIRECTIVE_FILE_TRUNCATE,

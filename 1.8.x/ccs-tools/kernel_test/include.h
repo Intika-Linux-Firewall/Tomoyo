@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.3+   2011/12/22
+ * Version: 1.8.3+   2014/05/12
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -55,12 +55,8 @@ struct module;
 #include <net/if.h>
 #include <stdarg.h>
 
-#ifndef __NR_sys_kexec_load
-#ifdef __NR_kexec_load
-#define __NR_sys_kexec_load  __NR_kexec_load
-#endif
-#endif
-/* #define __NR_sys_kexec_load 283 */
+/* #define __NR_kexec_load 283 */
+/* #define __NR_renameat2 353 */
 
 static inline pid_t gettid(void)
 {
@@ -88,15 +84,24 @@ static inline int tgkill(int tgid, int tid, int sig)
 	return syscall(__NR_tgkill, tgid, tid, sig);
 }
 #endif
-#ifdef __NR_sys_kexec_load
+#ifdef __NR_kexec_load
 struct kexec_segment;
 static inline long sys_kexec_load(unsigned long entry,
 				  unsigned long nr_segments,
 				  struct kexec_segment *segments,
 				  unsigned long flags)
 {
-	return (long) syscall(__NR_sys_kexec_load, entry, nr_segments,
-			      segments, flags);
+	return (long) syscall(__NR_kexec_load, entry, nr_segments, segments,
+			      flags);
+}
+#endif
+#ifdef __NR_renameat2
+static inline int sys_renameat2(int olddfd, const char *oldname,
+				int newdfd, const char *newname,
+				unsigned int flags)
+{
+	return syscall(__NR_renameat2, olddfd, oldname, newdfd, newname,
+		       flags);
 }
 #endif
 /* reboot() in glibc takes just one argument. */
@@ -139,6 +144,9 @@ static void clear_status(void)
 		"file::mkchar",
 		"file::link",
 		"file::rename",
+#ifdef __NR_renameat2
+		"file::swapname",
+#endif
 		"file::chmod",
 		"file::chown",
 		"file::chgrp",

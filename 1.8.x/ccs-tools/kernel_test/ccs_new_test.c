@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.3   2013/02/14
+ * Version: 1.8.3+   2014/05/12
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -441,7 +441,7 @@ static void test_use_kernel_module(void)
 
 static void test_SYS_KEXEC_LOAD(void)
 {
-#ifdef __NR_sys_kexec_load
+#ifdef __NR_kexec_load
 	if (is_kernel26) {
 		result = sys_kexec_load(0, 0, NULL, 0);
 		return;

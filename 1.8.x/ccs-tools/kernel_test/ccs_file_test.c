@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.3   2011/09/29
+ * Version: 1.8.3+   2014/05/12
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -74,25 +74,29 @@ static void show_result(int result)
 	}
 }
 
-static const char *dev_null_path       = "/dev/null";
-static const char *truncate_path       = "/tmp/truncate_test";
-static const char *ftruncate_path      = "/tmp/ftruncate_test";
-static const char *open_creat_path     = "/tmp/open_test";
-static const char *mknod_reg_path      = "/tmp/mknod_reg_test";
-static const char *mknod_chr_path      = "/tmp/mknod_chr_test";
-static const char *mknod_blk_path      = "/tmp/mknod_blk_test";
-static const char *mknod_fifo_path     = "/tmp/mknod_fifo_test";
-static const char *mknod_sock_path     = "/tmp/mknod_sock_test";
-static const char *unlink_path         = "/tmp/unlink_test";
-static const char *mkdir_path          = "/tmp/mkdir_test";
-static const char *rmdir_path          = "/tmp/rmdir_test";
-static const char *link_source_path    = "/tmp/link_source_test";
-static const char *link_dest_path      = "/tmp/link_dest_test";
-static const char *symlink_source_path = "/tmp/symlink_source_test";
-static const char *symlink_dest_path   = "/tmp/symlink_dest_test";
-static const char *rename_source_path  = "/tmp/rename_source_test";
-static const char *rename_dest_path    = "/tmp/rename_dest_test";
-static const char *socket_path         = "/tmp/socket_test";
+static const char *dev_null_path        = "/dev/null";
+static const char *truncate_path        = "/tmp/truncate_test";
+static const char *ftruncate_path       = "/tmp/ftruncate_test";
+static const char *open_creat_path      = "/tmp/open_test";
+static const char *mknod_reg_path       = "/tmp/mknod_reg_test";
+static const char *mknod_chr_path       = "/tmp/mknod_chr_test";
+static const char *mknod_blk_path       = "/tmp/mknod_blk_test";
+static const char *mknod_fifo_path      = "/tmp/mknod_fifo_test";
+static const char *mknod_sock_path      = "/tmp/mknod_sock_test";
+static const char *unlink_path          = "/tmp/unlink_test";
+static const char *mkdir_path           = "/tmp/mkdir_test";
+static const char *rmdir_path           = "/tmp/rmdir_test";
+static const char *link_source_path     = "/tmp/link_source_test";
+static const char *link_dest_path       = "/tmp/link_dest_test";
+static const char *symlink_source_path  = "/tmp/symlink_source_test";
+static const char *symlink_dest_path    = "/tmp/symlink_dest_test";
+static const char *rename_source_path   = "/tmp/rename_source_test";
+static const char *rename_dest_path     = "/tmp/rename_dest_test";
+#ifdef __NR_renameat2
+static const char *swapname_source_path = "/tmp/swapname_source_test";
+static const char *swapname_dest_path   = "/tmp/swapname_dest_test";
+#endif
+static const char *socket_path          = "/tmp/socket_test";
 
 static int ftruncate_fd = EOF;
 
@@ -202,6 +206,12 @@ static void stage_file_test(void)
 	show_prompt("rename()");
 	show_result(rename(rename_source_path, rename_dest_path));
 
+#ifdef __NR_renameat2
+	show_prompt("renameat2()");
+	show_result(sys_renameat2(AT_FDCWD, swapname_source_path, AT_FDCWD,
+				  swapname_dest_path, 2));
+#endif
+
 	{
 		struct sockaddr_un addr;
 		int fd;
@@ -223,6 +233,10 @@ static void create_files(void)
 	mkdir(rmdir_path, 0700);
 	close(creat(link_source_path, 0600));
 	close(creat(rename_source_path, 0600));
+#ifdef __NR_renameat2
+	close(creat(swapname_source_path, 0600));
+	close(creat(swapname_dest_path, 0600));
+#endif
 	close(creat(truncate_path, 0600));
 	close(creat(unlink_path, 0600));
 	ftruncate_fd = open(ftruncate_path, O_WRONLY | O_CREAT, 0600);
@@ -246,6 +260,10 @@ static void creanup_files(void)
 	unlink(link_dest_path);
 	unlink(rename_source_path);
 	unlink(rename_dest_path);
+#ifdef __NR_renameat2
+	unlink(swapname_source_path);
+	unlink(swapname_dest_path);
+#endif
 	unlink(truncate_path);
 	unlink(ftruncate_path);
 	unlink(socket_path);
@@ -268,6 +286,9 @@ static void set_file_enforce(int enforce)
 		set_profile(3, "file::mkchar");
 		set_profile(3, "file::link");
 		set_profile(3, "file::rename");
+#ifdef __NR_renameat2
+		set_profile(3, "file::swapname");
+#endif
 		set_profile(3, "file::chmod");
 		set_profile(3, "file::chown");
 		set_profile(3, "file::chgrp");
@@ -291,6 +312,9 @@ static void set_file_enforce(int enforce)
 		set_profile(0, "file::mkchar");
 		set_profile(0, "file::link");
 		set_profile(0, "file::rename");
+#ifdef __NR_renameat2
+		set_profile(0, "file::swapname");
+#endif
 		set_profile(0, "file::chmod");
 		set_profile(0, "file::chown");
 		set_profile(0, "file::chgrp");

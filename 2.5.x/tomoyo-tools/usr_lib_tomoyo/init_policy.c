@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.5.0+   2014/01/05
+ * Version: 2.5.0+   2014/05/12
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -1283,6 +1283,7 @@ static const char editpolicy_data[] =
 "keyword_alias file pivot_root               = file pivot_root\n"
 "keyword_alias file read                     = file read\n"
 "keyword_alias file rename                   = file rename\n"
+"keyword_alias file swapname                 = file swapname\n"
 "keyword_alias file rmdir                    = file rmdir\n"
 "keyword_alias file symlink                  = file symlink\n"
 "keyword_alias file truncate                 = file truncate\n"

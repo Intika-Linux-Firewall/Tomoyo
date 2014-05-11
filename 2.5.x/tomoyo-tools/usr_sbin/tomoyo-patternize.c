@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.5.0   2011/09/29
+ * Version: 2.5.0+   2014/05/12
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -453,6 +453,7 @@ static void ccs_process_line(char *sp)
 					path_count = 1;
 				} else if (strstr(cp, "link")   ||
 					   strstr(cp, "rename") ||
+					   strstr(cp, "swapname") ||
 					   strstr(cp, "pivot_root")) {
 					path_count = 2;
 				} else if (strstr(cp, "create") ||
