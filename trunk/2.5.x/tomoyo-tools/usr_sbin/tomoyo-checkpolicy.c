@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.5.0+   2012/08/05
+ * Version: 2.5.0+   2014/05/12
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -582,6 +582,7 @@ static _Bool ccs_check_file(char *arg)
 		{ "pivot_root", ccs_check_path2 },
 		{ "read", ccs_check_path },
 		{ "rename", ccs_check_path2 },
+		{ "swapname", ccs_check_path2 },
 		{ "rmdir", ccs_check_path },
 		{ "symlink", ccs_check_path },
 		{ "truncate", ccs_check_path },
