@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.5.0+   2014/05/12
+ * Version: 2.5.0   2011/09/29
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -304,7 +304,6 @@ struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX] = {
 	[CCS_DIRECTIVE_FILE_PIVOT_ROOT] = { "file pivot_root", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_READ]     = { "file read", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_RENAME]   = { "file rename", NULL, 0, 0 },
-	[CCS_DIRECTIVE_FILE_SWAPNAME] = { "file swapname", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_RMDIR]    = { "file rmdir", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_SYMLINK]  = { "file symlink", NULL, 0, 0 },
 	[CCS_DIRECTIVE_FILE_TRUNCATE] = { "file truncate", NULL, 0, 0 },

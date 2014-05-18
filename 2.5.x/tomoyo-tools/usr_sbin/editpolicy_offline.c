@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.5.0+   2014/05/12
+ * Version: 2.5.0+   2013/02/27
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -254,7 +254,6 @@ enum ccs_mac_index {
 	CCS_MAC_FILE_MKCHAR,
 	CCS_MAC_FILE_LINK,
 	CCS_MAC_FILE_RENAME,
-	CCS_MAC_FILE_SWAPNAME,
 	CCS_MAC_FILE_CHMOD,
 	CCS_MAC_FILE_CHOWN,
 	CCS_MAC_FILE_CHGRP,
@@ -341,7 +340,6 @@ enum ccs_network_acl_index {
 enum ccs_path2_acl_index {
 	CCS_TYPE_LINK,
 	CCS_TYPE_RENAME,
-	CCS_TYPE_SWAPNAME,
 	CCS_TYPE_PIVOT_ROOT,
 	CCS_MAX_PATH2_OPERATION
 };
@@ -674,8 +672,7 @@ struct ccs_path_acl {
 };
 
 /*
- * Structure for "file rename", "file swapname", "file link" and
- * "file pivot_root" directive.
+ * Structure for "file rename", "file link" and "file pivot_root" directive.
  */
 struct ccs_path2_acl {
 	struct ccs_acl_info head; /* type = CCS_TYPE_PATH2_ACL */
@@ -850,7 +847,6 @@ static const char * const ccs_mac_keywords[CCS_MAX_MAC_INDEX
 	[CCS_MAC_FILE_MKCHAR]     = "mkchar",
 	[CCS_MAC_FILE_LINK]       = "link",
 	[CCS_MAC_FILE_RENAME]     = "rename",
-	[CCS_MAC_FILE_SWAPNAME]   = "swapname",
 	[CCS_MAC_FILE_CHMOD]      = "chmod",
 	[CCS_MAC_FILE_CHOWN]      = "chown",
 	[CCS_MAC_FILE_CHGRP]      = "chgrp",
@@ -1035,7 +1031,6 @@ static const u8 ccs_pnnn2mac[CCS_MAX_MKDEV_OPERATION] = {
 static const u8 ccs_pp2mac[CCS_MAX_PATH2_OPERATION] = {
 	[CCS_TYPE_LINK]       = CCS_MAC_FILE_LINK,
 	[CCS_TYPE_RENAME]     = CCS_MAC_FILE_RENAME,
-	[CCS_TYPE_SWAPNAME]   = CCS_MAC_FILE_SWAPNAME,
 	[CCS_TYPE_PIVOT_ROOT] = CCS_MAC_FILE_PIVOT_ROOT,
 };
 
@@ -1174,7 +1169,6 @@ static const u8 ccs_index2category[CCS_MAX_MAC_INDEX] = {
 	[CCS_MAC_FILE_MKCHAR]     = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_LINK]       = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_RENAME]     = CCS_MAC_CATEGORY_FILE,
-	[CCS_MAC_FILE_SWAPNAME]   = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_CHMOD]      = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_CHOWN]      = CCS_MAC_CATEGORY_FILE,
 	[CCS_MAC_FILE_CHGRP]      = CCS_MAC_CATEGORY_FILE,
