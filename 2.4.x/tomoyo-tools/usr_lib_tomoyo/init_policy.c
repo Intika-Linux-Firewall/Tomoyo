@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.4.0+   2011/10/25
+ * Version: 2.4.0+   2014/06/01
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -306,6 +306,32 @@ static void scan_init_scripts(void)
 }
 
 /**
+ * make_systemd_exceptions - Exceptions specific to systemd
+ *
+ * Returns nothing.
+ */
+static void make_systemd_exceptions(void)
+{
+	/* allow systemd to re-execute itself */
+	static const char * const systemd[] = {
+		"/lib/systemd/systemd",
+		"/usr/lib/systemd/systemd",
+	};
+	int i;
+	keyword = NULL;
+	for (i = 0; i < elementof(systemd); i++) {
+		/* Check realpath because /lib may be a symlink to /usr/lib .*/
+		char *path = get_realpath(systemd[i]);
+		if (!path)
+			continue;
+		fprintf(filp, "keep_domain ");
+		printf_encoded(path);
+		fprintf(filp, " from <kernel> /sbin/init\n");
+		free(path);
+	}
+}
+
+/**
  * make_init_scripts_as_aggregators - Use realpath for startup/shutdown scripts in /etc/ directory.
  *
  * Returns nothing.
@@ -460,6 +486,22 @@ static void make_ldconfig_readable_files(void)
 		"/usr/lib/tls/i686/", "/usr/lib/tls/i686/cmov/",
 		"/usr/lib/sse2/", "/usr/X11R6/lib/", "/usr/lib32/",
 		"/usr/lib64/", "/lib64/", "/lib64/tls/",
+		"/usr/lib/x86_64-linux-gnu/", "/lib/x86_64-linux-gnu/",
+		"/usr/lib/i386-linux-gnu/", "/lib/i386-linux-gnu/",
+		"/usr/lib/arm-linux-gnueabihf/", "/lib/arm-linux-gnueabihf/",
+		"/usr/lib/arm-linux-gnueabi/", "/lib/arm-linux-gnueabi/",
+		"/usr/lib/aarch64-linux-gnu/", "/lib/aarch64-linux-gnu/",
+		"/usr/lib/ia64-linux-gnu/", "/lib/ia64-linux-gnu/",
+		"/usr/lib/mips-linux-gnu/", "/lib/mips-linux-gnu/",
+		"/usr/lib/mipsel-linux-gnu/", "/lib/mipsel-linux-gnu/",
+		"/usr/lib/powerpc-linux-gnu/", "/lib/powerpc-linux-gnu/",
+		"/usr/lib/ppc64-linux-gnu/", "/lib/ppc64-linux-gnu/",
+		"/usr/lib/s390-linux-gnu/", "/lib/s390-linux-gnu/",
+		"/usr/lib/s390x-linux-gnu/", "/lib/s390x-linux-gnu/",
+		"/usr/lib/sh4-linux-gnu/", "/lib/sh4-linux-gnu/",
+		"/usr/lib/sparc-linux-gnu/", "/lib/sparc-linux-gnu/",
+		"/usr/lib/sparc64-linux-gnu/", "/lib/sparc64-linux-gnu/",
+		"/usr/lib/x86_64-linux-gnux32/", "/lib/x86_64-linux-gnux32/",
 	};
 	int i;
 	FILE *fp = !access("/sbin/ldconfig", X_OK) ||
@@ -814,6 +856,7 @@ static void make_exception_policy(void)
 	make_init_dir_as_initializers();
 	make_initializers();
 	make_init_scripts_as_aggregators();
+	make_systemd_exceptions();
 	/* Some applications do execve("/proc/self/exe"). */
 	fprintf(filp, "aggregator proc:/self/exe /proc/self/exe\n");
 	close_file(filp, chdir_policy(), "exception_policy.tmp",

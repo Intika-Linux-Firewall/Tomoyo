@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.3+   2013/02/27
+ * Version: 1.8.3+   2014/06/01
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -4609,8 +4609,10 @@ static void ccs_read_exception(void)
 		head.ns = ns;
 		ccs_read_policy(ns);
 		ccs_read_group(ns);
-		for (i = 0; i < CCS_MAX_ACL_GROUPS; i++)
+		for (i = 0; i < CCS_MAX_ACL_GROUPS; i++) {
+			head.acl_group_index = i;
 			ccs_read_domain2(&ns->acl_group[i]);
+		}
 	}
 	head.eof = true;
 }
