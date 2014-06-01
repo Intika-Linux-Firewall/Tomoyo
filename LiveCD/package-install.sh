@@ -16,10 +16,10 @@ mount -t proc none /proc/
 mount -t sysfs none /sys/
 mount -t devpts none /dev/pts/
 
-wget http://osdn.dl.sourceforge.jp/tomoyo/55680/tomoyo-tools_2.5.0-6_i386.deb
-echo '2a549f714d6444b97b0fe91f0e2757e8  tomoyo-tools_2.5.0-6_i386.deb' | md5sum -c - || rm -f tomoyo-tools_2.5.0-6_i386.deb
-dpkg-deb -x tomoyo-tools_2.5.0-6_i386.deb /
-rm -f tomoyo-tools_2.5.0-6_i386.deb
+wget http://osdn.dl.sourceforge.jp/tomoyo/55680/tomoyo-tools_2.5.0-8_i386.deb
+echo '93562e9f3d5f0bb3ae1f9d042e29c5fe  tomoyo-tools_2.5.0-8_i386.deb' | md5sum -c - || rm -f tomoyo-tools_2.5.0-8_i386.deb
+dpkg-deb -x tomoyo-tools_2.5.0-8_i386.deb /
+rm -f tomoyo-tools_2.5.0-8_i386.deb
 
 wget -O - http://I-love.SAKURA.ne.jp/kumaneko-key | apt-key add - || die "Can't install key."
 grep -qF tomoyo.sourceforge.jp /sources.list || echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu12.04/ ./' >> /sources.list
