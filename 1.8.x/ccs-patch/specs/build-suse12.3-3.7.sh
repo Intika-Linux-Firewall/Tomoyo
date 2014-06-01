@@ -60,24 +60,24 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-3.7.10-1.28.1.src.rpm ]
+if [ ! -r kernel-source-3.7.10-1.32.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/12.3/src/kernel-source-3.7.10-1.28.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/12.3/src/kernel-source-3.7.10-1.32.1.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-source-3.7.10-1.28.1.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-source-3.7.10-1.28.1.src.rpm || die "Can't install source package."
+rpm --checksig kernel-source-3.7.10-1.32.1.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-source-3.7.10-1.32.1.src.rpm || die "Can't install source package."
 
-if [ ! -r kernel-default-3.7.10-1.28.1.nosrc.rpm ]
+if [ ! -r kernel-default-3.7.10-1.32.1.nosrc.rpm ]
 then
-    wget http://download.opensuse.org/update/12.3/nosrc/kernel-default-3.7.10-1.28.1.nosrc.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/12.3/nosrc/kernel-default-3.7.10-1.32.1.nosrc.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-default-3.7.10-1.28.1.nosrc.rpm || die "Can't verify signature."
-rpm -ivh kernel-default-3.7.10-1.28.1.nosrc.rpm || die "Can't install source package."
+rpm --checksig kernel-default-3.7.10-1.32.1.nosrc.rpm || die "Can't verify signature."
+rpm -ivh kernel-default-3.7.10-1.32.1.nosrc.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20140401.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20140601.tar.gz ]
 then
-    wget -O ccs-patch-1.8.3-20140401.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20140401.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20140601.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20140601.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -85,26 +85,28 @@ cp -p /usr/src/packages/SPECS/kernel-default.spec . || die "Can't copy spec file
 patch << "EOF" || die "Can't patch spec file."
 --- kernel-default.spec
 +++ kernel-default.spec
+@@ -57,13 +57,13 @@
  %define install_vdso 0
  %endif
  
 -Name:           kernel-default
 +Name:           ccs-kernel-default
  Summary:        The Standard Kernel
+ Version:        3.7.10
+ %if 0%{?is_kotd}
+ Release:        1.32.1.g5978d00
+ %else
+-Release:        1.32.1
++Release:        1.32.1_tomoyo_1.8.3p7
+ %endif
  License:        GPL-2.0
  Group:          System/Kernel
- Version:        3.7.10
--Release:        1.28.1
-+Release:        1.28.1_tomoyo_1.8.3p7
- %if 0%{?is_kotd}
- %else
- %endif
-@@ -336,6 +336,11 @@
+@@ -331,6 +331,11 @@
  %endif
  	%_sourcedir/series.conf .. $SYMBOLS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.3-20140401.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.3-20140601.tar.gz
 +patch -sp1 < patches/ccs-patch-3.7-suse-12.3.diff
 +cat config.ccs >> ../config/%cpu_arch_flavor
 +
