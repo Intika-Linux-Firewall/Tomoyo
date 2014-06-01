@@ -2,7 +2,7 @@ Summary: Userspace tools for TOMOYO Linux 2.4.x
 
 Name: tomoyo-tools
 Version: 2.4.0
-Release: 6
+Release: 7
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
@@ -15,9 +15,9 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: tomoyo-tools < 2.4.0-6
+Conflicts: tomoyo-tools < 2.4.0-7
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/52848/tomoyo-tools-2.4.0-20130406.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/52848/tomoyo-tools-2.4.0-20140601.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 2.4.x.
@@ -52,6 +52,11 @@ ldconfig || true
 /usr/share/man/man8/
 
 %changelog
+* Sun Jun 01 2014 2.4.0-7
+- Let init_policy add path to systemd , as suggested by Shawn Landden.
+- Let tomoyo-queryd use poll() rather than select().
+- Let tomoyo-editpolicy print "acl_group $N" correctly when using offline mode.
+
 * Sat Apr 06 2013 2.4.0-6
 - Fix compile warning from clang.
 
