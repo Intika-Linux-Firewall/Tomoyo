@@ -124,7 +124,7 @@ $ make -s menuconfig
 
 <p><em>Location of userspace policy loader</em> オプションは、 <em>Activate without calling userspace policy loader.</em> オプションを選択しない場合のみ指定できます。このオプションにはポリシーローダとして使用するパス名のデフォルトを指定します。この設定は、カーネルのコマンドラインで TOMOYO_loader= オプションで上書きできます。</p>
 
-<p><em>Trigger for calling userspace policy loader</em> オプションは、 <em>Activate without calling userspace policy loader.</em> オプションを選択しない場合のみ指定できます。このオプションにはアクセス制御を開始するトリガとして利用するパス名のデフォルトを指定します。この設定は、カーネルのコマンドラインで TOMOYO_trigger= オプションで上書きできます。例えば、 init=/bin/systemd というオプションを指定する場合、 TOMOYO_trigger=/bin/systemd というオプションも指定することになるでしょう。</p>
+<p><em>Trigger for calling userspace policy loader</em> オプションは、 <em>Activate without calling userspace policy loader.</em> オプションを選択しない場合のみ指定できます。このオプションにはアクセス制御を開始するトリガとして利用するパス名のデフォルトを指定します。この設定は、カーネルのコマンドラインで TOMOYO_trigger= オプションで上書きできます。例えば、 init=/usr/lib/systemd/systemd というオプションを指定する場合、 TOMOYO_trigger=/usr/lib/systemd/systemd というオプションも指定することになるでしょう。</p>
 
 <h4><a name="3.1.5">3.1.5. カーネルのコンパイルおよびインストール</a></h4>
 
@@ -165,7 +165,7 @@ $ su
 
 <h3><a name="3.3">3.3. 設定の初期化</a></h3>
 
-<p>管理ツールを実行するときに便利なように、管理ツールのインストールされているディレクトリ（ /usr/sbin ）を環境変数 PATH に追加したいと思うかもしれません。 <code>/bin/bash</code> を使用している場合、以下の行を ~/.bashrc に追加してください：</p>
+<p>管理ツールを実行するときに便利なように、管理ツールのインストールされているディレクトリ（ /usr/sbin ）を環境変数 PATH に追加したいと思うかもしれません。 bash を使用している場合、以下の行を ~/.bashrc に追加してください：</p>
 
 <pre>
 export PATH=$PATH:/usr/sbin
@@ -198,7 +198,7 @@ Creating configuration file for tomoyo-notifyd ... OK
 
 <p>前述の手順でインストールされたカーネルをブートローダ（例えば GRUB など）から選択できるように、ブートローダの設定を行ってください。もし、カーネルコンフィグで CONFIG_DEFAULT_SECURITY_TOMOYO=y という指定が行われていない場合、 security=tomoyo という指定をカーネル起動時のコマンドラインオプションに含めることを忘れないでください。ディストリビューションにより、ブートローダの設定ファイルの場所が異なります。 GRUB バージョン１を利用している場合には /boot/grub/grub.conf または /boot/grub/menu.lst のどちらか、 GRUB バージョン２を利用している場合には /boot/grub/grub.cfg または /boot/grub2/grub.cfg のどちらかであると思います。詳しくはお使いのディストリビューションのドキュメントを参照してください。</p>
 
-<p>Fedora 17 では /sbin/init は /usr/lib/systemd/systemd へのシンボリックリンクとして存在しています。しかし、 initramfs 内の /init スクリプトは /sbin/init （ readlink コマンドに渡すパス名）ではなく /usr/lib/systemd/systemd （ readlink コマンドが表示したパス名）を実行しようとします：</p>
+<p>RHEL 7 では /sbin/init は /usr/lib/systemd/systemd へのシンボリックリンクとして存在しています。しかし、 initramfs 内の init スクリプトは /sbin/init （ readlink コマンドに渡すパス名）ではなく /usr/lib/systemd/systemd （ readlink コマンドが表示したパス名）を実行しようとします：</p>
 
 <pre>
 # By the time we get here, the root filesystem should be mounted.
@@ -207,17 +207,17 @@ for i in "$(getarg real_init=)" "$(getarg init=)" $(getargs rd.distroinit=) /sbi
     [ -n "$i" ] || continue
 
     __p=$(readlink -f "${NEWROOT}/${i}")
-    if [ -x "$__p" ]; then
+    if [ -x "$__p" -o -x "${NEWROOT}/${__p}" ]; then
         INIT="$i"
         break
     fi
 done
 </pre>
 
-<p>そのため、 Fedora 17 では、 TOMOYO を有効にするトリガは /sbin/init ではなく /usr/lib/systemd/systemd となります。 <a href="#3.1.4">3.1.4. カーネルコンパイルオプションの設定</a>で /usr/lib/systemd/systemd を指定しなかった場合、 TOMOYO_trigger=/usr/lib/systemd/systemd という指定をする必要があります。 /boot/grub2/grub.cfg を直接編集するだけでも構いません。しかし、将来カーネルパッケージをアップデートする場合のために、以下のように /etc/default/grub の GRUB_CMDLINE_LINUX 行も編集しておくことを推奨します：</p>
+<p>そのため、 RHEL 7 では、 TOMOYO を有効にするトリガは /sbin/init ではなく /usr/lib/systemd/systemd となります。 <a href="#3.3.3">3.3.3. カーネルコンパイルオプションの設定</a>で /usr/lib/systemd/systemd を指定しなかった場合、 TOMOYO_trigger=/usr/lib/systemd/systemd という指定をする必要があります。 /boot/grub2/grub.cfg を直接編集するだけでも構いません。しかし、将来カーネルパッケージをアップデートする場合のために、以下のように /etc/default/grub の GRUB_CMDLINE_LINUX 行も編集しておくことを推奨します：</p>
 
 <pre>
-GRUB_CMDLINE_LINUX="rd.md=0 rd.lvm=0 rd.dm=0 SYSFONT=True rd.luks=0 KEYTABLE=jp106 LANG=ja_JP.UTF-8 rhgb quiet security=tomoyo TOMOYO_trigger=/usr/lib/systemd/systemd"
+GRUB_CMDLINE_LINUX="vconsole.keymap=jp106 crashkernel=auto  vconsole.font=latarcyrheb-sun16 rhgb quiet TOMOYO_trigger=/usr/lib/systemd/systemd"
 </pre>
 
 <h3><a name="3.5">3.5. システムの再起動</a></h3>
