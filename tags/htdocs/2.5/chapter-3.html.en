@@ -124,7 +124,7 @@ $ make -s menuconfig
 
 <p><em>Location of userspace policy loader</em> is available only when <em>Activate without calling userspace policy loader.</em> is not selected. This option specifies the default pathname of the userspace policy loader. You can override this setting via the "TOMOYO_loader=" kernel command-line option.</p>
 
-<p><em>Trigger for calling userspace policy loader</em> is available only when <em>Activate without calling userspace policy loader.</em> is not selected. This option specifies the default pathname of the activation trigger. You can override this setting via the "TOMOYO_trigger=" kernel command-line option. For example, if you pass "init=/bin/systemd" option, you may also want to pass "TOMOYO_trigger=/bin/systemd" option.</p>
+<p><em>Trigger for calling userspace policy loader</em> is available only when <em>Activate without calling userspace policy loader.</em> is not selected. This option specifies the default pathname of the activation trigger. You can override this setting via the "TOMOYO_trigger=" kernel command-line option. For example, if you pass "init=/usr/lib/systemd/systemd" option, you may also want to pass "TOMOYO_trigger=/usr/lib/systemd/systemd" option.</p>
 
 <h4><a name="3.1.5">3.1.5. Compile and install the kernel</a></h4>
 
@@ -165,7 +165,7 @@ $ su
 
 <h3><a name="3.3">3.3. Initialize configuration</a></h3>
 
-<p>You will probably want to add the location of the userspace tools (/usr/sbin) to your PATH so that the commands can be run easily. If you are using <code>/bin/bash</code>, append the following line to ~/.bashrc:</p>
+<p>You will probably want to add the location of the userspace tools (/usr/sbin) to your PATH so that the commands can be run easily. If you are using bash, append the following line to ~/.bashrc:</p>
 
 <pre>
 export PATH=$PATH:/usr/sbin
@@ -198,7 +198,7 @@ Creating configuration file for tomoyo-notifyd ... OK
 
 <p>Now edit your bootloader (e.g. GRUB) to include the kernel you have just compiled. If your kernel config does not contain "CONFIG_DEFAULT_SECURITY_TOMOYO=y", then edit your bootloader to include "security=tomoyo" in the kernel boot options. Depending on your distribution, the bootloader configuration file will probably be one of "/boot/grub/grub.conf" or "/boot/grub/menu.lst" (for GRUB version 1) or "/boot/grub/grub.cfg" or "/boot/grub2/grub.cfg" (for GRUB version 2). Consult your distribution documentation for information on how to configure the bootloader.</p>
 
-<p>In Fedora 17, /sbin/init exists as a symlink to /usr/lib/systemd/systemd . However, since /init script in the initramfs tries to execute /usr/lib/systemd/systemd (the pathname printed by readlink command) rather than /sbin/init (the pathname passed to readlink command), the trigger for activating TOMOYO is /usr/lib/systemd/systemd rather than /sbin/init :</p>
+<p>In RHEL 7, /sbin/init exists as a symlink to /usr/lib/systemd/systemd . However, since init script in the initramfs tries to execute /usr/lib/systemd/systemd (the pathname printed by readlink command) rather than /sbin/init (the pathname passed to readlink command), the trigger for activating TOMOYO is /usr/lib/systemd/systemd rather than /sbin/init :</p>
 
 <pre>
 # By the time we get here, the root filesystem should be mounted.
@@ -207,17 +207,17 @@ for i in "$(getarg real_init=)" "$(getarg init=)" $(getargs rd.distroinit=) /sbi
     [ -n "$i" ] || continue
 
     __p=$(readlink -f "${NEWROOT}/${i}")
-    if [ -x "$__p" ]; then
+    if [ -x "$__p" -o -x "${NEWROOT}/${__p}" ]; then
         INIT="$i"
         break
     fi
 done
 </pre>
 
-<p>Therefore, in Fedora 17, you need to include "TOMOYO_trigger=/usr/lib/systemd/systemd" in the kernel boot options if you didn't specify /usr/lib/systemd/systemd at <a href="#3.1.4">3.1.4. Configure the kernel</a>. You may directly edit /boot/grub2/grub.cfg file. But it is recommended that you also modify GRUB_CMDLINE_LINUX line in /etc/default/grub file like below in case you update kernel packages in the future:</p>
+<p>Therefore, in RHEL 7, you need to include "TOMOYO_trigger=/usr/lib/systemd/systemd" in the kernel boot options if you didn't specify /usr/lib/systemd/systemd at <a href="#3.3.3">3.3.3. Configure the kernel</a>. You may directly edit /boot/grub2/grub.cfg file. But it is recommended that you also modify GRUB_CMDLINE_LINUX line in /etc/default/grub file like below in case you update kernel packages in the future:</p>
 
 <pre>
-GRUB_CMDLINE_LINUX="rd.md=0 rd.lvm=0 rd.dm=0 SYSFONT=True rd.luks=0 KEYTABLE=en LANG=en_US.UTF-8 rhgb quiet security=tomoyo TOMOYO_trigger=/usr/lib/systemd/systemd"
+GRUB_CMDLINE_LINUX="vconsole.keymap=us crashkernel=auto  vconsole.font=latarcyrheb-sun16 rhgb quiet security=tomoyo TOMOYO_trigger=/usr/lib/systemd/systemd"
 </pre>
 
 <h3><a name="3.5">3.5. Rebooting your system</a></h3>

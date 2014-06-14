@@ -32,6 +32,17 @@
 <h4>ChangeLog for tomoyo-tools 2.4.0</h4>
 
 <pre>
+Version 2.4.0p6 2014/06/01   Bug fix release.
+
+  /usr/lib/tomoyo/init_policy
+    Add path to systemd , as suggested by Shawn Landden.
+
+  /usr/sbin/tomoyo-queryd
+    Use poll() rather than select().
+
+  /usr/sbin/tomoyo-editpolicy
+    Print "acl_group $N" correctly when using offline mode.
+
 Version 2.4.0p5 2013/04/06   Packaging fix release.
 
   Fix compile warning from clang.

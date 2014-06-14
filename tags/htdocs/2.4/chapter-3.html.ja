@@ -133,7 +133,7 @@ $ make -s menuconfig
 
 <p><em>Location of userspace policy loader</em> オプションは、 <em>Activate without calling userspace policy loader.</em> オプションを選択しない場合のみ指定できます。このオプションにはポリシーローダとして使用するパス名のデフォルトを指定します。この設定は、カーネルのコマンドラインで TOMOYO_loader= オプションで上書きできます。</p>
 
-<p><em>Trigger for calling userspace policy loader</em> オプションは、 <em>Activate without calling userspace policy loader.</em> オプションを選択しない場合のみ指定できます。このオプションにはアクセス制御を開始するトリガとして利用するパス名のデフォルトを指定します。この設定は、カーネルのコマンドラインで TOMOYO_trigger= オプションで上書きできます。例えば、 init=/bin/systemd というオプションを指定する場合、 TOMOYO_trigger=/bin/systemd というオプションも指定することになるでしょう。</p>
+<p><em>Trigger for calling userspace policy loader</em> オプションは、 <em>Activate without calling userspace policy loader.</em> オプションを選択しない場合のみ指定できます。このオプションにはアクセス制御を開始するトリガとして利用するパス名のデフォルトを指定します。この設定は、カーネルのコマンドラインで TOMOYO_trigger= オプションで上書きできます。例えば、 init=/usr/lib/systemd/systemd というオプションを指定する場合、 TOMOYO_trigger=/usr/lib/systemd/systemd というオプションも指定することになるでしょう。</p>
 
 <h4><a name="3.1.5">3.1.5. カーネルのコンパイルおよびインストール</a></h4>
 
@@ -174,7 +174,7 @@ $ su
 
 <h3><a name="3.3">3.3. 設定の初期化</a></h3>
 
-<p>管理ツールを実行するときに便利なように、管理ツールのインストールされているディレクトリ（ /usr/sbin ）を環境変数 PATH に追加したいと思うかもしれません。 <code>/bin/bash</code> を使用している場合、以下の行を ~/.bashrc に追加してください：</p>
+<p>管理ツールを実行するときに便利なように、管理ツールのインストールされているディレクトリ（ /usr/sbin ）を環境変数 PATH に追加したいと思うかもしれません。 bash を使用している場合、以下の行を ~/.bashrc に追加してください：</p>
 
 <pre>
 export PATH=$PATH:/usr/sbin

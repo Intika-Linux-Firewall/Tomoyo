@@ -219,7 +219,7 @@ $ make -s menuconfig
 
 <p><em>Location of userspace policy loader</em> オプションは、 <em>Activate without calling userspace policy loader.</em> オプションを選択しない場合のみ指定できます。このオプションにはポリシーローダとして使用するパス名のデフォルトを指定します。この設定は、カーネルのコマンドラインで CCS_loader= オプションで上書きできます。</p>
 
-<p><em>Trigger for calling userspace policy loader</em> オプションは、 <em>Activate without calling userspace policy loader.</em> オプションを選択しない場合のみ指定できます。このオプションにはアクセス制御を開始するトリガとして利用するパス名のデフォルトを指定します。この設定は、カーネルのコマンドラインで CCS_trigger= オプションで上書きできます。例えば、 init=/bin/systemd というオプションを指定する場合、 CCS_trigger=/bin/systemd というオプションも指定することになるでしょう。</p>
+<p><em>Trigger for calling userspace policy loader</em> オプションは、 <em>Activate without calling userspace policy loader.</em> オプションを選択しない場合のみ指定できます。このオプションにはアクセス制御を開始するトリガとして利用するパス名のデフォルトを指定します。この設定は、カーネルのコマンドラインで CCS_trigger= オプションで上書きできます。例えば、 init=/usr/lib/systemd/systemd というオプションを指定する場合、 CCS_trigger=/usr/lib/systemd/systemd というオプションも指定することになるでしょう。</p>
 
 <h4><a name="3.3.4">3.3.4. カーネルのコンパイルおよびインストール</a></h4>
 
@@ -260,7 +260,7 @@ $ su
 
 <h3><a name="3.4">3.4. 設定の初期化</a></h3>
 
-<p>管理ツールを実行するときに便利なように、管理ツールのインストールされているディレクトリ（ /usr/sbin ）を環境変数 PATH に追加したいと思うかもしれません。 <code>/bin/bash</code> を使用している場合、以下の行を ~/.bashrc に追加してください：</p>
+<p>管理ツールを実行するときに便利なように、管理ツールのインストールされているディレクトリ（ /usr/sbin ）を環境変数 PATH に追加したいと思うかもしれません。 bash を使用している場合、以下の行を ~/.bashrc に追加してください：</p>
 
 <pre>
 export PATH=$PATH:/usr/sbin
@@ -306,9 +306,9 @@ Creating configuration file for ccs-notifyd ... OK
 
 <p>ブートローダ（ GRUB 等）の設定ファイルを編集し、コンパイルされたカーネル用のエントリを追加してください。カーネルのコンパイル時に <em>Disable by default</em> オプションを指定した場合には、 ccsecurity=on というパラメータをカーネルに対するコマンドラインオプションに指定することを忘れないでください。 TOMOYO Linux カーネルで起動するための方法については、ディストリビューションやブートローダのドキュメントを参照してください。</p>
 
-<p>TOMOYO Linux 1.8.2 以降では、 CCS_trigger というカーネルのコマンドラインオプションをサポートしています。このオプションは、最初に実行されるプログラムとして <code>/sbin/init</code> 以外を利用しているシステムにおいて便利です。例えば、 systemd を利用して起動する場合、最初に実行されるプログラムは <code>/bin/systemd</code> になるでしょう。その場合、 CCS_trigger=/bin/systemd というパラメータをカーネルに対するコマンドラインオプションに指定してください。</p>
+<p>TOMOYO Linux 1.8.2 以降では、 CCS_trigger というカーネルのコマンドラインオプションをサポートしています。このオプションは、最初に実行されるプログラムとして <code>/sbin/init</code> 以外を利用しているシステムにおいて便利です。例えば、 systemd を利用して起動する場合、最初に実行されるプログラムは <code>/usr/lib/systemd/systemd</code> になるでしょう。その場合、 CCS_trigger=/usr/lib/systemd/systemd というパラメータをカーネルに対するコマンドラインオプションに指定してください。</p>
 
-<p>Fedora 17 では /sbin/init は /usr/lib/systemd/systemd へのシンボリックリンクとして存在しています。しかし、 initramfs 内の /init スクリプトは /sbin/init （ readlink コマンドに渡すパス名）ではなく /usr/lib/systemd/systemd （ readlink コマンドが表示したパス名）を実行しようとします：</p>
+<p>RHEL 7 では /sbin/init は /usr/lib/systemd/systemd へのシンボリックリンクとして存在しています。しかし、 initramfs 内の init スクリプトは /sbin/init （ readlink コマンドに渡すパス名）ではなく /usr/lib/systemd/systemd （ readlink コマンドが表示したパス名）を実行しようとします：</p>
 
 <pre>
 # By the time we get here, the root filesystem should be mounted.
@@ -317,17 +317,17 @@ for i in "$(getarg real_init=)" "$(getarg init=)" $(getargs rd.distroinit=) /sbi
     [ -n "$i" ] || continue
 
     __p=$(readlink -f "${NEWROOT}/${i}")
-    if [ -x "$__p" ]; then
+    if [ -x "$__p" -o -x "${NEWROOT}/${__p}" ]; then
         INIT="$i"
         break
     fi
 done
 </pre>
 
-<p>そのため、 Fedora 17 では、 TOMOYO を有効にするトリガは /sbin/init ではなく /usr/lib/systemd/systemd となります。 <a href="#3.3.3">3.3.3. カーネルコンパイルオプションの設定</a>で /usr/lib/systemd/systemd を指定しなかった場合、 CCS_trigger=/usr/lib/systemd/systemd という指定をする必要があります。 /boot/grub2/grub.cfg を直接編集するだけでも構いません。しかし、将来カーネルパッケージをアップデートする場合のために、以下のように /etc/default/grub の GRUB_CMDLINE_LINUX 行も編集しておくことを推奨します：</p>
+<p>そのため、 RHEL 7 では、 TOMOYO を有効にするトリガは /sbin/init ではなく /usr/lib/systemd/systemd となります。 <a href="#3.3.3">3.3.3. カーネルコンパイルオプションの設定</a>で /usr/lib/systemd/systemd を指定しなかった場合、 CCS_trigger=/usr/lib/systemd/systemd という指定をする必要があります。 /boot/grub2/grub.cfg を直接編集するだけでも構いません。しかし、将来カーネルパッケージをアップデートする場合のために、以下のように /etc/default/grub の GRUB_CMDLINE_LINUX 行も編集しておくことを推奨します：</p>
 
 <pre>
-GRUB_CMDLINE_LINUX="rd.md=0 rd.lvm=0 rd.dm=0 SYSFONT=True rd.luks=0 KEYTABLE=jp106 LANG=ja_JP.UTF-8 rhgb quiet CCS_trigger=/usr/lib/systemd/systemd"
+GRUB_CMDLINE_LINUX="vconsole.keymap=jp106 crashkernel=auto  vconsole.font=latarcyrheb-sun16 rhgb quiet security=tomoyo CCS_trigger=/usr/lib/systemd/systemd"
 </pre>
 
 <h3><a name="3.6">3.6. システムの再起動</a></h3>
