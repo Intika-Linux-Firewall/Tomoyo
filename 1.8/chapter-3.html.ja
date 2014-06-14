@@ -327,7 +327,7 @@ done
 <p>そのため、 RHEL 7 では、 TOMOYO を有効にするトリガは /sbin/init ではなく /usr/lib/systemd/systemd となります。 <a href="#3.3.3">3.3.3. カーネルコンパイルオプションの設定</a>で /usr/lib/systemd/systemd を指定しなかった場合、 CCS_trigger=/usr/lib/systemd/systemd という指定をする必要があります。 /boot/grub2/grub.cfg を直接編集するだけでも構いません。しかし、将来カーネルパッケージをアップデートする場合のために、以下のように /etc/default/grub の GRUB_CMDLINE_LINUX 行も編集しておくことを推奨します：</p>
 
 <pre>
-GRUB_CMDLINE_LINUX="vconsole.keymap=jp106 crashkernel=auto  vconsole.font=latarcyrheb-sun16 rhgb quiet security=tomoyo CCS_trigger=/usr/lib/systemd/systemd"
+GRUB_CMDLINE_LINUX="vconsole.keymap=jp106 crashkernel=auto  vconsole.font=latarcyrheb-sun16 rhgb quiet CCS_trigger=/usr/lib/systemd/systemd"
 </pre>
 
 <h3><a name="3.6">3.6. システムの再起動</a></h3>
