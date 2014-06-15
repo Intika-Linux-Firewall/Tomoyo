@@ -198,26 +198,12 @@ Creating configuration file for tomoyo-notifyd ... OK
 
 <p>前述の手順でインストールされたカーネルをブートローダ（例えば GRUB など）から選択できるように、ブートローダの設定を行ってください。もし、カーネルコンフィグで CONFIG_DEFAULT_SECURITY_TOMOYO=y という指定が行われていない場合、 security=tomoyo という指定をカーネル起動時のコマンドラインオプションに含めることを忘れないでください。ディストリビューションにより、ブートローダの設定ファイルの場所が異なります。 GRUB バージョン１を利用している場合には /boot/grub/grub.conf または /boot/grub/menu.lst のどちらか、 GRUB バージョン２を利用している場合には /boot/grub/grub.cfg または /boot/grub2/grub.cfg のどちらかであると思います。詳しくはお使いのディストリビューションのドキュメントを参照してください。</p>
 
-<p>RHEL 7 では /sbin/init は /usr/lib/systemd/systemd へのシンボリックリンクとして存在しています。しかし、 initramfs 内の init スクリプトは /sbin/init （ readlink コマンドに渡すパス名）ではなく /usr/lib/systemd/systemd （ readlink コマンドが表示したパス名）を実行しようとします：</p>
+<p>TOMOYO Linux では、 TOMOYO_trigger というカーネルのコマンドラインオプションをサポートしています。このオプションは、最初に実行されるプログラムとして <code>/sbin/init</code> 以外を利用しているシステムにおいて便利です。例えば、 RHEL 7 では systemd を利用しているので、 <code>/usr/lib/systemd/systemd</code> が最初に実行されます。 <a href="#3.3.3">3.3.3. カーネルコンパイルオプションの設定</a>で /usr/lib/systemd/systemd を指定しなかった場合、 TOMOYO_trigger=/usr/lib/systemd/systemd という指定をする必要があります。</p>
+
+<p>/boot/grub2/grub.cfg を直接編集するだけでも構いません。しかし、将来カーネルパッケージをアップデートする場合のために、以下のように /etc/default/grub の GRUB_CMDLINE_LINUX 行も編集しておくことを推奨します：</p>
 
 <pre>
-# By the time we get here, the root filesystem should be mounted.
-# Try to find init.
-for i in "$(getarg real_init=)" "$(getarg init=)" $(getargs rd.distroinit=) /sbin/init; do
-    [ -n "$i" ] || continue
-
-    __p=$(readlink -f "${NEWROOT}/${i}")
-    if [ -x "$__p" -o -x "${NEWROOT}/${__p}" ]; then
-        INIT="$i"
-        break
-    fi
-done
-</pre>
-
-<p>そのため、 RHEL 7 では、 TOMOYO を有効にするトリガは /sbin/init ではなく /usr/lib/systemd/systemd となります。 <a href="#3.3.3">3.3.3. カーネルコンパイルオプションの設定</a>で /usr/lib/systemd/systemd を指定しなかった場合、 TOMOYO_trigger=/usr/lib/systemd/systemd という指定をする必要があります。 /boot/grub2/grub.cfg を直接編集するだけでも構いません。しかし、将来カーネルパッケージをアップデートする場合のために、以下のように /etc/default/grub の GRUB_CMDLINE_LINUX 行も編集しておくことを推奨します：</p>
-
-<pre>
-GRUB_CMDLINE_LINUX="vconsole.keymap=jp106 crashkernel=auto  vconsole.font=latarcyrheb-sun16 rhgb quiet TOMOYO_trigger=/usr/lib/systemd/systemd"
+GRUB_CMDLINE_LINUX="vconsole.keymap=jp106 crashkernel=auto  vconsole.font=latarcyrheb-sun16 rhgb quiet security=tomoyo TOMOYO_trigger=/usr/lib/systemd/systemd"
 </pre>
 
 <h3><a name="3.5">3.5. システムの再起動</a></h3>
