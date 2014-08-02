@@ -60,19 +60,19 @@ fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-source-3.7.10-1.32.1.src.rpm ]
+if [ ! -r kernel-source-3.7.10-1.40.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/12.3/src/kernel-source-3.7.10-1.32.1.src.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/12.3/src/kernel-source-3.7.10-1.40.1.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-source-3.7.10-1.32.1.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-source-3.7.10-1.32.1.src.rpm || die "Can't install source package."
+rpm --checksig kernel-source-3.7.10-1.40.1.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-source-3.7.10-1.40.1.src.rpm || die "Can't install source package."
 
-if [ ! -r kernel-default-3.7.10-1.32.1.nosrc.rpm ]
+if [ ! -r kernel-default-3.7.10-1.40.1.nosrc.rpm ]
 then
-    wget http://download.opensuse.org/update/12.3/nosrc/kernel-default-3.7.10-1.32.1.nosrc.rpm || die "Can't download source package."
+    wget http://download.opensuse.org/update/12.3/nosrc/kernel-default-3.7.10-1.40.1.nosrc.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-default-3.7.10-1.32.1.nosrc.rpm || die "Can't verify signature."
-rpm -ivh kernel-default-3.7.10-1.32.1.nosrc.rpm || die "Can't install source package."
+rpm --checksig kernel-default-3.7.10-1.40.1.nosrc.rpm || die "Can't verify signature."
+rpm -ivh kernel-default-3.7.10-1.40.1.nosrc.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20140601.tar.gz ]
@@ -94,10 +94,10 @@ patch << "EOF" || die "Can't patch spec file."
  Summary:        The Standard Kernel
  Version:        3.7.10
  %if 0%{?is_kotd}
- Release:        1.32.1.g5978d00
+ Release:        1.40.1.g9b06319
  %else
--Release:        1.32.1
-+Release:        1.32.1_tomoyo_1.8.3p7
+-Release:        1.40.1
++Release:        1.40.1_tomoyo_1.8.3p7
  %endif
  License:        GPL-2.0
  Group:          System/Kernel
