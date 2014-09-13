@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 20's 3.15 kernel.
+# This is a kernel build script for Fedora 20's 3.16 kernel.
 #
 
 die () {
@@ -12,12 +12,12 @@ yum -y install tar wget rpm-build make gcc patch redhat-rpm-config xmlto asciido
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.15.7-200.fc20.src.rpm ]
+if [ ! -r kernel-3.16.2-200.fc20.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/kernel-3.15.7-200.fc20.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/kernel-3.16.2-200.fc20.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.15.7-200.fc20.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.15.7-200.fc20.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.16.2-200.fc20.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.16.2-200.fc20.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20140601.tar.gz ]
@@ -60,7 +60,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2 and Redistributable, no modification permitted
  URL: http://www.kernel.org/
-@@ -954,7 +959,7 @@
+@@ -902,7 +907,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -974,7 +979,7 @@
+@@ -922,7 +927,7 @@
  Provides: kernel%{?1:-%{1}}-modules-extra-uname-r = %{KVERREL}%{?1:+%{1}}\
  Requires: kernel-uname-r = %{KVERREL}%{?1:+%{1}}\
  AutoReqProv: no\
@@ -78,7 +78,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides less commonly used kernel modules for the %{?2:%{2} }kernel package.\
  %{nil}
  
-@@ -1497,6 +1502,10 @@
+@@ -1403,6 +1408,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -89,7 +89,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1521,6 +1530,18 @@
+@@ -1427,6 +1436,18 @@
  for i in *.config
  do
    mv $i .config

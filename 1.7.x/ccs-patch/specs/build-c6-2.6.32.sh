@@ -35,7 +35,7 @@ patch << "EOF" || die "Can't patch spec file."
 -# % define buildid .local
 +%define buildid _tomoyo_1.7.3p4
  
- %define distro_build 431.23.3
+ %define distro_build 431.29.2
  %define signmodules 1
 @@ -437,7 +437,7 @@
  # Packages that need to be installed before the kernel is, because the %post
