@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.32-431.23.3.el6.src.rpm ]
+if [ ! -r kernel-2.6.32-431.29.2.el6.src.rpm ]
 then
-    wget http://vault.centos.org/6.5/updates/Source/SPackages/kernel-2.6.32-431.23.3.el6.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/6.5/updates/Source/SPackages/kernel-2.6.32-431.29.2.el6.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.32-431.23.3.el6.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.32-431.23.3.el6.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.32-431.29.2.el6.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.32-431.29.2.el6.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20140601.tar.gz ]
