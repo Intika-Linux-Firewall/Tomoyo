@@ -166,6 +166,7 @@ static void stage_capability_test(void)
 			show_result(reboot(LINUX_REBOOT_CMD_CAD_ON), 1);
 			delete_policy();
 			show_result(reboot(LINUX_REBOOT_CMD_CAD_ON), 0);
+			rewind(fp);
 			fprintf(fp, "%u\n", c);
 		} else {
 			/* Use invalid value */

@@ -120,6 +120,7 @@ static void stage_capability_test(void)
 		unsigned int c;
 		if (fp && fscanf(fp, "%u", &c) == 1) {
 			show_result(reboot(LINUX_REBOOT_CMD_CAD_ON));
+			rewind(fp);
 			fprintf(fp, "%u\n", c);
 		} else {
 			/* Use invalid value */
