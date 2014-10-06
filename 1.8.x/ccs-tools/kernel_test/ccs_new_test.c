@@ -373,6 +373,7 @@ static void test_SYS_REBOOT(void)
 		errno = 0;
 		result = reboot(LINUX_REBOOT_CMD_CAD_ON);
 		err = errno;
+		rewind(fp);
 		fprintf(fp, "%u\n", c);
 	} else {
 		errno = 0;

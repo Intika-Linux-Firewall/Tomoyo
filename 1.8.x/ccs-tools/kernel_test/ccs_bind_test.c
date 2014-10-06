@@ -575,6 +575,7 @@ int main(int argc, char *argv[])
 				narrow_range[1] += 1024;
 				min_port += 1024;
 				max_port += 1024;
+				rewind(fp);
 				fprintf(fp, "%d %d\n", narrow_range[0],
 					narrow_range[1]);
 				fflush(fp);
@@ -618,6 +619,7 @@ int main(int argc, char *argv[])
 		kill(ipv6_pid, SIGHUP);
 		close(ipv4_listener_socket);
 		close(ipv6_listener_socket);
+		rewind(fp);
 		fprintf(fp, "%d %d\n", original_range[0], original_range[1]);
 		fclose(fp);
 	}
