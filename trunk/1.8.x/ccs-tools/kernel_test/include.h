@@ -54,6 +54,9 @@ struct module;
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <stdarg.h>
+#ifndef PRIO_RESOURCE
+#include <sys/resource.h>
+#endif
 
 #ifndef __NR_sys_kexec_load
 #ifdef __NR_kexec_load
