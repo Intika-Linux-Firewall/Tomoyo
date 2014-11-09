@@ -2,15 +2,15 @@
 # based on http://people.centos.org/arrfab/CentOS6/SRPMS/livecd-tools-0.3.6-1.el6.src.rpm
 # and http://people.centos.org/arrfab/CentOS6/LiveCD-DVD/centos6-liveCD-desktop.cfg
 #
-# Usage: livecd-creator -f "CentOS-6.5-i386-TOMOYO-LiveCD" --cache=/var/cache/livecd -c this_file
+# Usage: livecd-creator -f "CentOS-6.6-i386-TOMOYO-LiveCD" --cache=/var/cache/livecd -c this_file
 lang en_US.UTF-8
 keyboard us
 timezone US/Eastern
 auth --useshadow --enablemd5
 selinux --enforcing
 firewall --enabled --service=mdns
-repo --name=base    --baseurl=http://ftp.riken.jp/Linux/centos/6.5/os/i386/
-repo --name=updates --baseurl=http://ftp.riken.jp/Linux/centos/6.5/updates/i386/
+repo --name=base    --baseurl=http://ftp.riken.jp/Linux/centos/6.6/os/i386/
+repo --name=updates --baseurl=http://ftp.riken.jp/Linux/centos/6.6/updates/i386/
 repo --name=ccs     --baseurl=http://tomoyo.sourceforge.jp/repos-1.8/CentOS6/
 repo --name=adobe   --baseurl=http://linuxdownload.adobe.com/linux/i386/
 
