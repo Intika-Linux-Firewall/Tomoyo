@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 20's 3.16 kernel.
+# This is a kernel build script for Fedora 20's 3.17 kernel.
 #
 
 die () {
@@ -12,12 +12,12 @@ yum -y install tar wget rpm-build make gcc patch redhat-rpm-config xmlto asciido
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.16.2-200.fc20.src.rpm ]
+if [ ! -r kernel-3.17.2-200.fc20.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/kernel-3.16.2-200.fc20.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/kernel-3.17.2-200.fc20.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.16.2-200.fc20.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.16.2-200.fc20.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.17.2-200.fc20.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.17.2-200.fc20.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20140915.tar.gz ]
@@ -39,19 +39,7 @@ patch << "EOF" || die "Can't patch spec file."
  ###################################################################
  
  # The buildid can also be specified on the rpmbuild command line
-@@ -437,6 +437,11 @@
- # Architectures we build tools/cpupower on
- %define cpupowerarchs %{ix86} x86_64 ppc ppc64 ppc64p7 %{arm} aarch64
- 
-+# TOMOYO Linux
-+%define with_modsign 0
-+%define _enable_debug_packages 0
-+%define with_debuginfo 0
-+
- #
- # Packages that need to be installed before the kernel is, because the %%post
- # scripts use them.
-@@ -477,7 +482,7 @@
+@@ -477,7 +477,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -60,7 +48,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2 and Redistributable, no modification permitted
  URL: http://www.kernel.org/
-@@ -902,7 +907,7 @@
+@@ -984,7 +984,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -69,7 +57,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -922,7 +927,7 @@
+@@ -1004,7 +1004,7 @@
  Provides: kernel%{?1:-%{1}}-modules-extra-uname-r = %{KVERREL}%{?1:+%{1}}\
  Requires: kernel-uname-r = %{KVERREL}%{?1:+%{1}}\
  AutoReqProv: no\
@@ -78,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides less commonly used kernel modules for the %{?2:%{2} }kernel package.\
  %{nil}
  
-@@ -1403,6 +1408,10 @@
+@@ -1570,6 +1570,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -89,7 +77,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1427,6 +1436,18 @@
+@@ -1594,6 +1598,17 @@
  for i in *.config
  do
    mv $i .config
@@ -104,7 +92,6 @@ patch << "EOF" || die "Can't patch spec file."
 +  echo '# CONFIG_DEFAULT_SECURITY_TOMOYO is not set' >> .config
 +  # TOMOYO Linux 1.8
 +  cat config.ccs >> .config
-+  sed -i -e 's:CONFIG_DEBUG_INFO=.*:# CONFIG_DEBUG_INFO is not set:' -- .config
    Arch=`head -1 .config | cut -b 3-`
    make ARCH=$Arch listnewconfig | grep -E '^CONFIG_' >.newoptions || true
  %if %{listnewconfig_fail}

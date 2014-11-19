@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.18-371.5.AXS3.src.rpm ]
+if [ ! -r kernel-2.6.18-398.1.AXS3.src.rpm ]
 then
-    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-371.5.AXS3.src.rpm || die "Can't download source package."
+    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-398.1.AXS3.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-2.6.18-371.5.AXS3.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-2.6.18-371.5.AXS3.src.rpm || die "Can't install source package."
+rpm --checksig kernel-2.6.18-398.1.AXS3.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-2.6.18-398.1.AXS3.src.rpm || die "Can't install source package."
 
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.3-20140915.tar.gz ]
@@ -32,8 +32,8 @@ patch << "EOF" || die "Can't patch spec file."
  %define kversion 2.6.%{sublevel}.%{stablerev}
  %define rpmversion 2.6.%{sublevel}
  # %dist is defined in Asianux VPBS
--%define release %{revision}.5%{dist}
-+%define release %{revision}.5%{dist}_tomoyo_1.7.3p4
+-%define release %{revision}.1%{dist}
++%define release %{revision}.1%{dist}_tomoyo_1.7.3p4
  %define signmodules 0
  %define xen_hv_cset 15502
  %define xen_abi_ver 3.1
@@ -56,7 +56,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -1050,6 +1053,10 @@
+@@ -1042,6 +1045,10 @@
  %patch200100 -p1
  # end of Asianux patches
  
@@ -67,13 +67,12 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -1101,6 +1108,9 @@
+@@ -1093,6 +1100,8 @@
  for i in `ls *86*.config`
  do
    mv $i .config
 +  # TOMOYO Linux
 +  cat config.ccs >> .config
-+  sed -i -e "s/^CONFIG_DEBUG_INFO=.*/# CONFIG_DEBUG_INFO is not set/" -- .config 
    Arch=`head -1 .config | cut -b 3-`
    make ARCH=$Arch nonint_oldconfig > /dev/null
    echo "# $Arch" > configs/$i
