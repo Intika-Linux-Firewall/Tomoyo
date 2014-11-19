@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for CentOS 6.
 
-Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/kernel-2.6.32-504.el6.src.rpm
+Source code for this patch is http://vault.centos.org/6.6/updates/Source/SPackages/kernel-2.6.32-504.1.3.el6.src.rpm
 ---
  fs/compat.c               |    2 +-
  fs/compat_ioctl.c         |    3 +++
@@ -37,8 +37,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  security/Makefile         |    3 +++
  33 files changed, 201 insertions(+), 2 deletions(-)
 
---- linux-2.6.32-504.el6.orig/fs/compat.c
-+++ linux-2.6.32-504.el6/fs/compat.c
+--- linux-2.6.32-504.1.3.el6.orig/fs/compat.c
++++ linux-2.6.32-504.1.3.el6/fs/compat.c
 @@ -1523,7 +1523,7 @@ int compat_do_execve(const char * filena
  	if (retval < 0)
  		goto out;
@@ -48,8 +48,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.32-504.el6.orig/fs/compat_ioctl.c
-+++ linux-2.6.32-504.el6/fs/compat_ioctl.c
+--- linux-2.6.32-504.1.3.el6.orig/fs/compat_ioctl.c
++++ linux-2.6.32-504.1.3.el6/fs/compat_ioctl.c
 @@ -114,6 +114,7 @@
  #ifdef CONFIG_SPARC
  #include <asm/fbio.h>
@@ -67,8 +67,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	if (error)
  		goto out_fput;
  
---- linux-2.6.32-504.el6.orig/fs/exec.c
-+++ linux-2.6.32-504.el6/fs/exec.c
+--- linux-2.6.32-504.1.3.el6.orig/fs/exec.c
++++ linux-2.6.32-504.1.3.el6/fs/exec.c
 @@ -1461,7 +1461,7 @@ int do_execve(const char * filename,
  		goto out;
  
@@ -78,8 +78,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	if (retval < 0)
  		goto out;
  
---- linux-2.6.32-504.el6.orig/fs/fcntl.c
-+++ linux-2.6.32-504.el6/fs/fcntl.c
+--- linux-2.6.32-504.1.3.el6.orig/fs/fcntl.c
++++ linux-2.6.32-504.1.3.el6/fs/fcntl.c
 @@ -428,6 +428,8 @@ SYSCALL_DEFINE3(fcntl, unsigned int, fd,
  		goto out;
  
@@ -98,8 +98,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	if (err) {
  		fput(filp);
  		return err;
---- linux-2.6.32-504.el6.orig/fs/ioctl.c
-+++ linux-2.6.32-504.el6/fs/ioctl.c
+--- linux-2.6.32-504.1.3.el6.orig/fs/ioctl.c
++++ linux-2.6.32-504.1.3.el6/fs/ioctl.c
 @@ -639,6 +639,8 @@ SYSCALL_DEFINE3(ioctl, unsigned int, fd,
  		goto out;
  
@@ -109,9 +109,9 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	if (error)
  		goto out_fput;
  
---- linux-2.6.32-504.el6.orig/fs/namei.c
-+++ linux-2.6.32-504.el6/fs/namei.c
-@@ -2034,6 +2034,11 @@ int may_open(struct path *path, int acc_
+--- linux-2.6.32-504.1.3.el6.orig/fs/namei.c
++++ linux-2.6.32-504.1.3.el6/fs/namei.c
+@@ -2040,6 +2040,11 @@ int may_open(struct path *path, int acc_
  	if (flag & O_NOATIME && !is_owner_or_cap(inode))
  		return -EPERM;
  
@@ -123,7 +123,7 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	/*
  	 * Ensure there are no outstanding leases on the file.
  	 */
-@@ -2077,6 +2082,9 @@ static int __open_namei_create(struct na
+@@ -2083,6 +2088,9 @@ static int __open_namei_create(struct na
  	if (!IS_POSIXACL(dir->d_inode))
  		mode &= ~current_umask();
  	error = security_path_mknod(&nd->path, path->dentry, mode, 0);
@@ -133,7 +133,7 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	if (error)
  		goto out_unlock;
  	error = vfs_create(dir->d_inode, path->dentry, mode, nd);
-@@ -2579,6 +2587,8 @@ retry:
+@@ -2585,6 +2593,8 @@ retry:
  	if (error)
  		goto out_dput;
  	error = security_path_mknod(&nd.path, dentry, mode, dev);
@@ -142,7 +142,7 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	if (error)
  		goto out_dput;
  	switch (mode & S_IFMT) {
-@@ -2663,6 +2673,8 @@ retry:
+@@ -2669,6 +2679,8 @@ retry:
  	if (!IS_POSIXACL(nd.path.dentry->d_inode))
  		mode &= ~current_umask();
  	error = security_path_mkdir(&nd.path, dentry, mode);
@@ -151,7 +151,7 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	if (error)
  		goto out_dput;
  	error = vfs_mkdir(nd.path.dentry->d_inode, dentry, mode);
-@@ -2781,6 +2793,8 @@ retry:
+@@ -2787,6 +2799,8 @@ retry:
  	if (IS_ERR(dentry))
  		goto exit2;
  	error = security_path_rmdir(&nd.path, dentry);
@@ -160,7 +160,7 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	if (error)
  		goto exit3;
  	error = vfs_rmdir(nd.path.dentry->d_inode, dentry);
-@@ -2874,6 +2888,8 @@ retry:
+@@ -2880,6 +2894,8 @@ retry:
  		if (inode)
  			atomic_inc(&inode->i_count);
  		error = security_path_unlink(&nd.path, dentry);
@@ -169,7 +169,7 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  		if (error)
  			goto exit2;
  		error = vfs_unlink(nd.path.dentry->d_inode, dentry);
-@@ -2970,6 +2986,8 @@ retry:
+@@ -2976,6 +2992,8 @@ retry:
  		goto out_dput;
  	}
  	error = security_path_symlink(&nd.path, dentry, from->name);
@@ -178,7 +178,7 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	if (error)
  		goto out_dput;
  	error = vfs_symlink(nd.path.dentry->d_inode, dentry, from->name);
-@@ -3085,6 +3103,9 @@ retry:
+@@ -3091,6 +3109,9 @@ retry:
  	if (IS_ERR(new_dentry))
  		goto out_unlock;
  	error = security_path_link(old_path.dentry, &nd.path, new_dentry);
@@ -188,7 +188,7 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	if (error)
  		goto out_dput;
  	error = vfs_link(old_path.dentry, nd.path.dentry->d_inode, new_dentry);
-@@ -3337,6 +3358,9 @@ retry:
+@@ -3343,6 +3364,9 @@ retry:
  
  	error = security_path_rename(&oldnd.path, old_dentry,
  				     &newnd.path, new_dentry);
@@ -198,8 +198,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	if (error)
  		goto exit5;
  	error = vfs_rename(old_dir->d_inode, old_dentry,
---- linux-2.6.32-504.el6.orig/fs/namespace.c
-+++ linux-2.6.32-504.el6/fs/namespace.c
+--- linux-2.6.32-504.1.3.el6.orig/fs/namespace.c
++++ linux-2.6.32-504.1.3.el6/fs/namespace.c
 @@ -1097,6 +1097,8 @@ static int do_umount(struct vfsmount *mn
  	LIST_HEAD(umount_list);
  
@@ -209,7 +209,7 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	if (retval)
  		return retval;
  
-@@ -2084,6 +2086,7 @@ int copy_mount_string(const void __user 
+@@ -2084,6 +2086,7 @@ int copy_mount_string(const void __user
  long do_mount(char *dev_name, const char *dir_name, char *type_page,
  		  unsigned long flags, void *data_page)
  {
@@ -236,8 +236,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	if (error) {
  		path_put(&old);
  		goto out1;
---- linux-2.6.32-504.el6.orig/fs/open.c
-+++ linux-2.6.32-504.el6/fs/open.c
+--- linux-2.6.32-504.1.3.el6.orig/fs/open.c
++++ linux-2.6.32-504.1.3.el6/fs/open.c
 @@ -102,6 +102,8 @@ long vfs_truncate(struct path *path, lof
  	error = locks_verify_truncate(inode, NULL, length);
  	if (!error)
@@ -328,8 +328,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-2.6.32-504.el6.orig/fs/proc/version.c
-+++ linux-2.6.32-504.el6/fs/proc/version.c
+--- linux-2.6.32-504.1.3.el6.orig/fs/proc/version.c
++++ linux-2.6.32-504.1.3.el6/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -337,12 +337,12 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 2.6.32-504.el6 2014/10/31\n");
++	printk(KERN_INFO "Hook version: 2.6.32-504.1.3.el6 2014/11/19\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-2.6.32-504.el6.orig/fs/stat.c
-+++ linux-2.6.32-504.el6/fs/stat.c
+--- linux-2.6.32-504.1.3.el6.orig/fs/stat.c
++++ linux-2.6.32-504.1.3.el6/fs/stat.c
 @@ -43,6 +43,8 @@ int vfs_getattr(struct vfsmount *mnt, st
  	int retval;
  
@@ -352,8 +352,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	if (retval)
  		return retval;
  
---- linux-2.6.32-504.el6.orig/include/linux/init_task.h
-+++ linux-2.6.32-504.el6/include/linux/init_task.h
+--- linux-2.6.32-504.1.3.el6.orig/include/linux/init_task.h
++++ linux-2.6.32-504.1.3.el6/include/linux/init_task.h
 @@ -124,6 +124,14 @@ extern struct cred init_cred;
  # define INIT_PERF_EVENTS(tsk)
  #endif
@@ -377,8 +377,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  }
  
  
---- linux-2.6.32-504.el6.orig/include/linux/sched.h
-+++ linux-2.6.32-504.el6/include/linux/sched.h
+--- linux-2.6.32-504.1.3.el6.orig/include/linux/sched.h
++++ linux-2.6.32-504.1.3.el6/include/linux/sched.h
 @@ -43,6 +43,8 @@
  
  #ifdef __KERNEL__
@@ -399,8 +399,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-2.6.32-504.el6.orig/include/linux/security.h
-+++ linux-2.6.32-504.el6/include/linux/security.h
+--- linux-2.6.32-504.1.3.el6.orig/include/linux/security.h
++++ linux-2.6.32-504.1.3.el6/include/linux/security.h
 @@ -35,6 +35,7 @@
  #include <linux/xfrm.h>
  #include <linux/gfp.h>
@@ -409,8 +409,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  
  /* Maximum number of letters for an LSM name string */
  #define SECURITY_NAME_MAX	10
---- linux-2.6.32-504.el6.orig/include/net/ip.h
-+++ linux-2.6.32-504.el6/include/net/ip.h
+--- linux-2.6.32-504.1.3.el6.orig/include/net/ip.h
++++ linux-2.6.32-504.1.3.el6/include/net/ip.h
 @@ -33,6 +33,7 @@
  #endif
  #include <net/snmp.h>
@@ -428,8 +428,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	return test_bit(port, sysctl_local_reserved_ports);
  }
  
---- linux-2.6.32-504.el6.orig/kernel/compat.c
-+++ linux-2.6.32-504.el6/kernel/compat.c
+--- linux-2.6.32-504.1.3.el6.orig/kernel/compat.c
++++ linux-2.6.32-504.1.3.el6/kernel/compat.c
 @@ -1005,6 +1005,8 @@ asmlinkage long compat_sys_stime(compat_
  	err = security_settime(&tv, NULL);
  	if (err)
@@ -439,8 +439,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  
  	do_settimeofday(&tv);
  	return 0;
---- linux-2.6.32-504.el6.orig/kernel/fork.c
-+++ linux-2.6.32-504.el6/kernel/fork.c
+--- linux-2.6.32-504.1.3.el6.orig/kernel/fork.c
++++ linux-2.6.32-504.1.3.el6/kernel/fork.c
 @@ -176,6 +176,7 @@ void __put_task_struct(struct task_struc
  	exit_creds(tsk);
  	delayacct_tsk_free(tsk);
@@ -467,8 +467,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  bad_fork_cleanup_policy:
  	perf_event_free_task(p);
  #ifdef CONFIG_NUMA
---- linux-2.6.32-504.el6.orig/kernel/kexec.c
-+++ linux-2.6.32-504.el6/kernel/kexec.c
+--- linux-2.6.32-504.1.3.el6.orig/kernel/kexec.c
++++ linux-2.6.32-504.1.3.el6/kernel/kexec.c
 @@ -40,6 +40,7 @@
  #include <asm/system.h>
  #include <asm/sections.h>
@@ -486,8 +486,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  
  	if (kexec_load_disabled)
  		return -EPERM;
---- linux-2.6.32-504.el6.orig/kernel/module.c
-+++ linux-2.6.32-504.el6/kernel/module.c
+--- linux-2.6.32-504.1.3.el6.orig/kernel/module.c
++++ linux-2.6.32-504.1.3.el6/kernel/module.c
 @@ -56,6 +56,7 @@
  #include <linux/percpu.h>
  #include <linux/kmemleak.h>
@@ -514,8 +514,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  
  	/* Only one module load at a time, please */
  	if (mutex_lock_interruptible(&module_mutex) != 0)
---- linux-2.6.32-504.el6.orig/kernel/ptrace.c
-+++ linux-2.6.32-504.el6/kernel/ptrace.c
+--- linux-2.6.32-504.1.3.el6.orig/kernel/ptrace.c
++++ linux-2.6.32-504.1.3.el6/kernel/ptrace.c
 @@ -195,6 +195,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
@@ -540,8 +540,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-2.6.32-504.el6.orig/kernel/sched.c
-+++ linux-2.6.32-504.el6/kernel/sched.c
+--- linux-2.6.32-504.1.3.el6.orig/kernel/sched.c
++++ linux-2.6.32-504.1.3.el6/kernel/sched.c
 @@ -6819,6 +6819,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
@@ -551,8 +551,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-2.6.32-504.el6.orig/kernel/signal.c
-+++ linux-2.6.32-504.el6/kernel/signal.c
+--- linux-2.6.32-504.1.3.el6.orig/kernel/signal.c
++++ linux-2.6.32-504.1.3.el6/kernel/signal.c
 @@ -2302,6 +2302,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
@@ -571,7 +571,7 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2382,6 +2386,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int, 
+@@ -2382,6 +2386,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -580,7 +580,7 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2403,6 +2409,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t, 
+@@ -2403,6 +2409,8 @@ SYSCALL_DEFINE3(rt_sigqueueinfo, pid_t,
  		return -EPERM;
  	}
  	info.si_signo = sig;
@@ -598,8 +598,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-2.6.32-504.el6.orig/kernel/sys.c
-+++ linux-2.6.32-504.el6/kernel/sys.c
+--- linux-2.6.32-504.1.3.el6.orig/kernel/sys.c
++++ linux-2.6.32-504.1.3.el6/kernel/sys.c
 @@ -157,6 +157,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -638,8 +638,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-2.6.32-504.el6.orig/kernel/sysctl.c
-+++ linux-2.6.32-504.el6/kernel/sysctl.c
+--- linux-2.6.32-504.1.3.el6.orig/kernel/sysctl.c
++++ linux-2.6.32-504.1.3.el6/kernel/sysctl.c
 @@ -2073,6 +2073,9 @@ int do_sysctl(int __user *name, int nlen
  
  	for (head = sysctl_head_next(NULL); head;
@@ -650,9 +650,9 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  		error = parse_table(name, nlen, oldval, oldlenp, 
  					newval, newlen,
  					head->root, head->ctl_table);
---- linux-2.6.32-504.el6.orig/kernel/time.c
-+++ linux-2.6.32-504.el6/kernel/time.c
-@@ -92,6 +92,8 @@ SYSCALL_DEFINE1(stime, time_t __user *, 
+--- linux-2.6.32-504.1.3.el6.orig/kernel/time.c
++++ linux-2.6.32-504.1.3.el6/kernel/time.c
+@@ -92,6 +92,8 @@ SYSCALL_DEFINE1(stime, time_t __user *,
  	err = security_settime(&tv, NULL);
  	if (err)
  		return err;
@@ -670,8 +670,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  
  	if (tz) {
  		/* SMP safe, global irq locking makes it work. */
---- linux-2.6.32-504.el6.orig/kernel/time/ntp.c
-+++ linux-2.6.32-504.el6/kernel/time/ntp.c
+--- linux-2.6.32-504.1.3.el6.orig/kernel/time/ntp.c
++++ linux-2.6.32-504.1.3.el6/kernel/time/ntp.c
 @@ -14,6 +14,7 @@
  #include <linux/timex.h>
  #include <linux/time.h>
@@ -696,8 +696,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  
  		/*
  		 * if the quartz is off by more than 10% then
---- linux-2.6.32-504.el6.orig/net/ipv4/raw.c
-+++ linux-2.6.32-504.el6/net/ipv4/raw.c
+--- linux-2.6.32-504.1.3.el6.orig/net/ipv4/raw.c
++++ linux-2.6.32-504.1.3.el6/net/ipv4/raw.c
 @@ -77,6 +77,7 @@
  #include <linux/seq_file.h>
  #include <linux/netfilter.h>
@@ -717,8 +717,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-2.6.32-504.el6.orig/net/ipv4/udp.c
-+++ linux-2.6.32-504.el6/net/ipv4/udp.c
+--- linux-2.6.32-504.1.3.el6.orig/net/ipv4/udp.c
++++ linux-2.6.32-504.1.3.el6/net/ipv4/udp.c
 @@ -108,6 +108,7 @@
  #include <trace/events/udp.h>
  #include <net/busy_poll.h>
@@ -738,8 +738,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-2.6.32-504.el6.orig/net/ipv6/raw.c
-+++ linux-2.6.32-504.el6/net/ipv6/raw.c
+--- linux-2.6.32-504.1.3.el6.orig/net/ipv6/raw.c
++++ linux-2.6.32-504.1.3.el6/net/ipv6/raw.c
 @@ -59,6 +59,7 @@
  
  #include <linux/proc_fs.h>
@@ -759,8 +759,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-2.6.32-504.el6.orig/net/ipv6/udp.c
-+++ linux-2.6.32-504.el6/net/ipv6/udp.c
+--- linux-2.6.32-504.1.3.el6.orig/net/ipv6/udp.c
++++ linux-2.6.32-504.1.3.el6/net/ipv6/udp.c
 @@ -50,6 +50,7 @@
  #include <linux/proc_fs.h>
  #include <linux/seq_file.h>
@@ -780,9 +780,9 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-2.6.32-504.el6.orig/net/socket.c
-+++ linux-2.6.32-504.el6/net/socket.c
-@@ -578,6 +578,8 @@ static inline int __sock_sendmsg(struct 
+--- linux-2.6.32-504.1.3.el6.orig/net/socket.c
++++ linux-2.6.32-504.1.3.el6/net/socket.c
+@@ -578,6 +578,8 @@ static inline int __sock_sendmsg(struct
  				 struct msghdr *msg, size_t size)
  {
  	int err = security_socket_sendmsg(sock, msg, size);
@@ -842,8 +842,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	if (err)
  		goto out_put;
  
---- linux-2.6.32-504.el6.orig/net/unix/af_unix.c
-+++ linux-2.6.32-504.el6/net/unix/af_unix.c
+--- linux-2.6.32-504.1.3.el6.orig/net/unix/af_unix.c
++++ linux-2.6.32-504.1.3.el6/net/unix/af_unix.c
 @@ -866,6 +866,9 @@ static int unix_bind(struct socket *sock
  		mode = S_IFSOCK |
  		       (SOCK_INODE(sock)->i_mode & ~current_umask());
@@ -865,8 +865,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-2.6.32-504.el6.orig/security/Kconfig
-+++ linux-2.6.32-504.el6/security/Kconfig
+--- linux-2.6.32-504.1.3.el6.orig/security/Kconfig
++++ linux-2.6.32-504.1.3.el6/security/Kconfig
 @@ -177,5 +177,7 @@ source security/tomoyo/Kconfig
  
  source security/integrity/ima/Kconfig
@@ -875,8 +875,8 @@ Source code for this patch is http://vault.centos.org/6.6/os/Source/SPackages/ke
 +
  endmenu
  
---- linux-2.6.32-504.el6.orig/security/Makefile
-+++ linux-2.6.32-504.el6/security/Makefile
+--- linux-2.6.32-504.1.3.el6.orig/security/Makefile
++++ linux-2.6.32-504.1.3.el6/security/Makefile
 @@ -25,3 +25,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_IMA)			+= integrity/ima
