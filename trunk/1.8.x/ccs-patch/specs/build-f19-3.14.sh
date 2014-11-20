@@ -14,7 +14,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-3.14.23-100.fc19.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/kernel-3.14.23-100.fc19.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/kernel-3.14.23-100.fc19.src.rpm || die "Can't download source package."
 fi
 rpm --checksig kernel-3.14.23-100.fc19.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-3.14.23-100.fc19.src.rpm || die "Can't install source package."
