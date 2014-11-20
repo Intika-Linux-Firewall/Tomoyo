@@ -72,7 +72,7 @@ patch << "EOF" || die "Can't patch spec file."
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.3-20140915.tar.gz
-+patch -sp1 < patches/ccs-patch-3.16-fedora-20.diff
++patch -sp1 < patches/ccs-patch-3.17-fedora-20.diff
 +
  %endif
  
