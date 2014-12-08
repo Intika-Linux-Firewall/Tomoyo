@@ -1,14 +1,14 @@
-This is TOMOYO Linux patch for kernel 3.12.34.
+This is TOMOYO Linux patch for linux-next.
 
-Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.12.34.tar.xz
+Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/snapshot/next-20141205.tar.bz2
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
- fs/proc/version.c         |    7 +++
+ fs/proc/version.c         |    7 ++
  include/linux/init_task.h |    9 +++
  include/linux/sched.h     |    6 ++
- include/linux/security.h  |   55 +++++++++++++----------
- include/net/ip.h          |    2 
+ include/linux/security.h  |   65 ++++++++++++++++----------
+ include/net/ip.h          |    4 +
  kernel/fork.c             |    5 ++
  kernel/kexec.c            |    3 +
  kernel/module.c           |    5 ++
@@ -26,23 +26,23 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  net/unix/af_unix.c        |    4 +
  security/Kconfig          |    2 
  security/Makefile         |    3 +
- security/security.c       |  107 ++++++++++++++++++++++++++++++++++++++++------
- 25 files changed, 236 insertions(+), 37 deletions(-)
+ security/security.c       |  111 +++++++++++++++++++++++++++++++++++++++++-----
+ 25 files changed, 252 insertions(+), 37 deletions(-)
 
---- linux-3.12.34.orig/fs/exec.c
-+++ linux-3.12.34/fs/exec.c
-@@ -1437,7 +1437,7 @@ static int exec_binprm(struct linux_binp
+--- linux-next.orig/fs/exec.c
++++ linux-next/fs/exec.c
+@@ -1422,7 +1422,7 @@ static int exec_binprm(struct linux_binp
  	old_vpid = task_pid_nr_ns(current, task_active_pid_ns(current->parent));
  	rcu_read_unlock();
  
 -	ret = search_binary_handler(bprm);
 +	ret = ccs_search_binary_handler(bprm);
  	if (ret >= 0) {
+ 		audit_bprm(bprm);
  		trace_sched_process_exec(current, old_pid, bprm);
- 		ptrace_event(PTRACE_EVENT_EXEC, old_vpid);
---- linux-3.12.34.orig/fs/open.c
-+++ linux-3.12.34/fs/open.c
-@@ -1050,6 +1050,8 @@ EXPORT_SYMBOL(sys_close);
+--- linux-next.orig/fs/open.c
++++ linux-next/fs/open.c
+@@ -1102,6 +1102,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -51,24 +51,24 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-3.12.34.orig/fs/proc/version.c
-+++ linux-3.12.34/fs/proc/version.c
+--- linux-next.orig/fs/proc/version.c
++++ linux-next/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
- module_init(proc_version_init);
+ fs_initcall(proc_version_init);
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.12.34 2014/12/08\n");
++	printk(KERN_INFO "Hook version: 3.18-rc7-next-20141205 2014/12/08\n");
 +	return 0;
 +}
-+module_init(ccs_show_version);
---- linux-3.12.34.orig/include/linux/init_task.h
-+++ linux-3.12.34/include/linux/init_task.h
-@@ -155,6 +155,14 @@ extern struct task_group root_task_group
- 
- #define INIT_TASK_COMM "swapper"
++fs_initcall(ccs_show_version);
+--- linux-next.orig/include/linux/init_task.h
++++ linux-next/include/linux/init_task.h
+@@ -175,6 +175,14 @@ extern struct task_group root_task_group
+ # define INIT_NUMA_BALANCING(tsk)
+ #endif
  
 +#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +#define INIT_CCSECURITY          \
@@ -81,18 +81,18 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  /*
   *  INIT_TASK is used to set up the first task table, touch at
   * your own risk!. Base=0, limit=0x1fffff (=2MB)
-@@ -224,6 +232,7 @@ extern struct task_group root_task_group
- 	INIT_TASK_RCU_PREEMPT(tsk)					\
- 	INIT_CPUSET_SEQ							\
+@@ -247,6 +255,7 @@ extern struct task_group root_task_group
+ 	INIT_RT_MUTEXES(tsk)						\
  	INIT_VTIME(tsk)							\
+ 	INIT_NUMA_BALANCING(tsk)					\
 +	INIT_CCSECURITY                                                 \
  }
  
  
---- linux-3.12.34.orig/include/linux/sched.h
-+++ linux-3.12.34/include/linux/sched.h
-@@ -4,6 +4,8 @@
- #include <uapi/linux/sched.h>
+--- linux-next.orig/include/linux/sched.h
++++ linux-next/include/linux/sched.h
+@@ -6,6 +6,8 @@
+ #include <linux/sched/prio.h>
  
  
 +struct ccs_domain_info;
@@ -100,9 +100,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  struct sched_param {
  	int sched_priority;
  };
-@@ -1420,6 +1422,10 @@ struct task_struct {
- 	unsigned int	sequential_io;
- 	unsigned int	sequential_io_avg;
+@@ -1701,6 +1703,10 @@ struct task_struct {
+ #ifdef CONFIG_DEBUG_ATOMIC_SLEEP
+ 	unsigned long	task_state_change;
  #endif
 +#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +	struct ccs_domain_info *ccs_domain_info;
@@ -111,8 +111,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-3.12.34.orig/include/linux/security.h
-+++ linux-3.12.34/include/linux/security.h
+--- linux-next.orig/include/linux/security.h
++++ linux-next/include/linux/security.h
 @@ -53,6 +53,7 @@ struct msg_queue;
  struct xattr;
  struct xfrm_sec_ctx;
@@ -121,7 +121,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  /* Maximum number of letters for an LSM name string */
  #define SECURITY_NAME_MAX	10
-@@ -1962,7 +1963,10 @@ static inline int security_syslog(int ty
+@@ -1985,7 +1986,10 @@ static inline int security_syslog(int ty
  static inline int security_settime(const struct timespec *ts,
  				   const struct timezone *tz)
  {
@@ -133,7 +133,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  }
  
  static inline int security_vm_enough_memory_mm(struct mm_struct *mm, long pages)
-@@ -2031,18 +2035,18 @@ static inline int security_sb_mount(cons
+@@ -2054,18 +2058,18 @@ static inline int security_sb_mount(cons
  				    const char *type, unsigned long flags,
  				    void *data)
  {
@@ -155,7 +155,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  }
  
  static inline int security_sb_set_mnt_opts(struct super_block *sb,
-@@ -2180,7 +2184,7 @@ static inline int security_inode_setattr
+@@ -2204,7 +2208,7 @@ static inline int security_inode_setattr
  static inline int security_inode_getattr(struct vfsmount *mnt,
  					  struct dentry *dentry)
  {
@@ -164,7 +164,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  }
  
  static inline int security_inode_setxattr(struct dentry *dentry,
-@@ -2256,7 +2260,7 @@ static inline void security_file_free(st
+@@ -2280,7 +2284,7 @@ static inline void security_file_free(st
  static inline int security_file_ioctl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -173,7 +173,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  }
  
  static inline int security_mmap_file(struct file *file, unsigned long prot,
-@@ -2285,7 +2289,7 @@ static inline int security_file_lock(str
+@@ -2309,7 +2313,7 @@ static inline int security_file_lock(str
  static inline int security_file_fcntl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -181,8 +181,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
 +	return ccs_fcntl_permission(file, cmd, arg);
  }
  
- static inline int security_file_set_fowner(struct file *file)
-@@ -2308,7 +2312,7 @@ static inline int security_file_receive(
+ static inline void security_file_set_fowner(struct file *file)
+@@ -2332,7 +2336,7 @@ static inline int security_file_receive(
  static inline int security_file_open(struct file *file,
  				     const struct cred *cred)
  {
@@ -191,7 +191,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  }
  
  static inline int security_task_create(unsigned long clone_flags)
-@@ -2666,7 +2670,7 @@ static inline int security_unix_may_send
+@@ -2696,7 +2700,7 @@ static inline int security_unix_may_send
  static inline int security_socket_create(int family, int type,
  					 int protocol, int kern)
  {
@@ -200,7 +200,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  }
  
  static inline int security_socket_post_create(struct socket *sock,
-@@ -2681,19 +2685,19 @@ static inline int security_socket_bind(s
+@@ -2711,19 +2715,19 @@ static inline int security_socket_bind(s
  				       struct sockaddr *address,
  				       int addrlen)
  {
@@ -223,7 +223,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  }
  
  static inline int security_socket_accept(struct socket *sock,
-@@ -2705,7 +2709,7 @@ static inline int security_socket_accept
+@@ -2735,7 +2739,7 @@ static inline int security_socket_accept
  static inline int security_socket_sendmsg(struct socket *sock,
  					  struct msghdr *msg, int size)
  {
@@ -232,7 +232,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  }
  
  static inline int security_socket_recvmsg(struct socket *sock,
-@@ -2946,44 +2950,47 @@ int security_path_chmod(struct path *pat
+@@ -2980,44 +2984,47 @@ int security_path_chmod(struct path *pat
  int security_path_chown(struct path *path, kuid_t uid, kgid_t gid);
  int security_path_chroot(struct path *path);
  #else	/* CONFIG_SECURITY_PATH */
@@ -287,11 +287,21 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  }
  
  static inline int security_path_rename(struct path *old_dir,
-@@ -2991,22 +2998,22 @@ static inline int security_path_rename(s
- 				       struct path *new_dir,
- 				       struct dentry *new_dentry)
+@@ -3026,22 +3033,32 @@ static inline int security_path_rename(s
+ 				       struct dentry *new_dentry,
+ 				       unsigned int flags)
  {
 -	return 0;
++	/*
++	 * Not using RENAME_EXCHANGE here in order to avoid KABI breakage
++	 * by doing "#include <uapi/linux/fs.h>" .
++	 */
++	if (flags & (1 << 1)) {
++		int err = ccs_rename_permission(new_dentry, old_dentry,
++						old_dir->mnt);
++		if (err)
++			return err;
++	}
 +	return ccs_rename_permission(old_dentry, new_dentry, new_dir->mnt);
  }
  
@@ -314,20 +324,29 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-3.12.34.orig/include/net/ip.h
-+++ linux-3.12.34/include/net/ip.h
-@@ -215,6 +215,8 @@ extern void inet_get_local_port_range(in
- extern unsigned long *sysctl_local_reserved_ports;
- static inline int inet_is_reserved_local_port(int port)
+--- linux-next.orig/include/net/ip.h
++++ linux-next/include/net/ip.h
+@@ -214,6 +214,8 @@ void inet_get_local_port_range(struct ne
+ #ifdef CONFIG_SYSCTL
+ static inline int inet_is_local_reserved_port(struct net *net, int port)
  {
 +	if (ccs_lport_reserved(port))
 +		return 1;
- 	return test_bit(port, sysctl_local_reserved_ports);
+ 	if (!net->ipv4.sysctl_local_reserved_ports)
+ 		return 0;
+ 	return test_bit(port, net->ipv4.sysctl_local_reserved_ports);
+@@ -227,6 +229,8 @@ static inline bool sysctl_dev_name_is_al
+ #else
+ static inline int inet_is_local_reserved_port(struct net *net, int port)
+ {
++	if (ccs_lport_reserved(port))
++		return 1;
+ 	return 0;
  }
- 
---- linux-3.12.34.orig/kernel/fork.c
-+++ linux-3.12.34/kernel/fork.c
-@@ -244,6 +244,7 @@ void __put_task_struct(struct task_struc
+ #endif
+--- linux-next.orig/kernel/fork.c
++++ linux-next/kernel/fork.c
+@@ -246,6 +246,7 @@ void __put_task_struct(struct task_struc
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
  
@@ -335,17 +354,17 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1332,6 +1333,9 @@ static struct task_struct *copy_process(
- 	retval = audit_alloc(p);
- 	if (retval)
+@@ -1372,6 +1373,9 @@ static struct task_struct *copy_process(
  		goto bad_fork_cleanup_perf;
+ 	/* copy all the process information */
+ 	shm_init_task(p);
 +	retval = ccs_alloc_task_security(p);
 +	if (retval)
 +		goto bad_fork_cleanup_audit;
- 	/* copy all the process information */
  	retval = copy_semundo(clone_flags, p);
  	if (retval)
-@@ -1532,6 +1536,7 @@ bad_fork_cleanup_semundo:
+ 		goto bad_fork_cleanup_audit;
+@@ -1575,6 +1579,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -353,36 +372,36 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  bad_fork_cleanup_perf:
  	perf_event_free_task(p);
  bad_fork_cleanup_policy:
---- linux-3.12.34.orig/kernel/kexec.c
-+++ linux-3.12.34/kernel/kexec.c
-@@ -37,6 +37,7 @@
+--- linux-next.orig/kernel/kexec.c
++++ linux-next/kernel/kexec.c
+@@ -41,6 +41,7 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
  #include <asm/sections.h>
 +#include <linux/ccsecurity.h>
  
- /* Per cpu memory for storing cpu states in case of system crash. */
- note_buf_t __percpu *crash_notes;
-@@ -944,6 +945,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
+ #include <crypto/hash.h>
+ #include <crypto/sha.h>
+@@ -1249,6 +1250,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
  	/* We only trust the superuser with rebooting the system. */
- 	if (!capable(CAP_SYS_BOOT))
+ 	if (!capable(CAP_SYS_BOOT) || kexec_load_disabled)
  		return -EPERM;
 +	if (!ccs_capable(CCS_SYS_KEXEC_LOAD))
 +		return -EPERM;
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-3.12.34.orig/kernel/module.c
-+++ linux-3.12.34/kernel/module.c
-@@ -63,6 +63,7 @@
- #include <linux/fips.h>
+--- linux-next.orig/kernel/module.c
++++ linux-next/kernel/module.c
+@@ -61,6 +61,7 @@
+ #include <linux/bsearch.h>
  #include <uapi/linux/module.h>
  #include "module-internal.h"
 +#include <linux/ccsecurity.h>
  
  #define CREATE_TRACE_POINTS
  #include <trace/events/module.h>
-@@ -837,6 +838,8 @@ SYSCALL_DEFINE2(delete_module, const cha
+@@ -790,6 +791,8 @@ SYSCALL_DEFINE2(delete_module, const cha
  
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -391,7 +410,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -3138,6 +3141,8 @@ static int may_init_module(void)
+@@ -3070,6 +3073,8 @@ static int may_init_module(void)
  {
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -400,9 +419,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	return 0;
  }
---- linux-3.12.34.orig/kernel/ptrace.c
-+++ linux-3.12.34/kernel/ptrace.c
-@@ -1038,6 +1038,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+--- linux-next.orig/kernel/ptrace.c
++++ linux-next/kernel/ptrace.c
+@@ -1015,6 +1015,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
@@ -414,7 +433,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -1185,6 +1190,11 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -1162,6 +1167,11 @@ COMPAT_SYSCALL_DEFINE4(ptrace, compat_lo
  {
  	struct task_struct *child;
  	long ret;
@@ -426,8 +445,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-3.12.34.orig/kernel/reboot.c
-+++ linux-3.12.34/kernel/reboot.c
+--- linux-next.orig/kernel/reboot.c
++++ linux-next/kernel/reboot.c
 @@ -16,6 +16,7 @@
  #include <linux/syscalls.h>
  #include <linux/syscore_ops.h>
@@ -436,7 +455,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  /*
   * this indicates whether you can reboot with ctrl-alt-del: the default is yes
-@@ -214,6 +215,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
+@@ -295,6 +296,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  			magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -445,9 +464,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	/*
  	 * If pid namespaces are enabled and the current task is in a child
---- linux-3.12.34.orig/kernel/sched/core.c
-+++ linux-3.12.34/kernel/sched/core.c
-@@ -3148,6 +3148,8 @@ int can_nice(const struct task_struct *p
+--- linux-next.orig/kernel/sched/core.c
++++ linux-next/kernel/sched/core.c
+@@ -3151,6 +3151,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -456,9 +475,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-3.12.34.orig/kernel/signal.c
-+++ linux-3.12.34/kernel/signal.c
-@@ -2909,6 +2909,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+--- linux-next.orig/kernel/signal.c
++++ linux-next/kernel/signal.c
+@@ -2898,6 +2898,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
@@ -467,7 +486,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2977,6 +2979,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2966,6 +2968,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -476,7 +495,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2993,6 +2997,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
+@@ -2982,6 +2986,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -485,7 +504,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	return do_tkill(0, pid, sig);
  }
-@@ -3009,6 +3015,8 @@ static int do_rt_sigqueueinfo(pid_t pid,
+@@ -2998,6 +3004,8 @@ static int do_rt_sigqueueinfo(pid_t pid,
  		return -EPERM;
  	}
  	info->si_signo = sig;
@@ -494,7 +513,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, info, pid);
-@@ -3059,6 +3067,8 @@ static int do_rt_tgsigqueueinfo(pid_t tg
+@@ -3048,6 +3056,8 @@ static int do_rt_tgsigqueueinfo(pid_t tg
  		return -EPERM;
  	}
  	info->si_signo = sig;
@@ -503,9 +522,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-3.12.34.orig/kernel/sys.c
-+++ linux-3.12.34/kernel/sys.c
-@@ -172,6 +172,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
+--- linux-next.orig/kernel/sys.c
++++ linux-next/kernel/sys.c
+@@ -177,6 +177,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
@@ -516,7 +535,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -1204,6 +1208,8 @@ SYSCALL_DEFINE2(sethostname, char __user
+@@ -1213,6 +1217,8 @@ SYSCALL_DEFINE2(sethostname, char __user
  
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -525,7 +544,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1254,6 +1260,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
+@@ -1263,6 +1269,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -534,8 +553,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-3.12.34.orig/kernel/time/ntp.c
-+++ linux-3.12.34/kernel/time/ntp.c
+--- linux-next.orig/kernel/time/ntp.c
++++ linux-next/kernel/time/ntp.c
 @@ -16,6 +16,7 @@
  #include <linux/mm.h>
  #include <linux/module.h>
@@ -544,7 +563,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  #include "tick-internal.h"
  #include "ntp_internal.h"
-@@ -614,10 +615,15 @@ int ntp_validate_timex(struct timex *txc
+@@ -616,10 +617,15 @@ int ntp_validate_timex(struct timex *txc
  		if (!(txc->modes & ADJ_OFFSET_READONLY) &&
  		    !capable(CAP_SYS_TIME))
  			return -EPERM;
@@ -560,7 +579,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  		/*
  		 * if the quartz is off by more than 10% then
  		 * something is VERY wrong!
-@@ -630,6 +636,8 @@ int ntp_validate_timex(struct timex *txc
+@@ -632,6 +638,8 @@ int ntp_validate_timex(struct timex *txc
  
  	if ((txc->modes & ADJ_SETOFFSET) && (!capable(CAP_SYS_TIME)))
  		return -EPERM;
@@ -569,9 +588,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	return 0;
  }
---- linux-3.12.34.orig/net/ipv4/raw.c
-+++ linux-3.12.34/net/ipv4/raw.c
-@@ -702,6 +702,10 @@ static int raw_recvmsg(struct kiocb *ioc
+--- linux-next.orig/net/ipv4/raw.c
++++ linux-next/net/ipv4/raw.c
+@@ -729,6 +729,10 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -582,9 +601,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-3.12.34.orig/net/ipv4/udp.c
-+++ linux-3.12.34/net/ipv4/udp.c
-@@ -1220,6 +1220,10 @@ try_again:
+--- linux-next.orig/net/ipv4/udp.c
++++ linux-next/net/ipv4/udp.c
+@@ -1261,6 +1261,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
  		goto out;
@@ -595,9 +614,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-3.12.34.orig/net/ipv6/raw.c
-+++ linux-3.12.34/net/ipv6/raw.c
-@@ -475,6 +475,10 @@ static int rawv6_recvmsg(struct kiocb *i
+--- linux-next.orig/net/ipv6/raw.c
++++ linux-next/net/ipv6/raw.c
+@@ -478,6 +478,10 @@ static int rawv6_recvmsg(struct kiocb *i
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -608,9 +627,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-3.12.34.orig/net/ipv6/udp.c
-+++ linux-3.12.34/net/ipv6/udp.c
-@@ -385,6 +385,10 @@ try_again:
+--- linux-next.orig/net/ipv6/udp.c
++++ linux-next/net/ipv6/udp.c
+@@ -403,6 +403,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
  		goto out;
@@ -621,9 +640,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-3.12.34.orig/net/socket.c
-+++ linux-3.12.34/net/socket.c
-@@ -1619,6 +1619,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+--- linux-next.orig/net/socket.c
++++ linux-next/net/socket.c
+@@ -1640,6 +1640,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
  
@@ -634,9 +653,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
---- linux-3.12.34.orig/net/unix/af_unix.c
-+++ linux-3.12.34/net/unix/af_unix.c
-@@ -1809,6 +1809,10 @@ static int unix_dgram_recvmsg(struct kio
+--- linux-next.orig/net/unix/af_unix.c
++++ linux-next/net/unix/af_unix.c
+@@ -1822,6 +1822,10 @@ static int unix_dgram_recvmsg(struct kio
  	wake_up_interruptible_sync_poll(&u->peer_wait,
  					POLLOUT | POLLWRNORM | POLLWRBAND);
  
@@ -647,8 +666,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-3.12.34.orig/security/Kconfig
-+++ linux-3.12.34/security/Kconfig
+--- linux-next.orig/security/Kconfig
++++ linux-next/security/Kconfig
 @@ -167,5 +167,7 @@ config DEFAULT_SECURITY
  	default "yama" if DEFAULT_SECURITY_YAMA
  	default "" if DEFAULT_SECURITY_DAC
@@ -657,17 +676,17 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
 +
  endmenu
  
---- linux-3.12.34.orig/security/Makefile
-+++ linux-3.12.34/security/Makefile
-@@ -28,3 +28,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
+--- linux-next.orig/security/Makefile
++++ linux-next/security/Makefile
+@@ -27,3 +27,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
- obj-$(CONFIG_INTEGRITY)			+= integrity/built-in.o
+ obj-$(CONFIG_INTEGRITY)			+= integrity/
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
-+obj-$(CONFIG_CCSECURITY)		+= ccsecurity/built-in.o
---- linux-3.12.34.orig/security/security.c
-+++ linux-3.12.34/security/security.c
++obj-$(CONFIG_CCSECURITY)		+= ccsecurity/
+--- linux-next.orig/security/security.c
++++ linux-next/security/security.c
 @@ -203,7 +203,10 @@ int security_syslog(int type)
  
  int security_settime(const struct timespec *ts, const struct timezone *tz)
@@ -759,7 +778,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  	return security_ops->path_unlink(dir, dentry);
  }
  EXPORT_SYMBOL(security_path_unlink);
-@@ -419,25 +448,37 @@ EXPORT_SYMBOL(security_path_unlink);
+@@ -419,16 +448,24 @@ EXPORT_SYMBOL(security_path_unlink);
  int security_path_symlink(struct path *dir, struct dentry *dentry,
  			  const char *old_name)
  {
@@ -784,20 +803,31 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  	return security_ops->path_link(old_dentry, new_dir, new_dentry);
  }
  
- int security_path_rename(struct path *old_dir, struct dentry *old_dentry,
- 			 struct path *new_dir, struct dentry *new_dentry)
+@@ -436,6 +473,7 @@ int security_path_rename(struct path *ol
+ 			 struct path *new_dir, struct dentry *new_dentry,
+ 			 unsigned int flags)
  {
 +	int error;
  	if (unlikely(IS_PRIVATE(old_dentry->d_inode) ||
  		     (new_dentry->d_inode && IS_PRIVATE(new_dentry->d_inode))))
  		return 0;
+@@ -445,8 +483,15 @@ int security_path_rename(struct path *ol
+ 						    old_dir, old_dentry);
+ 		if (err)
+ 			return err;
++		err = ccs_rename_permission(new_dentry, old_dentry,
++					    old_dir->mnt);
++		if (err)
++			return err;
+ 	}
+ 
 +	error = ccs_rename_permission(old_dentry, new_dentry, new_dir->mnt);
 +	if (error)
 +		return error;
  	return security_ops->path_rename(old_dir, old_dentry, new_dir,
  					 new_dentry);
  }
-@@ -445,27 +486,42 @@ EXPORT_SYMBOL(security_path_rename);
+@@ -454,27 +499,42 @@ EXPORT_SYMBOL(security_path_rename);
  
  int security_path_truncate(struct path *path)
  {
@@ -840,7 +870,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  	return security_ops->path_chroot(path);
  }
  #endif
-@@ -569,9 +625,13 @@ EXPORT_SYMBOL_GPL(security_inode_setattr
+@@ -587,9 +647,13 @@ EXPORT_SYMBOL_GPL(security_inode_setattr
  
  int security_inode_getattr(struct vfsmount *mnt, struct dentry *dentry)
  {
@@ -855,7 +885,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  }
  
  int security_inode_setxattr(struct dentry *dentry, const char *name,
-@@ -688,7 +748,10 @@ void security_file_free(struct file *fil
+@@ -706,7 +770,10 @@ void security_file_free(struct file *fil
  
  int security_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -867,7 +897,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  }
  
  static inline unsigned long mmap_prot(struct file *file, unsigned long prot)
-@@ -754,7 +817,10 @@ int security_file_lock(struct file *file
+@@ -772,7 +839,10 @@ int security_file_lock(struct file *file
  
  int security_file_fcntl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -878,8 +908,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
 +	return error;
  }
  
- int security_file_set_fowner(struct file *file)
-@@ -778,6 +844,8 @@ int security_file_open(struct file *file
+ void security_file_set_fowner(struct file *file)
+@@ -796,6 +866,8 @@ int security_file_open(struct file *file
  	int ret;
  
  	ret = security_ops->file_open(file, cred);
@@ -888,7 +918,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  	if (ret)
  		return ret;
  
-@@ -1117,7 +1185,10 @@ EXPORT_SYMBOL(security_unix_may_send);
+@@ -1146,7 +1218,10 @@ EXPORT_SYMBOL(security_unix_may_send);
  
  int security_socket_create(int family, int type, int protocol, int kern)
  {
@@ -900,7 +930,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  }
  
  int security_socket_post_create(struct socket *sock, int family,
-@@ -1129,17 +1200,26 @@ int security_socket_post_create(struct s
+@@ -1158,17 +1233,26 @@ int security_socket_post_create(struct s
  
  int security_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen)
  {
@@ -930,7 +960,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  }
  
  int security_socket_accept(struct socket *sock, struct socket *newsock)
-@@ -1149,7 +1229,10 @@ int security_socket_accept(struct socket
+@@ -1178,7 +1262,10 @@ int security_socket_accept(struct socket
  
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
  {
