@@ -2525,3 +2525,17 @@ Fix 2012/05/04
       "[UDP]: Add memory accounting." patch, TOMOYO needs to call
       lock_sock()/release_sock() around skb_kill_datagram() call when UDP
       packet was dropped by TOMOYO.
+
+Fix 2015/01/01
+
+    @ Fix missing chmod(-1) check in Linux 3.1 and later kernels.
+
+      Commit e57712ebebbb9db7 "merge fchmod() and fchmodat() guts, kill
+      ancient broken kludge" changed chmod(-1) from no-op to setting to
+      07777. Therefore, TOMOYO must not ignore chmod(-1) case.
+
+    @ Fix potentially using bogus attributes when stat() fails.
+
+      We should reset attributes information when executing execute_handler
+      program, or attributes of original program could be used when stat()
+      on execute_handler program failed.
