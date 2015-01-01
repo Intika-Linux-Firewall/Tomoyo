@@ -1809,8 +1809,6 @@ static int __ccs_ioctl_permission(struct file *filp, unsigned int cmd,
 static int __ccs_chmod_permission(struct dentry *dentry,
 				  struct vfsmount *vfsmnt, mode_t mode)
 {
-	if (mode == (mode_t) -1)
-		return 0;
 	if (!ccs_capable(CCS_SYS_CHMOD))
 		return -EPERM;
 	return ccs_path_number_perm(CCS_TYPE_CHMOD, NULL, dentry, vfsmnt,
