@@ -105,6 +105,14 @@ static void set_enforce(int flag)
 	set_profile(flag, "network::inet_raw_recv");
 }
 
+static void nonblock(int fd, int flag)
+{
+	if (flag)
+		fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
+	else
+		fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) & ~O_NONBLOCK);
+}
+
 static void stage_network_test(void)
 {
 	int i;
@@ -170,11 +178,11 @@ static void stage_network_test(void)
 			 "Server: Accepting TCP 127.0.0.1 %d",
 			 ntohs(caddr.sin_port));
 		set_enforce(1);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
+		nonblock(fd1, 1);
 		show_prompt(sbuffer);
 		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
 		show_result2(fd3);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
+		nonblock(fd1, 0);
 
 		set_enforce(0);
 		close(fd2);
@@ -186,11 +194,11 @@ static void stage_network_test(void)
 			 "Server: Accepting TCP 127.0.0.1 %d",
 			 ntohs(caddr.sin_port));
 		set_enforce(0);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
+		nonblock(fd1, 1);
 		show_prompt(sbuffer);
 		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
 		show_result2(fd3);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
+		nonblock(fd1, 0);
 
 		close(fd3);
 		close(fd2);
@@ -339,10 +347,10 @@ static void stage_network_test(void)
 		show_prompt(cbuffer);
 		show_result(write(fd2, "", 1));
 		set_enforce(1);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
+		nonblock(fd1, 1);
 		show_prompt(sbuffer);
 		show_result2(read(fd1, buf, sizeof(buf) - 1));
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
+		nonblock(fd1, 0);
 		set_enforce(0);
 		ret_ignored = write(fd2, "", 1);
 		set_enforce(0);
@@ -534,11 +542,11 @@ static void stage_network_test(void)
 			 "Server: Accepting TCP ::1 %d",
 			 ntohs(caddr.sin6_port));
 		set_enforce(1);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
+		nonblock(fd1, 1);
 		show_prompt(sbuffer);
 		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
 		show_result2(fd3);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
+		nonblock(fd1, 0);
 
 		set_enforce(0);
 		close(fd2);
@@ -550,11 +558,11 @@ static void stage_network_test(void)
 			 "Server: Accepting TCP ::1 %d",
 			 ntohs(caddr.sin6_port));
 		set_enforce(0);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
+		nonblock(fd1, 1);
 		show_prompt(sbuffer);
 		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
 		show_result2(fd3);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
+		nonblock(fd1, 0);
 
 		close(fd3);
 		close(fd2);

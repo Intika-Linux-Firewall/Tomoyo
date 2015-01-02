@@ -100,6 +100,14 @@ static void show_result2(int result)
 	}
 }
 
+static void nonblock(int fd, int flag)
+{
+	if (flag)
+		fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
+	else
+		fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) & ~O_NONBLOCK);
+}
+
 static void stage_network_test(void)
 {
 	int i;
@@ -159,11 +167,11 @@ static void stage_network_test(void)
 		snprintf(buffer, sizeof(buffer) - 1,
 			 "network inet stream accept 127.0.0.1 %u-%u",
 			 ntohs(caddr.sin_port) - 1, ntohs(caddr.sin_port) + 1);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
+		nonblock(fd1, 1);
 		errno = 0;
 		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
 		show_result2(fd3);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
+		nonblock(fd1, 0);
 		if (fd3 != EOF)
 			close(fd3);
 
@@ -303,11 +311,11 @@ static void stage_network_test(void)
 			 "network inet stream accept ::1 %u-%u",
 			 ntohs(caddr.sin6_port) - 1,
 			 ntohs(caddr.sin6_port) + 1);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
+		nonblock(fd1, 1);
 		errno = 0;
 		fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
 		show_result2(fd3);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
+		nonblock(fd1, 0);
 		if (fd3 != EOF)
 			close(fd3);
 
@@ -327,7 +335,7 @@ static void stage_network_test(void)
 			 "network inet stream accept ::-::ff %u-%u",
 			 ntohs(caddr.sin6_port) - 1,
 			 ntohs(caddr.sin6_port) + 1);
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) | O_NONBLOCK);
+		nonblock(fd1, 1);
 		if (write_policy()) {
 			fd3 = accept(fd1, (struct sockaddr *) &caddr, &size);
 			show_result(fd3, 1);
@@ -335,7 +343,7 @@ static void stage_network_test(void)
 			if (fd3 != EOF)
 				close(fd3);
 		}
-		fcntl(fd1, F_SETFL, fcntl(fd1, F_GETFL, 0) & ~O_NONBLOCK);
+		nonblock(fd1, 0);
 
 		if (fd2 != EOF)
 			close(fd2);
