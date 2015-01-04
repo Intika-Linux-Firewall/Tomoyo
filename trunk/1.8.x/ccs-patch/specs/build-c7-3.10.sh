@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.10.0-123.9.3.el7.src.rpm ]
+if [ ! -r kernel-3.10.0-123.13.2.el7.src.rpm ]
 then
-    wget http://vault.centos.org/centos/7/updates/Source/SPackages/kernel-3.10.0-123.9.3.el7.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/centos/7/updates/Source/SPackages/kernel-3.10.0-123.13.2.el7.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.10.0-123.9.3.el7.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.10.0-123.9.3.el7.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.10.0-123.13.2.el7.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.10.0-123.13.2.el7.src.rpm || die "Can't install source package."
 
 cd ~/rpmbuild/SOURCES/ || die "Can't chdir to ~/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20140915.tar.gz ]
