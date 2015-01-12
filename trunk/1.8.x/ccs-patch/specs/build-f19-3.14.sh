@@ -12,12 +12,12 @@ yum -y install tar wget rpm-build make gcc patch redhat-rpm-config xmlto asciido
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.14.23-100.fc19.src.rpm ]
+if [ ! -r kernel-3.14.27-100.fc19.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/kernel-3.14.23-100.fc19.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/19/SRPMS/kernel-3.14.27-100.fc19.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.14.23-100.fc19.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.14.23-100.fc19.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.14.27-100.fc19.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.14.27-100.fc19.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20140915.tar.gz ]
@@ -48,7 +48,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2 and Redistributable, no modification permitted
  URL: http://www.kernel.org/
-@@ -968,7 +968,7 @@
+@@ -945,7 +945,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -57,7 +57,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -988,7 +988,7 @@
+@@ -965,7 +965,7 @@
  Provides: kernel%{?1:-%{1}}-modules-extra-uname-r = %{KVERREL}%{?1:.%{1}}\
  Requires: kernel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
@@ -66,7 +66,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides less commonly used kernel modules for the %{?2:%{2} }kernel package.\
  %{nil}
  
-@@ -1508,6 +1508,10 @@
+@@ -1462,6 +1462,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -77,7 +77,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1530,6 +1534,17 @@
+@@ -1484,6 +1488,17 @@
  for i in *.config
  do
    mv $i .config
