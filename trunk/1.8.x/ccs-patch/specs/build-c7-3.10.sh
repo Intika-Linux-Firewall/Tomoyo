@@ -10,17 +10,17 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.10.0-123.13.2.el7.src.rpm ]
+if [ ! -r kernel-3.10.0-210.el7.src.rpm ]
 then
-    wget http://vault.centos.org/centos/7/updates/Source/SPackages/kernel-3.10.0-123.13.2.el7.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/centos/7/os/Source/SPackages/kernel-3.10.0-210.el7.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.10.0-123.13.2.el7.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.10.0-123.13.2.el7.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.10.0-210.el7.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.10.0-210.el7.src.rpm || die "Can't install source package."
 
 cd ~/rpmbuild/SOURCES/ || die "Can't chdir to ~/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20140915.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20150112.tar.gz ]
 then
-    wget -O ccs-patch-1.8.3-20140915.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20140915.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20150112.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20150112.tar.gz' || die "Can't download patch."
 fi
 
 cd ~/rpmbuild/SPECS/ || die "Can't chdir to ~/rpmbuild/SPECS/ ."
@@ -33,11 +33,11 @@ patch << "EOF" || die "Can't patch spec file."
  Summary: The Linux kernel
  
 -# % define buildid .local
-+%define buildid _tomoyo_1.8.3p7
++%define buildid _tomoyo_1.8.3p8
  
- # For a stable, released kernel, released_kernel should be 1. For rawhide
- # and/or a kernel built from an rc or git snapshot, released_kernel should
-@@ -278,7 +278,7 @@
+ # For a kernel released for public testing, released_kernel should be 1.
+ # For internal testing builds during development, it should be 0.
+@@ -270,7 +270,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -46,7 +46,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -557,14 +557,14 @@
+@@ -554,14 +554,14 @@
  %package %{?1:%{1}-}devel\
  Summary: Development package for building kernel modules to match the %{?2:%{2} }kernel\
  Group: System Environment/Kernel\
@@ -66,18 +66,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -679,6 +679,10 @@
+@@ -670,6 +670,10 @@
  
  ApplyOptionalPatch linux-kernel-test.patch
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.3-20140915.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.3-20150112.tar.gz
 +patch -sp1 < patches/ccs-patch-3.10-centos-7.diff
 +
  # Any further pre-build tree manipulations happen here.
  
  chmod +x scripts/checkpatch.pl
-@@ -709,6 +713,17 @@
+@@ -700,6 +704,17 @@
  for i in *.config
  do
    mv $i .config
