@@ -10,17 +10,17 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.4.98-1vl6.src.rpm ]
+if [ ! -r kernel-3.4.106-1vl6.src.rpm ]
 then
-    wget http://updates.vinelinux.org/Vine-6.2/updates/SRPMS/kernel-3.4.98-1vl6.src.rpm || die "Can't download source package."
+    wget http://updates.vinelinux.org/Vine-6.3/updates/SRPMS/kernel-3.4.106-1vl6.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.4.98-1vl6.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.4.98-1vl6.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.4.106-1vl6.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.4.106-1vl6.src.rpm || die "Can't install source package."
 
 cd /root/rpm/SOURCES/ || die "Can't chdir to /root/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20140915.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20150112.tar.gz ]
 then
-    wget -O ccs-patch-1.8.3-20140915.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20140915.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20150112.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20150112.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -29,11 +29,11 @@ patch << "EOF" || die "Can't patch spec file."
 --- kernel34-vl.spec
 +++ kernel34-vl.spec
 @@ -34,7 +34,7 @@
- %define patchlevel 98
+ %define patchlevel 106
  %define kversion 3.%{sublevel}
  %define rpmversion 3.%{sublevel}.%{patchlevel}
 -%define release 1%{?_dist_release}
-+%define release 1%{?_dist_release}_tomoyo_1.8.3p7
++%define release 1%{?_dist_release}_tomoyo_1.8.3p8
  
  %define make_target bzImage
  %define hdrarch %_target_cpu
@@ -56,18 +56,18 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -688,6 +691,10 @@
+@@ -704,6 +707,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.3-20140915.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.3-20150112.tar.gz
 +patch -sp1 < patches/ccs-patch-3.4-vine-linux-6.diff
 +
  cp %{SOURCE10} Documentation/
  
  # put Vine logo
-@@ -706,6 +713,9 @@
+@@ -722,6 +729,9 @@
  for i in *.config
  do 
  	mv $i .config 
