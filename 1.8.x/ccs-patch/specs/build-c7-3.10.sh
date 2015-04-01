@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.10.0-210.el7.src.rpm ]
+if [ ! -r kernel-3.10.0-229.1.2.el7.src.rpm ]
 then
-    wget http://vault.centos.org/centos/7/os/Source/SPackages/kernel-3.10.0-210.el7.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/centos/7/updates/Source/SPackages/kernel-3.10.0-229.1.2.el7.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.10.0-210.el7.src.rpm || die "Can't verify signature."
-rpm -ivh kernel-3.10.0-210.el7.src.rpm || die "Can't install source package."
+rpm --checksig kernel-3.10.0-229.1.2.el7.src.rpm || die "Can't verify signature."
+rpm -ivh kernel-3.10.0-229.1.2.el7.src.rpm || die "Can't install source package."
 
 cd ~/rpmbuild/SOURCES/ || die "Can't chdir to ~/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20150112.tar.gz ]
@@ -46,17 +46,15 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -554,14 +554,14 @@
+@@ -558,13 +558,13 @@
  %package %{?1:%{1}-}devel\
  Summary: Development package for building kernel modules to match the %{?2:%{2} }kernel\
  Group: System Environment/Kernel\
 -Provides: kernel%{?1:-%{1}}-devel-%{_target_cpu} = %{version}-%{release}\
 -Provides: kernel-devel-%{_target_cpu} = %{version}-%{release}%{?1:.%{1}}\
--Provides: kernel-devel = %{version}-%{release}%{?1:.%{1}}\
 -Provides: kernel-devel-uname-r = %{KVRA}%{?1:.%{1}}\
 +Provides: ccs-kernel%{?1:-%{1}}-devel-%{_target_cpu} = %{version}-%{release}\
 +Provides: ccs-kernel-devel-%{_target_cpu} = %{version}-%{release}%{?1:.%{1}}\
-+Provides: ccs-kernel-devel = %{version}-%{release}%{?1:.%{1}}\
 +Provides: ccs-kernel-devel-uname-r = %{KVRA}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -66,7 +64,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -670,6 +670,10 @@
+@@ -679,6 +679,10 @@
  
  ApplyOptionalPatch linux-kernel-test.patch
  
@@ -77,7 +75,7 @@ patch << "EOF" || die "Can't patch spec file."
  # Any further pre-build tree manipulations happen here.
  
  chmod +x scripts/checkpatch.pl
-@@ -700,6 +704,17 @@
+@@ -709,6 +713,17 @@
  for i in *.config
  do
    mv $i .config

@@ -1,13 +1,13 @@
 This is TOMOYO Linux patch for CentOS 7.
 
-Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackages/kernel-3.10.0-210.el7.src.rpm
+Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SPackages/kernel-3.10.0-229.1.2.el7.src.rpm
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
- fs/proc/version.c         |    7 +++
+ fs/proc/version.c         |    7 ++
  include/linux/init_task.h |    9 +++
  include/linux/sched.h     |    6 ++
- include/linux/security.h  |   55 +++++++++++++----------
+ include/linux/security.h  |   65 ++++++++++++++++----------
  include/net/ip.h          |    2 
  kernel/fork.c             |    5 ++
  kernel/kexec.c            |    2 
@@ -25,11 +25,11 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  net/unix/af_unix.c        |    4 +
  security/Kconfig          |    2 
  security/Makefile         |    3 +
- security/security.c       |  107 ++++++++++++++++++++++++++++++++++++++++------
- 24 files changed, 234 insertions(+), 37 deletions(-)
+ security/security.c       |  111 +++++++++++++++++++++++++++++++++++++++++-----
+ 24 files changed, 248 insertions(+), 37 deletions(-)
 
---- linux-3.10.0-210.el7.orig/fs/exec.c
-+++ linux-3.10.0-210.el7/fs/exec.c
+--- linux-3.10.0-229.1.2.el7.orig/fs/exec.c
++++ linux-3.10.0-229.1.2.el7/fs/exec.c
 @@ -1537,7 +1537,7 @@ static int do_execve_common(const char *
  	if (retval < 0)
  		goto out;
@@ -39,9 +39,9 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  	if (retval < 0)
  		goto out;
  
---- linux-3.10.0-210.el7.orig/fs/open.c
-+++ linux-3.10.0-210.el7/fs/open.c
-@@ -1084,6 +1084,8 @@ EXPORT_SYMBOL(sys_close);
+--- linux-3.10.0-229.1.2.el7.orig/fs/open.c
++++ linux-3.10.0-229.1.2.el7/fs/open.c
+@@ -1104,6 +1104,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -50,8 +50,8 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-3.10.0-210.el7.orig/fs/proc/version.c
-+++ linux-3.10.0-210.el7/fs/proc/version.c
+--- linux-3.10.0-229.1.2.el7.orig/fs/proc/version.c
++++ linux-3.10.0-229.1.2.el7/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -59,12 +59,12 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.10.0-210.el7 2015/03/05\n");
++	printk(KERN_INFO "Hook version: 3.10.0-229.1.2.el7 2015/04/01\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-3.10.0-210.el7.orig/include/linux/init_task.h
-+++ linux-3.10.0-210.el7/include/linux/init_task.h
+--- linux-3.10.0-229.1.2.el7.orig/include/linux/init_task.h
++++ linux-3.10.0-229.1.2.el7/include/linux/init_task.h
 @@ -155,6 +155,14 @@ extern struct task_group root_task_group
  
  #define INIT_TASK_COMM "swapper"
@@ -88,21 +88,21 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  }
  
  
---- linux-3.10.0-210.el7.orig/include/linux/sched.h
-+++ linux-3.10.0-210.el7/include/linux/sched.h
+--- linux-3.10.0-229.1.2.el7.orig/include/linux/sched.h
++++ linux-3.10.0-229.1.2.el7/include/linux/sched.h
 @@ -4,6 +4,8 @@
  #include <uapi/linux/sched.h>
- 
+ #include <linux/rh_kabi.h>
  
 +struct ccs_domain_info;
 +
  struct sched_param {
  	int sched_priority;
  };
-@@ -1563,6 +1565,10 @@ struct task_struct {
- 	unsigned long rh_reserved6;
- 	unsigned long rh_reserved7;
- 	unsigned long rh_reserved8;
+@@ -1555,6 +1557,10 @@ struct task_struct {
+ 	RH_KABI_RESERVE(6)
+ 	RH_KABI_RESERVE(7)
+ 	RH_KABI_RESERVE(8)
 +#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +	struct ccs_domain_info *ccs_domain_info;
 +	u32 ccs_flags;
@@ -110,8 +110,8 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-3.10.0-210.el7.orig/include/linux/security.h
-+++ linux-3.10.0-210.el7/include/linux/security.h
+--- linux-3.10.0-229.1.2.el7.orig/include/linux/security.h
++++ linux-3.10.0-229.1.2.el7/include/linux/security.h
 @@ -53,6 +53,7 @@ struct msg_queue;
  struct xattr;
  struct xfrm_sec_ctx;
@@ -120,7 +120,7 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  
  /* Maximum number of letters for an LSM name string */
  #define SECURITY_NAME_MAX	10
-@@ -1961,7 +1962,10 @@ static inline int security_syslog(int ty
+@@ -1962,7 +1963,10 @@ static inline int security_syslog(int ty
  static inline int security_settime(const struct timespec *ts,
  				   const struct timezone *tz)
  {
@@ -132,7 +132,7 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  }
  
  static inline int security_vm_enough_memory_mm(struct mm_struct *mm, long pages)
-@@ -2030,18 +2034,18 @@ static inline int security_sb_mount(cons
+@@ -2031,18 +2035,18 @@ static inline int security_sb_mount(cons
  				    const char *type, unsigned long flags,
  				    void *data)
  {
@@ -154,7 +154,7 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  }
  
  static inline int security_sb_set_mnt_opts(struct super_block *sb,
-@@ -2179,7 +2183,7 @@ static inline int security_inode_setattr
+@@ -2181,7 +2185,7 @@ static inline int security_inode_setattr
  static inline int security_inode_getattr(struct vfsmount *mnt,
  					  struct dentry *dentry)
  {
@@ -163,7 +163,7 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  }
  
  static inline int security_inode_setxattr(struct dentry *dentry,
-@@ -2255,7 +2259,7 @@ static inline void security_file_free(st
+@@ -2257,7 +2261,7 @@ static inline void security_file_free(st
  static inline int security_file_ioctl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -172,7 +172,7 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  }
  
  static inline int security_mmap_file(struct file *file, unsigned long prot,
-@@ -2284,7 +2288,7 @@ static inline int security_file_lock(str
+@@ -2286,7 +2290,7 @@ static inline int security_file_lock(str
  static inline int security_file_fcntl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -181,7 +181,7 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  }
  
  static inline int security_file_set_fowner(struct file *file)
-@@ -2307,7 +2311,7 @@ static inline int security_file_receive(
+@@ -2309,7 +2313,7 @@ static inline int security_file_receive(
  static inline int security_file_open(struct file *file,
  				     const struct cred *cred)
  {
@@ -190,7 +190,7 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  }
  
  static inline int security_task_create(unsigned long clone_flags)
-@@ -2665,7 +2669,7 @@ static inline int security_unix_may_send
+@@ -2667,7 +2671,7 @@ static inline int security_unix_may_send
  static inline int security_socket_create(int family, int type,
  					 int protocol, int kern)
  {
@@ -199,7 +199,7 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  }
  
  static inline int security_socket_post_create(struct socket *sock,
-@@ -2680,19 +2684,19 @@ static inline int security_socket_bind(s
+@@ -2682,19 +2686,19 @@ static inline int security_socket_bind(s
  				       struct sockaddr *address,
  				       int addrlen)
  {
@@ -222,7 +222,7 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  }
  
  static inline int security_socket_accept(struct socket *sock,
-@@ -2704,7 +2708,7 @@ static inline int security_socket_accept
+@@ -2706,7 +2710,7 @@ static inline int security_socket_accept
  static inline int security_socket_sendmsg(struct socket *sock,
  					  struct msghdr *msg, int size)
  {
@@ -231,7 +231,7 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  }
  
  static inline int security_socket_recvmsg(struct socket *sock,
-@@ -2945,44 +2949,47 @@ int security_path_chmod(struct path *pat
+@@ -2948,44 +2952,47 @@ int security_path_chmod(struct path *pat
  int security_path_chown(struct path *path, kuid_t uid, kgid_t gid);
  int security_path_chroot(struct path *path);
  #else	/* CONFIG_SECURITY_PATH */
@@ -286,11 +286,21 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  }
  
  static inline int security_path_rename(struct path *old_dir,
-@@ -2990,22 +2997,22 @@ static inline int security_path_rename(s
- 				       struct path *new_dir,
- 				       struct dentry *new_dentry)
+@@ -2994,22 +3001,32 @@ static inline int security_path_rename(s
+ 				       struct dentry *new_dentry,
+ 				       unsigned int flags)
  {
 -	return 0;
++	/*
++	 * Not using RENAME_EXCHANGE here in order to avoid KABI breakage
++	 * by doing "#include <uapi/linux/fs.h>" .
++	 */
++	if (flags & (1 << 1)) {
++		int err = ccs_rename_permission(new_dentry, old_dentry,
++						old_dir->mnt);
++		if (err)
++			return err;
++	}
 +	return ccs_rename_permission(old_dentry, new_dentry, new_dir->mnt);
  }
  
@@ -313,9 +323,9 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-3.10.0-210.el7.orig/include/net/ip.h
-+++ linux-3.10.0-210.el7/include/net/ip.h
-@@ -234,6 +234,8 @@ extern void inet_get_local_port_range(in
+--- linux-3.10.0-229.1.2.el7.orig/include/net/ip.h
++++ linux-3.10.0-229.1.2.el7/include/net/ip.h
+@@ -229,6 +229,8 @@ extern void inet_get_local_port_range(in
  extern unsigned long *sysctl_local_reserved_ports;
  static inline int inet_is_reserved_local_port(int port)
  {
@@ -324,8 +334,8 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  	return test_bit(port, sysctl_local_reserved_ports);
  }
  
---- linux-3.10.0-210.el7.orig/kernel/fork.c
-+++ linux-3.10.0-210.el7/kernel/fork.c
+--- linux-3.10.0-229.1.2.el7.orig/kernel/fork.c
++++ linux-3.10.0-229.1.2.el7/kernel/fork.c
 @@ -242,6 +242,7 @@ void __put_task_struct(struct task_struc
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
@@ -352,8 +362,8 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  bad_fork_cleanup_policy:
  	perf_event_free_task(p);
  #ifdef CONFIG_NUMA
---- linux-3.10.0-210.el7.orig/kernel/kexec.c
-+++ linux-3.10.0-210.el7/kernel/kexec.c
+--- linux-3.10.0-229.1.2.el7.orig/kernel/kexec.c
++++ linux-3.10.0-229.1.2.el7/kernel/kexec.c
 @@ -1250,6 +1250,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
  	/* We only trust the superuser with rebooting the system. */
  	if (!capable(CAP_SYS_BOOT) || kexec_load_disabled)
@@ -363,8 +373,8 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  
  	if (get_securelevel() > 0)
  		return -EPERM;
---- linux-3.10.0-210.el7.orig/kernel/module.c
-+++ linux-3.10.0-210.el7/kernel/module.c
+--- linux-3.10.0-229.1.2.el7.orig/kernel/module.c
++++ linux-3.10.0-229.1.2.el7/kernel/module.c
 @@ -62,6 +62,7 @@
  #include <linux/bsearch.h>
  #include <uapi/linux/module.h>
@@ -391,8 +401,8 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  
  	return 0;
  }
---- linux-3.10.0-210.el7.orig/kernel/ptrace.c
-+++ linux-3.10.0-210.el7/kernel/ptrace.c
+--- linux-3.10.0-229.1.2.el7.orig/kernel/ptrace.c
++++ linux-3.10.0-229.1.2.el7/kernel/ptrace.c
 @@ -998,6 +998,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
@@ -417,8 +427,8 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-3.10.0-210.el7.orig/kernel/sched/core.c
-+++ linux-3.10.0-210.el7/kernel/sched/core.c
+--- linux-3.10.0-229.1.2.el7.orig/kernel/sched/core.c
++++ linux-3.10.0-229.1.2.el7/kernel/sched/core.c
 @@ -3917,6 +3917,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
@@ -428,8 +438,8 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-3.10.0-210.el7.orig/kernel/signal.c
-+++ linux-3.10.0-210.el7/kernel/signal.c
+--- linux-3.10.0-229.1.2.el7.orig/kernel/signal.c
++++ linux-3.10.0-229.1.2.el7/kernel/signal.c
 @@ -2909,6 +2909,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
@@ -475,8 +485,8 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-3.10.0-210.el7.orig/kernel/sys.c
-+++ linux-3.10.0-210.el7/kernel/sys.c
+--- linux-3.10.0-229.1.2.el7.orig/kernel/sys.c
++++ linux-3.10.0-229.1.2.el7/kernel/sys.c
 @@ -186,6 +186,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -515,8 +525,8 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-3.10.0-210.el7.orig/kernel/time/ntp.c
-+++ linux-3.10.0-210.el7/kernel/time/ntp.c
+--- linux-3.10.0-229.1.2.el7.orig/kernel/time/ntp.c
++++ linux-3.10.0-229.1.2.el7/kernel/time/ntp.c
 @@ -16,6 +16,7 @@
  #include <linux/mm.h>
  #include <linux/module.h>
@@ -550,8 +560,8 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  
  	return 0;
  }
---- linux-3.10.0-210.el7.orig/net/ipv4/raw.c
-+++ linux-3.10.0-210.el7/net/ipv4/raw.c
+--- linux-3.10.0-229.1.2.el7.orig/net/ipv4/raw.c
++++ linux-3.10.0-229.1.2.el7/net/ipv4/raw.c
 @@ -702,6 +702,10 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -563,8 +573,8 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-3.10.0-210.el7.orig/net/ipv4/udp.c
-+++ linux-3.10.0-210.el7/net/ipv4/udp.c
+--- linux-3.10.0-229.1.2.el7.orig/net/ipv4/udp.c
++++ linux-3.10.0-229.1.2.el7/net/ipv4/udp.c
 @@ -1259,6 +1259,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
@@ -576,8 +586,8 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-3.10.0-210.el7.orig/net/ipv6/raw.c
-+++ linux-3.10.0-210.el7/net/ipv6/raw.c
+--- linux-3.10.0-229.1.2.el7.orig/net/ipv6/raw.c
++++ linux-3.10.0-229.1.2.el7/net/ipv6/raw.c
 @@ -467,6 +467,10 @@ static int rawv6_recvmsg(struct kiocb *i
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -589,8 +599,8 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-3.10.0-210.el7.orig/net/ipv6/udp.c
-+++ linux-3.10.0-210.el7/net/ipv6/udp.c
+--- linux-3.10.0-229.1.2.el7.orig/net/ipv6/udp.c
++++ linux-3.10.0-229.1.2.el7/net/ipv6/udp.c
 @@ -380,6 +380,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
@@ -602,8 +612,8 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-3.10.0-210.el7.orig/net/socket.c
-+++ linux-3.10.0-210.el7/net/socket.c
+--- linux-3.10.0-229.1.2.el7.orig/net/socket.c
++++ linux-3.10.0-229.1.2.el7/net/socket.c
 @@ -1628,6 +1628,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
@@ -615,9 +625,9 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
---- linux-3.10.0-210.el7.orig/net/unix/af_unix.c
-+++ linux-3.10.0-210.el7/net/unix/af_unix.c
-@@ -1806,6 +1806,10 @@ static int unix_dgram_recvmsg(struct kio
+--- linux-3.10.0-229.1.2.el7.orig/net/unix/af_unix.c
++++ linux-3.10.0-229.1.2.el7/net/unix/af_unix.c
+@@ -1810,6 +1810,10 @@ static int unix_dgram_recvmsg(struct kio
  	wake_up_interruptible_sync_poll(&u->peer_wait,
  					POLLOUT | POLLWRNORM | POLLWRBAND);
  
@@ -628,8 +638,8 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-3.10.0-210.el7.orig/security/Kconfig
-+++ linux-3.10.0-210.el7/security/Kconfig
+--- linux-3.10.0-229.1.2.el7.orig/security/Kconfig
++++ linux-3.10.0-229.1.2.el7/security/Kconfig
 @@ -175,5 +175,7 @@ config DEFAULT_SECURITY
  	default "yama" if DEFAULT_SECURITY_YAMA
  	default "" if DEFAULT_SECURITY_DAC
@@ -638,8 +648,8 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
 +
  endmenu
  
---- linux-3.10.0-210.el7.orig/security/Makefile
-+++ linux-3.10.0-210.el7/security/Makefile
+--- linux-3.10.0-229.1.2.el7.orig/security/Makefile
++++ linux-3.10.0-229.1.2.el7/security/Makefile
 @@ -29,3 +29,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
@@ -647,8 +657,8 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/built-in.o
---- linux-3.10.0-210.el7.orig/security/security.c
-+++ linux-3.10.0-210.el7/security/security.c
+--- linux-3.10.0-229.1.2.el7.orig/security/security.c
++++ linux-3.10.0-229.1.2.el7/security/security.c
 @@ -203,7 +203,10 @@ int security_syslog(int type)
  
  int security_settime(const struct timespec *ts, const struct timezone *tz)
@@ -740,7 +750,7 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  	return security_ops->path_unlink(dir, dentry);
  }
  EXPORT_SYMBOL(security_path_unlink);
-@@ -421,25 +450,37 @@ EXPORT_SYMBOL(security_path_unlink);
+@@ -421,16 +450,24 @@ EXPORT_SYMBOL(security_path_unlink);
  int security_path_symlink(struct path *dir, struct dentry *dentry,
  			  const char *old_name)
  {
@@ -765,20 +775,31 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  	return security_ops->path_link(old_dentry, new_dir, new_dentry);
  }
  
- int security_path_rename(struct path *old_dir, struct dentry *old_dentry,
- 			 struct path *new_dir, struct dentry *new_dentry)
+@@ -438,6 +475,7 @@ int security_path_rename(struct path *ol
+ 			 struct path *new_dir, struct dentry *new_dentry,
+ 			 unsigned int flags)
  {
 +	int error;
  	if (unlikely(IS_PRIVATE(old_dentry->d_inode) ||
  		     (new_dentry->d_inode && IS_PRIVATE(new_dentry->d_inode))))
  		return 0;
+@@ -447,8 +485,15 @@ int security_path_rename(struct path *ol
+ 						    old_dir, old_dentry);
+ 		if (err)
+ 			return err;
++		err = ccs_rename_permission(new_dentry, old_dentry,
++					    old_dir->mnt);
++		if (err)
++			return err;
+ 	}
+ 
 +	error = ccs_rename_permission(old_dentry, new_dentry, new_dir->mnt);
 +	if (error)
 +		return error;
  	return security_ops->path_rename(old_dir, old_dentry, new_dir,
  					 new_dentry);
  }
-@@ -447,27 +488,42 @@ EXPORT_SYMBOL(security_path_rename);
+@@ -456,27 +501,42 @@ EXPORT_SYMBOL(security_path_rename);
  
  int security_path_truncate(struct path *path)
  {
@@ -821,7 +842,7 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  	return security_ops->path_chroot(path);
  }
  #endif
-@@ -571,9 +627,13 @@ EXPORT_SYMBOL_GPL(security_inode_setattr
+@@ -589,9 +649,13 @@ EXPORT_SYMBOL_GPL(security_inode_setattr
  
  int security_inode_getattr(struct vfsmount *mnt, struct dentry *dentry)
  {
@@ -836,7 +857,7 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  }
  
  int security_inode_setxattr(struct dentry *dentry, const char *name,
-@@ -690,7 +750,10 @@ void security_file_free(struct file *fil
+@@ -708,7 +772,10 @@ void security_file_free(struct file *fil
  
  int security_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -848,7 +869,7 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  }
  
  static inline unsigned long mmap_prot(struct file *file, unsigned long prot)
-@@ -756,7 +819,10 @@ int security_file_lock(struct file *file
+@@ -774,7 +841,10 @@ int security_file_lock(struct file *file
  
  int security_file_fcntl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -860,7 +881,7 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  }
  
  int security_file_set_fowner(struct file *file)
-@@ -780,6 +846,8 @@ int security_file_open(struct file *file
+@@ -798,6 +868,8 @@ int security_file_open(struct file *file
  	int ret;
  
  	ret = security_ops->file_open(file, cred);
@@ -869,7 +890,7 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  	if (ret)
  		return ret;
  
-@@ -1119,7 +1187,10 @@ EXPORT_SYMBOL(security_unix_may_send);
+@@ -1137,7 +1209,10 @@ EXPORT_SYMBOL(security_unix_may_send);
  
  int security_socket_create(int family, int type, int protocol, int kern)
  {
@@ -881,7 +902,7 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  }
  
  int security_socket_post_create(struct socket *sock, int family,
-@@ -1131,17 +1202,26 @@ int security_socket_post_create(struct s
+@@ -1149,17 +1224,26 @@ int security_socket_post_create(struct s
  
  int security_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen)
  {
@@ -911,7 +932,7 @@ Source code for this patch is http://vault.centos.org/centos/7/os/Source/SPackag
  }
  
  int security_socket_accept(struct socket *sock, struct socket *newsock)
-@@ -1151,7 +1231,10 @@ int security_socket_accept(struct socket
+@@ -1169,7 +1253,10 @@ int security_socket_accept(struct socket
  
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
  {
