@@ -64,20 +64,20 @@ if [ ! -r kernel-source-3.7.10-1.45.1.src.rpm ]
 then
     wget http://download.opensuse.org/update/12.3/src/kernel-source-3.7.10-1.45.1.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-source-3.7.10-1.45.1.src.rpm || die "Can't verify signature."
+LANG=C rpm --checksig kernel-source-3.7.10-1.45.1.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
 rpm -ivh kernel-source-3.7.10-1.45.1.src.rpm || die "Can't install source package."
 
 if [ ! -r kernel-default-3.7.10-1.45.1.nosrc.rpm ]
 then
     wget http://download.opensuse.org/update/12.3/nosrc/kernel-default-3.7.10-1.45.1.nosrc.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-default-3.7.10-1.45.1.nosrc.rpm || die "Can't verify signature."
+LANG=C rpm --checksig kernel-default-3.7.10-1.45.1.nosrc.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
 rpm -ivh kernel-default-3.7.10-1.45.1.nosrc.rpm || die "Can't install source package."
 
 cd /usr/src/packages/SOURCES/ || die "Can't chdir to /usr/src/packages/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20140915.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20150112.tar.gz ]
 then
-    wget -O ccs-patch-1.8.3-20140915.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20140915.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20150112.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20150112.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -96,7 +96,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group:          System/Kernel
  Version:        3.7.10
 -Release:        1.45.1
-+Release:        1.45.1_tomoyo_1.8.3p7
++Release:        1.45.1_tomoyo_1.8.3p8
  %if 0%{?is_kotd}
  %else
  %endif
@@ -105,7 +105,7 @@ patch << "EOF" || die "Can't patch spec file."
  	%_sourcedir/series.conf .. $SYMBOLS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.3-20140915.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.3-20150112.tar.gz
 +patch -sp1 < patches/ccs-patch-3.7-suse-12.3.diff
 +cat config.ccs >> ../config/%cpu_arch_flavor
 +

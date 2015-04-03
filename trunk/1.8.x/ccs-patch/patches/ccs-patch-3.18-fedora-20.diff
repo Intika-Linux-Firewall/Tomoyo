@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for Fedora 20.
 
-Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/kernel-3.18.7-100.fc20.src.rpm
+Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/kernel-3.18.9-100.fc20.src.rpm
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -29,9 +29,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  security/security.c       |  111 +++++++++++++++++++++++++++++++++++++++++-----
  25 files changed, 252 insertions(+), 37 deletions(-)
 
---- linux-3.18.7-100.fc20.orig/fs/exec.c
-+++ linux-3.18.7-100.fc20/fs/exec.c
-@@ -1413,7 +1413,7 @@ static int exec_binprm(struct linux_binp
+--- linux-3.18.9-100.fc20.orig/fs/exec.c
++++ linux-3.18.9-100.fc20/fs/exec.c
+@@ -1413,7 +1413,7 @@
  	old_vpid = task_pid_nr_ns(current, task_active_pid_ns(current->parent));
  	rcu_read_unlock();
  
@@ -40,9 +40,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  	if (ret >= 0) {
  		audit_bprm(bprm);
  		trace_sched_process_exec(current, old_pid, bprm);
---- linux-3.18.7-100.fc20.orig/fs/open.c
-+++ linux-3.18.7-100.fc20/fs/open.c
-@@ -1090,6 +1090,8 @@ EXPORT_SYMBOL(sys_close);
+--- linux-3.18.9-100.fc20.orig/fs/open.c
++++ linux-3.18.9-100.fc20/fs/open.c
+@@ -1090,6 +1090,8 @@
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -51,22 +51,22 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-3.18.7-100.fc20.orig/fs/proc/version.c
-+++ linux-3.18.7-100.fc20/fs/proc/version.c
-@@ -32,3 +32,10 @@ static int __init proc_version_init(void
+--- linux-3.18.9-100.fc20.orig/fs/proc/version.c
++++ linux-3.18.9-100.fc20/fs/proc/version.c
+@@ -32,3 +32,10 @@
  	return 0;
  }
  fs_initcall(proc_version_init);
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.18.7-100.fc20 2015/03/05\n");
++	printk(KERN_INFO "Hook version: 3.18.9-100.fc20 2015/04/03\n");
 +	return 0;
 +}
 +fs_initcall(ccs_show_version);
---- linux-3.18.7-100.fc20.orig/include/linux/init_task.h
-+++ linux-3.18.7-100.fc20/include/linux/init_task.h
-@@ -166,6 +166,14 @@ extern struct task_group root_task_group
+--- linux-3.18.9-100.fc20.orig/include/linux/init_task.h
++++ linux-3.18.9-100.fc20/include/linux/init_task.h
+@@ -166,6 +166,14 @@
  # define INIT_RT_MUTEXES(tsk)
  #endif
  
@@ -81,7 +81,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  /*
   *  INIT_TASK is used to set up the first task table, touch at
   * your own risk!. Base=0, limit=0x1fffff (=2MB)
-@@ -237,6 +245,7 @@ extern struct task_group root_task_group
+@@ -237,6 +245,7 @@
  	INIT_CPUSET_SEQ(tsk)						\
  	INIT_RT_MUTEXES(tsk)						\
  	INIT_VTIME(tsk)							\
@@ -89,8 +89,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  
  
---- linux-3.18.7-100.fc20.orig/include/linux/sched.h
-+++ linux-3.18.7-100.fc20/include/linux/sched.h
+--- linux-3.18.9-100.fc20.orig/include/linux/sched.h
++++ linux-3.18.9-100.fc20/include/linux/sched.h
 @@ -6,6 +6,8 @@
  #include <linux/sched/prio.h>
  
@@ -100,7 +100,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  struct sched_param {
  	int sched_priority;
  };
-@@ -1661,6 +1663,10 @@ struct task_struct {
+@@ -1661,6 +1663,10 @@
  	unsigned int	sequential_io;
  	unsigned int	sequential_io_avg;
  #endif
@@ -111,9 +111,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-3.18.7-100.fc20.orig/include/linux/security.h
-+++ linux-3.18.7-100.fc20/include/linux/security.h
-@@ -53,6 +53,7 @@ struct msg_queue;
+--- linux-3.18.9-100.fc20.orig/include/linux/security.h
++++ linux-3.18.9-100.fc20/include/linux/security.h
+@@ -53,6 +53,7 @@
  struct xattr;
  struct xfrm_sec_ctx;
  struct mm_struct;
@@ -121,7 +121,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  /* Maximum number of letters for an LSM name string */
  #define SECURITY_NAME_MAX	10
-@@ -1985,7 +1986,10 @@ static inline int security_syslog(int ty
+@@ -1985,7 +1986,10 @@
  static inline int security_settime(const struct timespec *ts,
  				   const struct timezone *tz)
  {
@@ -133,7 +133,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  
  static inline int security_vm_enough_memory_mm(struct mm_struct *mm, long pages)
-@@ -2054,18 +2058,18 @@ static inline int security_sb_mount(cons
+@@ -2054,18 +2058,18 @@
  				    const char *type, unsigned long flags,
  				    void *data)
  {
@@ -155,7 +155,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  
  static inline int security_sb_set_mnt_opts(struct super_block *sb,
-@@ -2204,7 +2208,7 @@ static inline int security_inode_setattr
+@@ -2204,7 +2208,7 @@
  static inline int security_inode_getattr(struct vfsmount *mnt,
  					  struct dentry *dentry)
  {
@@ -164,7 +164,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  
  static inline int security_inode_setxattr(struct dentry *dentry,
-@@ -2280,7 +2284,7 @@ static inline void security_file_free(st
+@@ -2280,7 +2284,7 @@
  static inline int security_file_ioctl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -173,7 +173,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  
  static inline int security_mmap_file(struct file *file, unsigned long prot,
-@@ -2309,7 +2313,7 @@ static inline int security_file_lock(str
+@@ -2309,7 +2313,7 @@
  static inline int security_file_fcntl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -182,7 +182,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  
  static inline void security_file_set_fowner(struct file *file)
-@@ -2332,7 +2336,7 @@ static inline int security_file_receive(
+@@ -2332,7 +2336,7 @@
  static inline int security_file_open(struct file *file,
  				     const struct cred *cred)
  {
@@ -191,7 +191,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  
  static inline int security_task_create(unsigned long clone_flags)
-@@ -2696,7 +2700,7 @@ static inline int security_unix_may_send
+@@ -2696,7 +2700,7 @@
  static inline int security_socket_create(int family, int type,
  					 int protocol, int kern)
  {
@@ -200,7 +200,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  
  static inline int security_socket_post_create(struct socket *sock,
-@@ -2711,19 +2715,19 @@ static inline int security_socket_bind(s
+@@ -2711,19 +2715,19 @@
  				       struct sockaddr *address,
  				       int addrlen)
  {
@@ -223,7 +223,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  
  static inline int security_socket_accept(struct socket *sock,
-@@ -2735,7 +2739,7 @@ static inline int security_socket_accept
+@@ -2735,7 +2739,7 @@
  static inline int security_socket_sendmsg(struct socket *sock,
  					  struct msghdr *msg, int size)
  {
@@ -232,7 +232,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  
  static inline int security_socket_recvmsg(struct socket *sock,
-@@ -2980,44 +2984,47 @@ int security_path_chmod(struct path *pat
+@@ -2980,44 +2984,47 @@
  int security_path_chown(struct path *path, kuid_t uid, kgid_t gid);
  int security_path_chroot(struct path *path);
  #else	/* CONFIG_SECURITY_PATH */
@@ -287,7 +287,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  
  static inline int security_path_rename(struct path *old_dir,
-@@ -3026,22 +3033,32 @@ static inline int security_path_rename(s
+@@ -3026,22 +3033,32 @@
  				       struct dentry *new_dentry,
  				       unsigned int flags)
  {
@@ -324,9 +324,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-3.18.7-100.fc20.orig/include/net/ip.h
-+++ linux-3.18.7-100.fc20/include/net/ip.h
-@@ -215,6 +215,8 @@ void inet_get_local_port_range(struct ne
+--- linux-3.18.9-100.fc20.orig/include/net/ip.h
++++ linux-3.18.9-100.fc20/include/net/ip.h
+@@ -215,6 +215,8 @@
  #ifdef CONFIG_SYSCTL
  static inline int inet_is_local_reserved_port(struct net *net, int port)
  {
@@ -335,7 +335,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  	if (!net->ipv4.sysctl_local_reserved_ports)
  		return 0;
  	return test_bit(port, net->ipv4.sysctl_local_reserved_ports);
-@@ -228,6 +230,8 @@ static inline bool sysctl_dev_name_is_al
+@@ -228,6 +230,8 @@
  #else
  static inline int inet_is_local_reserved_port(struct net *net, int port)
  {
@@ -344,9 +344,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  	return 0;
  }
  #endif
---- linux-3.18.7-100.fc20.orig/kernel/fork.c
-+++ linux-3.18.7-100.fc20/kernel/fork.c
-@@ -246,6 +246,7 @@ void __put_task_struct(struct task_struc
+--- linux-3.18.9-100.fc20.orig/kernel/fork.c
++++ linux-3.18.9-100.fc20/kernel/fork.c
+@@ -246,6 +246,7 @@
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
  
@@ -354,7 +354,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1369,6 +1370,9 @@ static struct task_struct *copy_process(
+@@ -1369,6 +1370,9 @@
  		goto bad_fork_cleanup_perf;
  	/* copy all the process information */
  	shm_init_task(p);
@@ -364,7 +364,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  	retval = copy_semundo(clone_flags, p);
  	if (retval)
  		goto bad_fork_cleanup_audit;
-@@ -1572,6 +1576,7 @@ bad_fork_cleanup_semundo:
+@@ -1572,6 +1576,7 @@
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -372,8 +372,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  bad_fork_cleanup_perf:
  	perf_event_free_task(p);
  bad_fork_cleanup_policy:
---- linux-3.18.7-100.fc20.orig/kernel/kexec.c
-+++ linux-3.18.7-100.fc20/kernel/kexec.c
+--- linux-3.18.9-100.fc20.orig/kernel/kexec.c
++++ linux-3.18.9-100.fc20/kernel/kexec.c
 @@ -42,6 +42,7 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -382,7 +382,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  #include <crypto/hash.h>
  #include <crypto/sha.h>
-@@ -1250,6 +1251,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
+@@ -1250,6 +1251,8 @@
  	/* We only trust the superuser with rebooting the system. */
  	if (!capable(CAP_SYS_BOOT) || kexec_load_disabled)
  		return -EPERM;
@@ -391,8 +391,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  	/*
  	 * kexec can be used to circumvent module loading restrictions, so
---- linux-3.18.7-100.fc20.orig/kernel/module.c
-+++ linux-3.18.7-100.fc20/kernel/module.c
+--- linux-3.18.9-100.fc20.orig/kernel/module.c
++++ linux-3.18.9-100.fc20/kernel/module.c
 @@ -62,6 +62,7 @@
  #include <linux/bsearch.h>
  #include <uapi/linux/module.h>
@@ -401,7 +401,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  #define CREATE_TRACE_POINTS
  #include <trace/events/module.h>
-@@ -809,6 +810,8 @@ SYSCALL_DEFINE2(delete_module, const cha
+@@ -809,6 +810,8 @@
  
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -410,7 +410,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -3092,6 +3095,8 @@ static int may_init_module(void)
+@@ -3092,6 +3095,8 @@
  {
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -419,9 +419,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  	return 0;
  }
---- linux-3.18.7-100.fc20.orig/kernel/ptrace.c
-+++ linux-3.18.7-100.fc20/kernel/ptrace.c
-@@ -1032,6 +1032,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+--- linux-3.18.9-100.fc20.orig/kernel/ptrace.c
++++ linux-3.18.9-100.fc20/kernel/ptrace.c
+@@ -1032,6 +1032,11 @@
  {
  	struct task_struct *child;
  	long ret;
@@ -433,7 +433,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -1179,6 +1184,11 @@ COMPAT_SYSCALL_DEFINE4(ptrace, compat_lo
+@@ -1179,6 +1184,11 @@
  {
  	struct task_struct *child;
  	long ret;
@@ -445,8 +445,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-3.18.7-100.fc20.orig/kernel/reboot.c
-+++ linux-3.18.7-100.fc20/kernel/reboot.c
+--- linux-3.18.9-100.fc20.orig/kernel/reboot.c
++++ linux-3.18.9-100.fc20/kernel/reboot.c
 @@ -16,6 +16,7 @@
  #include <linux/syscalls.h>
  #include <linux/syscore_ops.h>
@@ -455,7 +455,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  /*
   * this indicates whether you can reboot with ctrl-alt-del: the default is yes
-@@ -295,6 +296,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
+@@ -295,6 +296,8 @@
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  			magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -464,9 +464,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  	/*
  	 * If pid namespaces are enabled and the current task is in a child
---- linux-3.18.7-100.fc20.orig/kernel/sched/core.c
-+++ linux-3.18.7-100.fc20/kernel/sched/core.c
-@@ -3181,6 +3181,8 @@ int can_nice(const struct task_struct *p
+--- linux-3.18.9-100.fc20.orig/kernel/sched/core.c
++++ linux-3.18.9-100.fc20/kernel/sched/core.c
+@@ -3181,6 +3181,8 @@
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -475,9 +475,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-3.18.7-100.fc20.orig/kernel/signal.c
-+++ linux-3.18.7-100.fc20/kernel/signal.c
-@@ -2886,6 +2886,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+--- linux-3.18.9-100.fc20.orig/kernel/signal.c
++++ linux-3.18.9-100.fc20/kernel/signal.c
+@@ -2886,6 +2886,8 @@
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
@@ -486,7 +486,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2954,6 +2956,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2954,6 +2956,8 @@
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -495,7 +495,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2970,6 +2974,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
+@@ -2970,6 +2974,8 @@
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -504,7 +504,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2986,6 +2992,8 @@ static int do_rt_sigqueueinfo(pid_t pid,
+@@ -2986,6 +2992,8 @@
  		return -EPERM;
  	}
  	info->si_signo = sig;
@@ -513,7 +513,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, info, pid);
-@@ -3036,6 +3044,8 @@ static int do_rt_tgsigqueueinfo(pid_t tg
+@@ -3036,6 +3044,8 @@
  		return -EPERM;
  	}
  	info->si_signo = sig;
@@ -522,9 +522,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-3.18.7-100.fc20.orig/kernel/sys.c
-+++ linux-3.18.7-100.fc20/kernel/sys.c
-@@ -171,6 +171,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
+--- linux-3.18.9-100.fc20.orig/kernel/sys.c
++++ linux-3.18.9-100.fc20/kernel/sys.c
+@@ -171,6 +171,10 @@
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
@@ -535,7 +535,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -1207,6 +1211,8 @@ SYSCALL_DEFINE2(sethostname, char __user
+@@ -1207,6 +1211,8 @@
  
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -544,7 +544,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1257,6 +1263,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
+@@ -1257,6 +1263,8 @@
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -553,8 +553,8 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-3.18.7-100.fc20.orig/kernel/time/ntp.c
-+++ linux-3.18.7-100.fc20/kernel/time/ntp.c
+--- linux-3.18.9-100.fc20.orig/kernel/time/ntp.c
++++ linux-3.18.9-100.fc20/kernel/time/ntp.c
 @@ -16,6 +16,7 @@
  #include <linux/mm.h>
  #include <linux/module.h>
@@ -563,7 +563,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  #include "tick-internal.h"
  #include "ntp_internal.h"
-@@ -616,10 +617,15 @@ int ntp_validate_timex(struct timex *txc
+@@ -616,10 +617,15 @@
  		if (!(txc->modes & ADJ_OFFSET_READONLY) &&
  		    !capable(CAP_SYS_TIME))
  			return -EPERM;
@@ -579,18 +579,18 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  		/*
  		 * if the quartz is off by more than 10% then
  		 * something is VERY wrong!
-@@ -632,6 +638,8 @@ int ntp_validate_timex(struct timex *txc
+@@ -632,6 +638,8 @@
  
  	if ((txc->modes & ADJ_SETOFFSET) && (!capable(CAP_SYS_TIME)))
  		return -EPERM;
 +	if ((txc->modes & ADJ_SETOFFSET) && !ccs_capable(CCS_SYS_SETTIME))
 +		return -EPERM;
  
- 	if (txc->modes & ADJ_FREQUENCY) {
- 		if (LLONG_MIN / PPM_SCALE > txc->freq)
---- linux-3.18.7-100.fc20.orig/net/ipv4/raw.c
-+++ linux-3.18.7-100.fc20/net/ipv4/raw.c
-@@ -711,6 +711,10 @@ static int raw_recvmsg(struct kiocb *ioc
+ 	/*
+ 	 * Check for potential multiplication overflows that can
+--- linux-3.18.9-100.fc20.orig/net/ipv4/raw.c
++++ linux-3.18.9-100.fc20/net/ipv4/raw.c
+@@ -711,6 +711,10 @@
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -601,9 +601,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-3.18.7-100.fc20.orig/net/ipv4/udp.c
-+++ linux-3.18.7-100.fc20/net/ipv4/udp.c
-@@ -1261,6 +1261,10 @@ try_again:
+--- linux-3.18.9-100.fc20.orig/net/ipv4/udp.c
++++ linux-3.18.9-100.fc20/net/ipv4/udp.c
+@@ -1261,6 +1261,10 @@
  				  &peeked, &off, &err);
  	if (!skb)
  		goto out;
@@ -614,9 +614,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-3.18.7-100.fc20.orig/net/ipv6/raw.c
-+++ linux-3.18.7-100.fc20/net/ipv6/raw.c
-@@ -478,6 +478,10 @@ static int rawv6_recvmsg(struct kiocb *i
+--- linux-3.18.9-100.fc20.orig/net/ipv6/raw.c
++++ linux-3.18.9-100.fc20/net/ipv6/raw.c
+@@ -478,6 +478,10 @@
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -627,9 +627,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-3.18.7-100.fc20.orig/net/ipv6/udp.c
-+++ linux-3.18.7-100.fc20/net/ipv6/udp.c
-@@ -402,6 +402,10 @@ try_again:
+--- linux-3.18.9-100.fc20.orig/net/ipv6/udp.c
++++ linux-3.18.9-100.fc20/net/ipv6/udp.c
+@@ -402,6 +402,10 @@
  				  &peeked, &off, &err);
  	if (!skb)
  		goto out;
@@ -640,9 +640,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-3.18.7-100.fc20.orig/net/socket.c
-+++ linux-3.18.7-100.fc20/net/socket.c
-@@ -1640,6 +1640,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+--- linux-3.18.9-100.fc20.orig/net/socket.c
++++ linux-3.18.9-100.fc20/net/socket.c
+@@ -1637,6 +1637,10 @@
  	if (err < 0)
  		goto out_fd;
  
@@ -653,9 +653,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
---- linux-3.18.7-100.fc20.orig/net/unix/af_unix.c
-+++ linux-3.18.7-100.fc20/net/unix/af_unix.c
-@@ -1817,6 +1817,10 @@ static int unix_dgram_recvmsg(struct kio
+--- linux-3.18.9-100.fc20.orig/net/unix/af_unix.c
++++ linux-3.18.9-100.fc20/net/unix/af_unix.c
+@@ -1817,6 +1817,10 @@
  	wake_up_interruptible_sync_poll(&u->peer_wait,
  					POLLOUT | POLLWRNORM | POLLWRBAND);
  
@@ -666,9 +666,9 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-3.18.7-100.fc20.orig/security/Kconfig
-+++ linux-3.18.7-100.fc20/security/Kconfig
-@@ -167,5 +167,7 @@ config DEFAULT_SECURITY
+--- linux-3.18.9-100.fc20.orig/security/Kconfig
++++ linux-3.18.9-100.fc20/security/Kconfig
+@@ -167,5 +167,7 @@
  	default "yama" if DEFAULT_SECURITY_YAMA
  	default "" if DEFAULT_SECURITY_DAC
  
@@ -676,18 +676,18 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
 +
  endmenu
  
---- linux-3.18.7-100.fc20.orig/security/Makefile
-+++ linux-3.18.7-100.fc20/security/Makefile
-@@ -27,3 +27,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
+--- linux-3.18.9-100.fc20.orig/security/Makefile
++++ linux-3.18.9-100.fc20/security/Makefile
+@@ -27,3 +27,6 @@
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
  obj-$(CONFIG_INTEGRITY)			+= integrity/
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/
---- linux-3.18.7-100.fc20.orig/security/security.c
-+++ linux-3.18.7-100.fc20/security/security.c
-@@ -203,7 +203,10 @@ int security_syslog(int type)
+--- linux-3.18.9-100.fc20.orig/security/security.c
++++ linux-3.18.9-100.fc20/security/security.c
+@@ -203,7 +203,10 @@
  
  int security_settime(const struct timespec *ts, const struct timezone *tz)
  {
@@ -699,7 +699,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  
  int security_vm_enough_memory_mm(struct mm_struct *mm, long pages)
-@@ -280,17 +283,27 @@ int security_sb_statfs(struct dentry *de
+@@ -280,17 +283,27 @@
  int security_sb_mount(const char *dev_name, struct path *path,
                         const char *type, unsigned long flags, void *data)
  {
@@ -730,7 +730,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  
  int security_sb_set_mnt_opts(struct super_block *sb,
-@@ -387,31 +400,47 @@ EXPORT_SYMBOL(security_old_inode_init_se
+@@ -387,31 +400,47 @@
  int security_path_mknod(struct path *dir, struct dentry *dentry, umode_t mode,
  			unsigned int dev)
  {
@@ -778,7 +778,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  	return security_ops->path_unlink(dir, dentry);
  }
  EXPORT_SYMBOL(security_path_unlink);
-@@ -419,16 +448,24 @@ EXPORT_SYMBOL(security_path_unlink);
+@@ -419,16 +448,24 @@
  int security_path_symlink(struct path *dir, struct dentry *dentry,
  			  const char *old_name)
  {
@@ -803,7 +803,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  	return security_ops->path_link(old_dentry, new_dir, new_dentry);
  }
  
-@@ -436,6 +473,7 @@ int security_path_rename(struct path *ol
+@@ -436,6 +473,7 @@
  			 struct path *new_dir, struct dentry *new_dentry,
  			 unsigned int flags)
  {
@@ -811,7 +811,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  	if (unlikely(IS_PRIVATE(old_dentry->d_inode) ||
  		     (new_dentry->d_inode && IS_PRIVATE(new_dentry->d_inode))))
  		return 0;
-@@ -445,8 +483,15 @@ int security_path_rename(struct path *ol
+@@ -445,8 +483,15 @@
  						    old_dir, old_dentry);
  		if (err)
  			return err;
@@ -827,7 +827,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  	return security_ops->path_rename(old_dir, old_dentry, new_dir,
  					 new_dentry);
  }
-@@ -454,27 +499,42 @@ EXPORT_SYMBOL(security_path_rename);
+@@ -454,27 +499,42 @@
  
  int security_path_truncate(struct path *path)
  {
@@ -870,7 +870,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  	return security_ops->path_chroot(path);
  }
  #endif
-@@ -587,9 +647,13 @@ EXPORT_SYMBOL_GPL(security_inode_setattr
+@@ -587,9 +647,13 @@
  
  int security_inode_getattr(struct vfsmount *mnt, struct dentry *dentry)
  {
@@ -885,7 +885,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  
  int security_inode_setxattr(struct dentry *dentry, const char *name,
-@@ -706,7 +770,10 @@ void security_file_free(struct file *fil
+@@ -706,7 +770,10 @@
  
  int security_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -897,7 +897,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  
  static inline unsigned long mmap_prot(struct file *file, unsigned long prot)
-@@ -772,7 +839,10 @@ int security_file_lock(struct file *file
+@@ -772,7 +839,10 @@
  
  int security_file_fcntl(struct file *file, unsigned int cmd, unsigned long arg)
  {
@@ -909,7 +909,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  
  void security_file_set_fowner(struct file *file)
-@@ -796,6 +866,8 @@ int security_file_open(struct file *file
+@@ -796,6 +866,8 @@
  	int ret;
  
  	ret = security_ops->file_open(file, cred);
@@ -918,7 +918,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  	if (ret)
  		return ret;
  
-@@ -1146,7 +1218,10 @@ EXPORT_SYMBOL(security_unix_may_send);
+@@ -1146,7 +1218,10 @@
  
  int security_socket_create(int family, int type, int protocol, int kern)
  {
@@ -930,7 +930,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  
  int security_socket_post_create(struct socket *sock, int family,
-@@ -1158,17 +1233,26 @@ int security_socket_post_create(struct s
+@@ -1158,17 +1233,26 @@
  
  int security_socket_bind(struct socket *sock, struct sockaddr *address, int addrlen)
  {
@@ -960,7 +960,7 @@ Source code for this patch is http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/
  }
  
  int security_socket_accept(struct socket *sock, struct socket *newsock)
-@@ -1178,7 +1262,10 @@ int security_socket_accept(struct socket
+@@ -1178,7 +1262,10 @@
  
  int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
  {
