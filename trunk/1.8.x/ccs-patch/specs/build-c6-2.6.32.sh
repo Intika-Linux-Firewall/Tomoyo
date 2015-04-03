@@ -10,17 +10,17 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.32-504.8.1.el6.src.rpm ]
+if [ ! -r kernel-2.6.32-504.12.2.el6.src.rpm ]
 then
-    wget http://vault.centos.org/6.6/updates/Source/SPackages/kernel-2.6.32-504.8.1.el6.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/6.6/updates/Source/SPackages/kernel-2.6.32-504.12.2.el6.src.rpm || die "Can't download source package."
 fi
-LANG=C rpm --checksig kernel-2.6.32-504.8.1.el6.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
-rpm -ivh kernel-2.6.32-504.8.1.el6.src.rpm || die "Can't install source package."
+LANG=C rpm --checksig kernel-2.6.32-504.12.2.el6.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
+rpm -ivh kernel-2.6.32-504.12.2.el6.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20150112.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20150403.tar.gz ]
 then
-    wget -O ccs-patch-1.8.3-20150112.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20150112.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20150403.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20150403.tar.gz' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -35,7 +35,7 @@ patch << "EOF" || die "Can't patch spec file."
 -# % define buildid .local
 +%define buildid _tomoyo_1.8.3p8
  
- %define distro_build 504.8.1
+ %define distro_build 504.12.2
  %define signmodules 1
 @@ -437,7 +437,7 @@
  # Packages that need to be installed before the kernel is, because the %post
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  ApplyOptionalPatch linux-kernel-test.patch
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.3-20150112.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.3-20150403.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.32-centos-6.diff
 +
  # Any further pre-build tree manipulations happen here.
