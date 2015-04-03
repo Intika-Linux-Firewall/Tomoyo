@@ -14,7 +14,7 @@ if [ ! -r kernel-3.4.106-1vl6.src.rpm ]
 then
     wget http://updates.vinelinux.org/Vine-6.3/updates/SRPMS/kernel-3.4.106-1vl6.src.rpm || die "Can't download source package."
 fi
-rpm --checksig kernel-3.4.106-1vl6.src.rpm || die "Can't verify signature."
+LANG=C rpm --checksig kernel-3.4.106-1vl6.src.rpm | grep -F ': (sha1) dsa sha1 md5 gpg OK' || die "Can't verify signature."
 rpm -ivh kernel-3.4.106-1vl6.src.rpm || die "Can't install source package."
 
 cd /root/rpm/SOURCES/ || die "Can't chdir to /root/rpm/SOURCES/ ."
