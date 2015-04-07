@@ -52,7 +52,7 @@ int main(int argc0, char *argv0[])
 			buffer1[i] = '\n';
 			buffer2[i] = '\t';
 			if (fork() == 0) {
-				execve("/bin/true", argv, envp);
+				execve(BINDIR "/true", argv, envp);
 				_exit(0);
 			}
 			while ((len = read(fd, buffer, sizeof(buffer))) > 0)

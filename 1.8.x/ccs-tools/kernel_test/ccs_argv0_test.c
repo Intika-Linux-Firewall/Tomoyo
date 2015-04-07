@@ -59,11 +59,11 @@ static void stage_argv0_test(void)
 		set_profile(2, "file::execute");
 		fflush(stdout);
 		if (fork() == 0) {
-			execv("/bin/true", argv);
+			execv(BINDIR "/true", argv);
 			_exit(errno);
 		}
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "Executing /bin/true in permissive mode");
+			 "Executing " BINDIR "/true in permissive mode");
 		show_prompt(buffer);
 		wait(&status);
 		errno = WEXITSTATUS(status);
@@ -73,31 +73,31 @@ static void stage_argv0_test(void)
 		set_profile(3, "file::execute");
 		fflush(stdout);
 		if (fork() == 0) {
-			execv("/bin/true", argv);
+			execv(BINDIR "/true", argv);
 			_exit(errno);
 		}
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "Executing /bin/true in enforce mode");
+			 "Executing " BINDIR "/true in enforce mode");
 		show_prompt(buffer);
 		wait(&status);
 		errno = WEXITSTATUS(status);
 		show_result(errno ? EOF : 0);
 
-		write_domain_policy("file execute /bin/true", 0);
+		write_domain_policy("file execute " BINDIR "/true", 0);
 		is_enforce = 0;
 		fflush(stdout);
 		if (fork() == 0) {
 			argv[0] = "";
-			execv("/bin/true", argv);
+			execv(BINDIR "/true", argv);
 			_exit(errno);
 		}
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "Executing /bin/true in enforce mode");
+			 "Executing " BINDIR "/true in enforce mode");
 		show_prompt(buffer);
 		wait(&status);
 		errno = WEXITSTATUS(status);
 		show_result(errno ? EOF : 0);
-		write_domain_policy("file execute /bin/true", 1);
+		write_domain_policy("file execute " BINDIR "/true", 1);
 	}
 }
 

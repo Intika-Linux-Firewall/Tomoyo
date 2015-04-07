@@ -275,9 +275,9 @@ static const char * const exception_testcases[] = {
 	"initialize_domain /usr/sbin/sshd from /bin/bash",
 	"no_initialize_domain /usr/sbin/sshd from /bin/bash",
 	"initialize_domain /usr/sbin/sshd from "
-	"<kernel> /bin/mingetty/bin/bash",
+	"<kernel> /bin/mingetty /bin/bash",
 	"no_initialize_domain /usr/sbin/sshd from "
-	"<kernel> /bin/mingetty/bin/bash",
+	"<kernel> /bin/mingetty /bin/bash",
 	"keep_domain any from <kernel> /usr/sbin/sshd /bin/bash",
 	"no_keep_domain any from <kernel> /usr/sbin/sshd /bin/bash",
 	"keep_domain /bin/pwd from <kernel> /usr/sbin/sshd /bin/bash",

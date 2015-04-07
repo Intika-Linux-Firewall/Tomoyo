@@ -27,6 +27,12 @@
 #include <sched.h>
 #include <errno.h>
 #include <stdlib.h>
+#ifndef MS_REC
+#define MS_REC          16384
+#endif
+#ifndef MS_PRIVATE
+#define MS_PRIVATE      (1<<18)
+#endif
 
 static int child(void *arg)
 {
@@ -41,8 +47,12 @@ int main(int argc, char *argv[])
 {
 	char c = 0;
 	char *stack = malloc(8192);
-	const pid_t pid = clone(child, stack + (8192 / 2), CLONE_NEWNS,
-				(void *) argv);
+	pid_t pid;
+
+	/* Undo mount("/", MS_REC|MS_SHARED) made by systemd. */
+	mount(NULL, "/", NULL, MS_REC|MS_PRIVATE, NULL);
+
+	pid = clone(child, stack + (8192 / 2), CLONE_NEWNS, (void *) argv);
 	while (waitpid(pid, NULL, __WALL) == EOF && errno == EINTR)
 		c++; /* Dummy. */
 	return 0;

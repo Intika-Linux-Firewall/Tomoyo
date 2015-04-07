@@ -80,7 +80,7 @@ static void test_rmdir_testdir(void)
 
 static void setup_execute_bin_true(void)
 {
-	fprintf(domain_fp, "%s /bin/true\n", self_domain);
+	fprintf(domain_fp, "%s " BINDIR "/true\n", self_domain);
 	fprintf(domain_fp, "use_profile 0\n");
 	fprintf(domain_fp, "select pid=%u\n", pid);
 }
@@ -88,13 +88,13 @@ static void setup_execute_bin_true(void)
 static void cleanup_execute_bin_true(void)
 {
 	wait(NULL);
-	fprintf(domain_fp, "delete %s /bin/true\n", self_domain);
+	fprintf(domain_fp, "delete %s " BINDIR "/true\n", self_domain);
 	fprintf(domain_fp, "select pid=%u\n", pid);
 }
 
 static void test_execute_bin_true(void)
 {
-	char *argv[] = { "/bin/true", NULL };
+	char *argv[] = { BINDIR "/true", NULL };
 	char *envp[] = { "HOME=/", NULL };
 	int pipe_fd[2] = { EOF, EOF };
 	int err = 0;
@@ -102,7 +102,7 @@ static void test_execute_bin_true(void)
 	ret_ignored = pipe(pipe_fd);
 	switch (fork()) {
 	case 0:
-		execve("/bin/true", argv, envp);
+		execve(BINDIR "/true", argv, envp);
 		err = errno;
 		ret_ignored = write(pipe_fd[1], &err, sizeof(err));
 		_exit(0);
@@ -388,12 +388,12 @@ static struct test_struct {
 	  "task.gid=0x0-0xFF path1.uid=0" },
 	{ setup_execute_bin_true, test_execute_bin_true,
 	  cleanup_execute_bin_true, "file::execute",
-	  "file execute /bin/true" },
+	  "file execute " BINDIR "/true" },
 	{ setup_execute_bin_true, test_execute_bin_true,
-	  cleanup_execute_bin_true, "file::execute", "file execute /bin/true "
-	  "exec.argc=1 exec.argv[0]=\"/bin/true\"" },
+	  cleanup_execute_bin_true, "file::execute", "file execute " BINDIR "/true "
+	  "exec.argc=1 exec.argv[0]=\"" BINDIR "/true\"" },
 	{ setup_execute_bin_true, test_execute_bin_true,
-	  cleanup_execute_bin_true, "file::execute", "file execute /bin/true "
+	  cleanup_execute_bin_true, "file::execute", "file execute " BINDIR "/true "
 	  "exec.envc=1 exec.envp[\"HOME\"]=\"/\" exec.envp[\"PATH\"]=NULL"
 	},
 	{ NULL, test_chmod_dev_null, NULL, "file::chmod",

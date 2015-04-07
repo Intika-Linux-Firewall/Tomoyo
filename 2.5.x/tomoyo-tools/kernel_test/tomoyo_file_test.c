@@ -121,7 +121,7 @@ static void stage_file_test(void)
 		fflush(stderr);
 		ret_ignored = pipe(pipe_fd);
 		if (fork() == 0) {
-			execl("/bin/true", "/bin/true", NULL);
+			execl(BINDIR "/true", BINDIR "/true", NULL);
 			err = errno;
 			ret_ignored = write(pipe_fd[1], &err, sizeof(err));
 			_exit(0);

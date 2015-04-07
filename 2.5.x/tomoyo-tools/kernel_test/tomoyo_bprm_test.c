@@ -60,7 +60,7 @@ static void try_exec(const char *policy, char *argv[], char *envp[],
 		return;
 	}
 	if (fork() == 0) {
-		execve("/bin/true", argv, envp);
+		execve(BINDIR "/true", argv, envp);
 		err = errno;
 		ret_ignored = write(pipe_fd[1], &err, sizeof(err));
 		_exit(0);
@@ -91,83 +91,83 @@ static void stage_exec_test(void)
 		memset(argv, 0, sizeof(argv));
 		memset(envp, 0, sizeof(envp));
 
-		argv[0] = "/bin/true";
-		try_exec("file execute /bin/true "
+		argv[0] = BINDIR "/true";
+		try_exec("file execute " BINDIR "/true "
 			 "task.gid=0-100 exec.argc=1", argv, envp, 1);
 		argv[0] = NULL;
-		try_exec("file execute /bin/true "
+		try_exec("file execute " BINDIR "/true "
 			 "task.gid=0-100 exec.argc=1", argv, envp, 0);
 
 		envp[0] = "";
-		try_exec("file execute /bin/true task.gid!=100 task.euid=0 "
+		try_exec("file execute " BINDIR "/true task.gid!=100 task.euid=0 "
 			 "path1.uid=0 path1.parent.uid=0 exec.envc=1", argv,
 			 envp, 1);
 		envp[0] = NULL;
-		try_exec("file execute /bin/true task.gid!=100 task.euid=0 "
+		try_exec("file execute " BINDIR "/true task.gid!=100 task.euid=0 "
 			 "path1.uid=0 path1.parent.uid=0 exec.envc=1", argv,
 			 envp, 0);
 
-		argv[0] = "/bin/true";
+		argv[0] = BINDIR "/true";
 		argv[1] = "--";
-		try_exec("file execute /bin/true 0=0 exec.argc=1-5", argv,
+		try_exec("file execute " BINDIR "/true 0=0 exec.argc=1-5", argv,
 			 envp, 1);
-		try_exec("file execute /bin/true 0=0 exec.argc!=1-5", argv,
+		try_exec("file execute " BINDIR "/true 0=0 exec.argc!=1-5", argv,
 			 envp, 0);
 
 		envp[0] = "";
 		envp[1] = "";
-		try_exec("file execute /bin/true task.uid=0 "
+		try_exec("file execute " BINDIR "/true task.uid=0 "
 			 "task.gid!=1-100 path1.parent.uid!=1 path1.gid=0 "
 			 "exec.envc=1-5", argv, envp, 1);
-		try_exec("file execute /bin/true task.uid=0 "
+		try_exec("file execute " BINDIR "/true task.uid=0 "
 			 "task.gid!=1-100 path1.parent.uid!=1 path1.gid=0 "
 			 "exec.envc!=1-5", argv, envp, 0);
 
-		argv[0] = "/bin/true";
+		argv[0] = BINDIR "/true";
 		argv[1] = "--";
-		try_exec("file execute /bin/true task.uid=0 task.gid=0 "
+		try_exec("file execute " BINDIR "/true task.uid=0 task.gid=0 "
 			 "path1.parent.uid=0 path1.uid=0 exec.argv[1]=\"--\"",
 			 argv, envp, 1);
-		try_exec("file execute /bin/true task.uid=0 task.gid=0 "
+		try_exec("file execute " BINDIR "/true task.uid=0 task.gid=0 "
 			 "path1.parent.uid=0 path1.uid=0 exec.argv[1]!=\"--\"",
 			 argv, envp, 0);
 
-		argv[0] = "/bin/true";
+		argv[0] = BINDIR "/true";
 		argv[1] = "-";
-		try_exec("file execute /bin/true 1!=0 exec.argv[1]=\"--\"",
+		try_exec("file execute " BINDIR "/true 1!=0 exec.argv[1]=\"--\"",
 			 argv, envp, 0);
-		try_exec("file execute /bin/true 1!=0 exec.argv[1]!=\"--\"",
+		try_exec("file execute " BINDIR "/true 1!=0 exec.argv[1]!=\"--\"",
 			 argv, envp, 1);
 
 		envp[0] = "HOME=/";
-		try_exec("file execute /bin/true task.euid=0 "
+		try_exec("file execute " BINDIR "/true task.euid=0 "
 			 "exec.envp[\"HOME\"]!=NULL", argv, envp, 1);
-		try_exec("file execute /bin/true task.euid=0 "
+		try_exec("file execute " BINDIR "/true task.euid=0 "
 			 "exec.envp[\"HOME\"]=NULL", argv, envp, 0);
-		try_exec("file execute /bin/true 0!=1 "
+		try_exec("file execute " BINDIR "/true 0!=1 "
 			 "exec.envp[\"HOME\"]=\"/\"", argv, envp, 1);
-		try_exec("file execute /bin/true 0!=1 "
+		try_exec("file execute " BINDIR "/true 0!=1 "
 			 "exec.envp[\"HOME\"]!=\"/\"", argv, envp, 0);
 
 		envp[0] = "HOME2=/";
-		try_exec("file execute /bin/true path1.uid=0 "
+		try_exec("file execute " BINDIR "/true path1.uid=0 "
 			 "exec.envp[\"HOME\"]!=NULL", argv, envp, 0);
-		try_exec("file execute /bin/true path1.uid=0 "
+		try_exec("file execute " BINDIR "/true path1.uid=0 "
 			 "exec.envp[\"HOME\"]=NULL", argv, envp, 1);
-		try_exec("file execute /bin/true 100=1-1000 "
+		try_exec("file execute " BINDIR "/true 100=1-1000 "
 			 "exec.envp[\"HOME\"]=\"/\"", argv, envp, 0);
-		try_exec("file execute /bin/true 100=1-1000 "
+		try_exec("file execute " BINDIR "/true 100=1-1000 "
 			 "exec.envp[\"HOME\"]!=\"/\"", argv, envp, 1);
-		try_exec("file execute /bin/true path1.parent.gid!=100 "
+		try_exec("file execute " BINDIR "/true path1.parent.gid!=100 "
 			 "exec.envp[\"HOME\"]!=NULL exec.envp[\"HOME3\"]=NULL",
 			 argv, envp, 0);
-		try_exec("file execute /bin/true path1.parent.gid!=100 "
+		try_exec("file execute " BINDIR "/true path1.parent.gid!=100 "
 			 "exec.envp[\"HOME\"]=NULL exec.envp[\"HOME3\"]=NULL",
 			 argv, envp, 1);
-		try_exec("file execute /bin/true path1.parent.gid=0 "
+		try_exec("file execute " BINDIR "/true path1.parent.gid=0 "
 			 "exec.envp[\"HOME\"]=\"/\" exec.envp[\"HOME3\"]=NULL",
 			 argv, envp, 0);
-		try_exec("file execute /bin/true path1.parent.gid=0 "
+		try_exec("file execute " BINDIR "/true path1.parent.gid=0 "
 			 "exec.envp[\"HOME\"]!=\"/\" exec.envp[\"HOME3\"]=NULL",
 			 argv, envp, 1);
 	}
@@ -176,7 +176,7 @@ static void stage_exec_test(void)
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
-	fprintf(domain_fp, "%s /bin/true\n", self_domain);
+	fprintf(domain_fp, "%s " BINDIR "/true\n", self_domain);
 	fprintf(domain_fp, "use_profile 255\n");
 	fprintf(domain_fp, "select pid=%u\n", pid);
 	fprintf(domain_fp, "file read/write %s\n", proc_policy_domain_policy);
