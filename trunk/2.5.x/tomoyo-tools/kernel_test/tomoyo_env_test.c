@@ -59,11 +59,11 @@ static void stage_env_test(void)
 		should_fail = 0;
 		set_profile(2, "misc::env");
 		if (fork() == 0) {
-			execve("/bin/true", argv, envp);
+			execve(BINDIR "/true", argv, envp);
 			_exit(errno);
 		}
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "Executing /bin/true in permissive mode");
+			 "Executing " BINDIR "/true in permissive mode");
 		show_prompt(buffer);
 		wait(&status);
 		errno = WEXITSTATUS(status);
@@ -72,11 +72,11 @@ static void stage_env_test(void)
 		should_fail = 1;
 		set_profile(3, "misc::env");
 		if (fork() == 0) {
-			execve("/bin/true", argv, envp);
+			execve(BINDIR "/true", argv, envp);
 			_exit(errno);
 		}
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "Executing /bin/true in enforce mode");
+			 "Executing " BINDIR "/true in enforce mode");
 		show_prompt(buffer);
 		wait(&status);
 		errno = WEXITSTATUS(status);
@@ -85,11 +85,11 @@ static void stage_env_test(void)
 		should_fail = 0;
 		if (fork() == 0) {
 			envp[0] = "";
-			execve("/bin/true", argv, envp);
+			execve(BINDIR "/true", argv, envp);
 			_exit(errno);
 		}
 		snprintf(buffer, sizeof(buffer) - 1,
-			 "Executing /bin/true in enforce mode");
+			 "Executing " BINDIR "/true in enforce mode");
 		show_prompt(buffer);
 		wait(&status);
 		errno = WEXITSTATUS(status);

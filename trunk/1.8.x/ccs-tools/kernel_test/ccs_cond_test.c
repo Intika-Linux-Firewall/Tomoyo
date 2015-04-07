@@ -238,7 +238,7 @@ static int try_exec(void)
 	switch (fork()) {
 	case 0:
 		errno = 0;
-		execl("/bin/true", "true", NULL);
+		execl(BINDIR "/true", "true", NULL);
 		/* Unreachable if execl() succeeded. */
 		status = errno;
 		ret_ignored = write(pipe_fd[1], &status, sizeof(status));
@@ -361,25 +361,25 @@ static void stage_cond_test(void)
 	write_domain_policy(policy, 1);
 
 	/* open execute */
-	policy = "file execute /bin/true task.uid!=path1.uid";
+	policy = "file execute " BINDIR "/true task.uid!=path1.uid";
 	write_domain_policy(policy, 0);
 	printf("%s : %s\n", policy, try_exec() == EOF ? "OK" : "FAILED");
 	write_domain_policy(policy, 1);
 
 	/* open execute */
-	policy = "file execute /bin/true task.uid=path1.uid";
+	policy = "file execute " BINDIR "/true task.uid=path1.uid";
 	write_domain_policy(policy, 0);
 	printf("%s : %s\n", policy, try_exec() == 0 ? "OK" : "FAILED");
 	write_domain_policy(policy, 1);
 
 	/* open execute */
-	policy = "file execute /bin/true exec.realpath!=\"/bin/true\"";
+	policy = "file execute " BINDIR "/true exec.realpath!=\"" BINDIR "/true\"";
 	write_domain_policy(policy, 0);
 	printf("%s : %s\n", policy, try_exec() == EOF ? "OK" : "FAILED");
 	write_domain_policy(policy, 1);
 
 	/* open execute */
-	policy = "file execute /bin/true exec.realpath=\"/bin/true\"";
+	policy = "file execute " BINDIR "/true exec.realpath=\"" BINDIR "/true\"";
 	write_domain_policy(policy, 0);
 	printf("%s : %s\n", policy, try_exec() == 0 ? "OK" : "FAILED");
 	write_domain_policy(policy, 1);

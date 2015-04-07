@@ -217,13 +217,13 @@ static void stage_file_test(void)
 	write_domain_policy(policy, 1);
 	close(fd);
 
-	policy = "file execute /bin/true task.uid!=10 path1.parent.uid=0";
+	policy = "file execute " BINDIR "/true task.uid!=10 path1.parent.uid=0";
 	write_domain_policy(policy, 0);
 	fflush(stdout);
 	fflush(stderr);
 	ret_ignored = pipe(pipe_fd);
 	if (fork() == 0) {
-		execl("/bin/true", "/bin/true", NULL);
+		execl(BINDIR "/true", BINDIR "/true", NULL);
 		err = errno;
 		ret_ignored = write(pipe_fd[1], &err, sizeof(err));
 		_exit(0);
@@ -239,7 +239,7 @@ static void stage_file_test(void)
 	fflush(stderr);
 	ret_ignored = pipe(pipe_fd);
 	if (fork() == 0) {
-		execl("/bin/true", "/bin/true", NULL);
+		execl(BINDIR "/true", BINDIR "/true", NULL);
 		err = errno;
 		ret_ignored = write(pipe_fd[1], &err, sizeof(err));
 		_exit(0);
@@ -656,7 +656,7 @@ int main(int argc, char *argv[])
 {
 	ccs_test_init();
 	make_elf_lib();
-	fprintf(domain_fp, "%s /bin/true\n", self_domain);
+	fprintf(domain_fp, "%s " BINDIR "/true\n", self_domain);
 	fprintf(domain_fp, "use_profile 255\n");
 	fprintf(domain_fp, "select pid=%u\n", pid);
 	fprintf(profile_fp, "255-PREFERENCE={ max_reject_log=1024 }\n");

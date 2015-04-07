@@ -452,8 +452,8 @@ static const struct {
 	const char *pattern;
 	const bool match;
 } testcases[] = {
-	{ "/bin/true", "/bin/\\*", 1 },
-	{ "/bin/true", "/bin\\@\\*/\\*", 1 },
+	{ BINDIR "/true", BINDIR "/\\*", 1 },
+	{ BINDIR "/true", BINDIR "\\@\\*/\\*", 1 },
 	{ "/usr/local/", "/usr/\\*/", 1 },
 	{ "/usr/local/", "/usr/\\*\\*\\@\\*/", 1 },
 	{ "pipe:[12345]", "pipe:[\\$]", 1 },
@@ -488,10 +488,10 @@ static const struct {
 	  "/var/www/html/\\{test\\}/\\*.html", 1 },
 	{ "/etc/skel/", "/etc/\\{\\*\\}/\\*/", 0 },
 	{ "/etc/passwd", "/etc/\\{\\*\\}/\\*", 0 },
-	{ "/bin/true", "/bin/\\*/", 0 },
-	{ "/bin/", "/bin/\\*", 0 },
-	{ "/bin/", "/bin/\\@", 0 },
-	{ "/bin/", "/bin/\\@\\@", 0 },
+	{ BINDIR "/true", BINDIR "/\\*/", 0 },
+	{ BINDIR "/", BINDIR "/\\*", 0 },
+	{ BINDIR "/", BINDIR "/\\@", 0 },
+	{ BINDIR "/", BINDIR "/\\@\\@", 0 },
 	{ "http://tomoyo.sourceforge.jp/", "\\*/\\*/\\*/\?", 0 },
 	{ "http://tomoyo.sourceforge.jp/index.html", "\\*/\\*/\\*/\\@", 0 },
 	{ "http://tomoyo.sourceforge.jp/index.html", "http://\\*/\\@", 0 },

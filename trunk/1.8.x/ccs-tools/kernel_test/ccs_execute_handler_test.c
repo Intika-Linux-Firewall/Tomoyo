@@ -98,7 +98,7 @@ int main(int raw_argc, char *raw_argv[])
 		char *arg[3] = { "echo", "OK: execute handler succeeded",
 				 NULL };
 		char *env[2] = { "execute_handler", NULL };
-		execve("/bin/echo", arg, env);
+		execve(BINDIR "/echo", arg, env);
 		_exit(1);
 	}
 	wait(&error);
@@ -110,14 +110,14 @@ int main(int raw_argc, char *raw_argv[])
 	}
 	fprintf(domain_fp, "delete task auto_execute_handler %s\n", cp);
 	fprintf(domain_fp, "task denied_execute_handler %s\n", cp);
-	fprintf(domain_fp, "delete file execute /bin/echo\n");
+	fprintf(domain_fp, "delete file execute " BINDIR "/echo\n");
 	set_profile(3, "file::execute");
 	set_profile(3, "file::open");
 	if (fork() == 0) {
 		char *arg[3] = { "echo", "OK: denied execute handler succeeded",
 				 NULL };
 		char *env[2] = { "denied_execute_handler", NULL };
-		execve("/bin/echo", arg, env);
+		execve(BINDIR "/echo", arg, env);
 		_exit(1);
 	}
 	wait(&error);

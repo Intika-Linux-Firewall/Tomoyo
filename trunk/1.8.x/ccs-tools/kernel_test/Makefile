@@ -19,8 +19,10 @@ $(ALL_FILES): include.h
 # Tools for kernel testing.
 #
 
+BINDIR = '"'$(shell readlink -f /bin)'"'
+
 .c:
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $<
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -DBINDIR=$(BINDIR) -o $@ $<
 
 #
 # Delete all test programs.
