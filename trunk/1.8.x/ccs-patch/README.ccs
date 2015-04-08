@@ -3182,3 +3182,14 @@ Fix 2015/01/01
       We should reset attributes information when executing execute_handler
       program, or attributes of original program could be used when stat()
       on execute_handler program failed.
+
+Fix 2015/04/08
+
+    @ Fix incorrect readdir() permission check.
+
+      CONFIG_CCSECURITY_FILE_READDIR was meant for allowing users to control
+      readdir() permission check. However, CONFIG_CCSECURITY_FILE_GETATTR was
+      by error used for controlling readdir() permission check. This fix
+      should not affect kernels built with default configuration, for both
+      CONFIG_CCSECURITY_FILE_READDIR and CONFIG_CCSECURITY_FILE_GETATTR are
+      defined by default.
