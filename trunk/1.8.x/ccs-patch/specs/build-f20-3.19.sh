@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for Fedora 20's 3.18 kernel.
+# This is a kernel build script for Fedora 20's 3.19 kernel.
 #
 
 die () {
@@ -12,12 +12,12 @@ yum -y install tar wget rpm-build make gcc patch redhat-rpm-config xmlto asciido
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.18.9-100.fc20.src.rpm ]
+if [ ! -r kernel-3.19.3-100.fc20.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/kernel-3.18.9-100.fc20.src.rpm || die "Can't download source package."
+    wget http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/kernel-3.19.3-100.fc20.src.rpm || die "Can't download source package."
 fi
-LANG=C rpm --checksig kernel-3.18.9-100.fc20.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
-rpm -ivh kernel-3.18.9-100.fc20.src.rpm || die "Can't install source package."
+LANG=C rpm --checksig kernel-3.19.3-100.fc20.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
+rpm -ivh kernel-3.19.3-100.fc20.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.3-20150408.tar.gz ]
@@ -48,7 +48,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2 and Redistributable, no modification permitted
  URL: http://www.kernel.org/
-@@ -944,7 +944,7 @@
+@@ -958,7 +958,7 @@
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
  Requires: perl\
@@ -57,7 +57,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -964,7 +964,7 @@
+@@ -978,7 +978,7 @@
  Provides: kernel%{?1:-%{1}}-modules-extra-uname-r = %{KVERREL}%{?1:+%{1}}\
  Requires: kernel-uname-r = %{KVERREL}%{?1:+%{1}}\
  AutoReqProv: no\
@@ -66,18 +66,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides less commonly used kernel modules for the %{?2:%{2} }kernel package.\
  %{nil}
  
-@@ -1488,6 +1488,10 @@
+@@ -1515,6 +1515,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.3-20150408.tar.gz
-+patch -sp1 < patches/ccs-patch-3.18-fedora-20.diff
++patch -sp1 < patches/ccs-patch-3.19-fedora-20.diff
 +
  %endif
  
  # Any further pre-build tree manipulations happen here.
-@@ -1512,6 +1516,17 @@
+@@ -1539,6 +1543,17 @@
  for i in *.config
  do
    mv $i .config
