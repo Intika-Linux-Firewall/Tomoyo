@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for linux-next.
 
-Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/snapshot/linux-next-next-20150402.tar.gz
+Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/snapshot/linux-next-next-20150407.tar.gz
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -60,7 +60,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 4.0-rc6-next-20150402 2015/04/07\n");
++	printk(KERN_INFO "Hook version: 4.0-rc7-next-20150407 2015/04/08\n");
 +	return 0;
 +}
 +fs_initcall(ccs_show_version);
@@ -100,7 +100,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  struct sched_param {
  	int sched_priority;
  };
-@@ -1725,6 +1727,10 @@ struct task_struct {
+@@ -1733,6 +1735,10 @@ struct task_struct {
  #ifdef CONFIG_DEBUG_ATOMIC_SLEEP
  	unsigned long	task_state_change;
  #endif
@@ -471,7 +471,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	 * If pid namespaces are enabled and the current task is in a child
 --- linux-next.orig/kernel/sched/core.c
 +++ linux-next/kernel/sched/core.c
-@@ -3145,6 +3145,8 @@ int can_nice(const struct task_struct *p
+@@ -3160,6 +3160,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -566,9 +566,9 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  #include <linux/rtc.h>
 +#include <linux/ccsecurity.h>
  
+ #include "tick-internal.h"
  #include "ntp_internal.h"
- 
-@@ -615,10 +616,15 @@ int ntp_validate_timex(struct timex *txc
+@@ -616,10 +617,15 @@ int ntp_validate_timex(struct timex *txc
  		if (!(txc->modes & ADJ_OFFSET_READONLY) &&
  		    !capable(CAP_SYS_TIME))
  			return -EPERM;
@@ -584,7 +584,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  		/*
  		 * if the quartz is off by more than 10% then
  		 * something is VERY wrong!
-@@ -631,6 +637,8 @@ int ntp_validate_timex(struct timex *txc
+@@ -632,6 +638,8 @@ int ntp_validate_timex(struct timex *txc
  
  	if ((txc->modes & ADJ_SETOFFSET) && (!capable(CAP_SYS_TIME)))
  		return -EPERM;
@@ -647,7 +647,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	copied = len;
 --- linux-next.orig/net/socket.c
 +++ linux-next/net/socket.c
-@@ -1485,6 +1485,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+@@ -1483,6 +1483,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
  
