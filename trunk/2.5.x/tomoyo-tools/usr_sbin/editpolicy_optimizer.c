@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.5.0   2011/09/29
+ * Version: 2.5.0+   2015/04/13
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -257,6 +257,42 @@ static void ccs_tokenize(char *buffer, char *w[5],
 		buffer = cp + 1;
 	}
 	w[4] = buffer;
+	if (index != CCS_DIRECTIVE_FILE_EXECUTE)
+		return;
+	if (ccs_domain_def(buffer)) {
+		char *cp = strchr(buffer, ' ');
+		w[1] = buffer;
+		w[4] = "";
+		if (!cp)
+			return;
+		while (*cp) {
+			if (*cp++ != ' ' || *cp++ == '/')
+				continue;
+			cp -= 2;
+			break;
+		}
+		if (!*cp)
+			return;
+		*cp = '\0';
+		w[4] = cp + 1;
+	} else {
+		char *cp = strchr(buffer, ' ');
+		if (cp)
+			*cp = '\0';
+		if (ccs_correct_path(buffer) || !strcmp(buffer, "keep") ||
+		    !strcmp(buffer, "reset") ||
+		    !strcmp(buffer, "initialize") ||
+		    !strcmp(buffer, "child") || !strcmp(buffer, "parent")) {
+			w[1] = buffer;
+			if (cp)
+				w[4] = cp + 1;
+			else
+				w[4] = "";
+			return;
+		}
+		if (cp)
+			*cp = ' ';
+	}
 }
 
 /**
@@ -375,23 +411,23 @@ void ccs_editpolicy_optimize(const int current)
 			continue;
 		ccs_tokenize(line, d, d_index);
 		/* Compare condition part. */
-		if (strcmp(s[4], d[4]))
+		if (s[4][0] && strcmp(s[4], d[4]))
+			continue;
+		if (!s[4][0] && (!strncmp(d[4], "grant_log=", 10)
+				 || strstr(d[4], " grant_log=")))
 			continue;
 		/* Compare non condition word. */
-		if (0) {
-			FILE *fp = fopen("/tmp/log", "a+");
-			int i;
-			for (i = 0; i < 5; i++) {
-				fprintf(fp, "s[%d]='%s'\n", i, s[i]);
-				fprintf(fp, "d[%d]='%s'\n", i, d[i]);
-			}
-			fclose(fp);
-		}
 		switch (d_index) {
 			struct ccs_path_info sarg;
 			struct ccs_path_info darg;
 			char c;
 			int len;
+		case CCS_DIRECTIVE_FILE_EXECUTE:
+			if (!ccs_compare_path(s[0], d[0]))
+				continue;
+			if (strcmp(s[1], d[1]))
+				continue;
+			break;
 		case CCS_DIRECTIVE_FILE_MKBLOCK:
 		case CCS_DIRECTIVE_FILE_MKCHAR:
 			if (!ccs_compare_number(s[3], d[3]) ||
@@ -409,7 +445,6 @@ void ccs_editpolicy_optimize(const int current)
 			if (!ccs_compare_number(s[1], d[1]))
 				continue;
 			/* fall through */
-		case CCS_DIRECTIVE_FILE_EXECUTE:
 		case CCS_DIRECTIVE_FILE_READ:
 		case CCS_DIRECTIVE_FILE_WRITE:
 		case CCS_DIRECTIVE_FILE_UNLINK:
