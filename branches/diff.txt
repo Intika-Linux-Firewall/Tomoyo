@@ -1,0 +1,159 @@
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(revision 6390)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(working copy)
+@@ -1237,8 +1237,10 @@
+ 	const struct ccs_path_info *domainname;
+ 	/* Namespace for this domain. Never NULL. */
+ 	struct ccs_policy_namespace *ns;
++	/* Group number to use. */
++	unsigned long allowed_groups[CCS_MAX_ACL_GROUPS / BITS_PER_LONG];
++	unsigned long masked_groups[CCS_MAX_ACL_GROUPS / BITS_PER_LONG];
+ 	u8 profile;        /* Profile number to use. */
+-	u8 group;          /* Group number to use.   */
+ 	bool is_deleted;   /* Delete flag.           */
+ 	bool flags[CCS_MAX_DOMAIN_INFO_FLAGS];
+ };
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/permission.c
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/permission.c	(revision 6390)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/permission.c	(working copy)
+@@ -770,26 +770,36 @@
+ {
+ 	const struct ccs_domain_info *domain = ccs_current_domain();
+ 	int error;
+-	bool retried = false;
+ 	do {
+ 		struct ccs_acl_info *ptr;
+ 		const struct list_head *list = &domain->acl_info_list;
+-retry:
+-		list_for_each_entry_srcu(ptr, list, list, &ccs_ss) {
+-			if (!ccs_check_entry(r, ptr))
+-				continue;
+-			if (!ccs_condition(r, ptr->cond))
+-				continue;
+-			r->matched_acl = ptr;
+-			r->granted = true;
+-			ccs_audit_log(r);
+-			return 0;
++		int i = -1;
++		goto start;
++		for (; i < CCS_MAX_ACL_GROUPS * 2; i++) {
++			if (!(i & 1)) {
++				if (!test_bit(i, domain->masked_group))
++					continue;
++			} else {
++				if (!test_bit(i, domain->allowed_group))
++					continue;
++			}
++			list = &domain->ns->acl_group[i / 2];
++start:
++			list_for_each_entry_srcu(ptr, list, list, &ccs_ss) {
++				if (!ccs_check_entry(r, ptr))
++					continue;
++				if (!ccs_condition(r, ptr->cond))
++					continue;
++				if (i & 1) {
++					r->matched_acl = ptr;
++					r->granted = true;
++					ccs_audit_log(r);
++					return 0;
++				}
++				r->mode = CCS_CONFIG_ENFORCING;
++				break;
++			}
+ 		}
+-		if (!retried) {
+-			retried = true;
+-			list = &domain->ns->acl_group[domain->group];
+-			goto retry;
+-		}
+ 		r->granted = false;
+ 		if (r->mode != CCS_CONFIG_DISABLED ||
+ 		    r->type != CCS_MAC_FILE_EXECUTE)
+@@ -4277,8 +4287,8 @@
+  *
+  * Caller holds ccs_read_lock().
+  */
+-bool ccs_condition(struct ccs_request_info *r,
+-		   const struct ccs_condition *cond)
++static bool ccs_condition(struct ccs_request_info *r,
++			  const struct ccs_condition *cond)
+ {
+ 	const u32 ccs_flags = ccs_current_flags();
+ 	u32 i;
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(revision 6390)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(working copy)
+@@ -3549,9 +3549,19 @@
+ 	if (sscanf(data, "use_group %u\n", &profile) == 1
+ 	    && profile < CCS_MAX_ACL_GROUPS) {
+ 		if (!is_delete)
+-			domain->group = (u8) profile;
++			set_bit(profile, domain->allowed_groups);
++		else
++			clear_bit(profile, domain->allowed_groups);
+ 		return 0;
+ 	}
++	if (sscanf(data, "mask_group %u\n", &profile) == 1
++	    && profile < CCS_MAX_ACL_GROUPS) {
++		if (!is_delete)
++			set_bit(profile, domain->masked_groups);
++		else
++			clear_bit(profile, domain->masked_groups);
++		return 0;
++	}
+ 	for (profile = 0; profile < CCS_MAX_DOMAIN_INFO_FLAGS; profile++) {
+ 		const char *cp = ccs_dif[profile];
+ 		if (strncmp(data, cp, strlen(cp) - 1))
+@@ -4086,21 +4096,46 @@
+ 			ccs_set_lf(head);
+ 			ccs_io_printf(head, "use_profile %u\n",
+ 				      domain->profile);
+-			ccs_io_printf(head, "use_group %u\n", domain->group);
+ 			for (i = 0; i < CCS_MAX_DOMAIN_INFO_FLAGS; i++)
+ 				if (domain->flags[i])
+ 					ccs_set_string(head, ccs_dif[i]);
++			head->r.index = 0;
+ 			head->r.step++;
+-			ccs_set_lf(head);
+ 			/* fall through */
+ 		case 1:
++			while (head->r.index < CCS_MAX_ACL_GROUPS) {
++				i = head->r.index++;
++				if (!test_bit(i, domain->allowed_group))
++					continue;
++				ccs_io_printf(head, "use_group %u\n", i);
++				if (!ccs_flush(head))
++					return;
++			}
++			head->r.index = 0;
++			head->r.step++;
++			/* fall through */
++		case 2:
++			while (head->r.index < CCS_MAX_ACL_GROUPS) {
++				i = head->r.index++;
++				if (!test_bit(i, domain->masked_group))
++					continue;
++				ccs_io_printf(head, "mask_group %u\n", i);
++				if (!ccs_flush(head))
++					return;
++			}
++			head->r.index = 0;
++			head->r.step++;
++			if (!ccs_set_lf(head))
++				return;
++			/* fall through */
++		case 3:
+ 			if (!ccs_read_acl(head, &domain->acl_info_list))
+ 				return;
+ 			head->r.step++;
+ 			if (!ccs_set_lf(head))
+ 				return;
+ 			/* fall through */
+-		case 2:
++		case 4:
+ 			head->r.step = 0;
+ 			if (head->r.print_this_domain_only)
+ 				goto done;
