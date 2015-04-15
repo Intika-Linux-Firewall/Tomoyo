@@ -527,11 +527,19 @@ static int ccs_gacl_compare0(const void *a, const void *b)
 {
 	const struct ccs_generic_acl *a0 = (struct ccs_generic_acl *) a;
 	const struct ccs_generic_acl *b0 = (struct ccs_generic_acl *) b;
-	const char *a1 = ccs_directives[a0->directive].alias;
-	const char *b1 = ccs_directives[b0->directive].alias;
+	const enum ccs_editpolicy_directives a0_d = a0->directive;
+	const enum ccs_editpolicy_directives b0_d = b0->directive;
+	const char *a1 = ccs_directives[a0_d].alias;
+	const char *b1 = ccs_directives[b0_d].alias;
 	const char *a2 = a0->operand;
 	const char *b2 = b0->operand;
-	const int ret = strcmp(a1, b1);
+	int ret;
+	if (a0_d >= CCS_DIRECTIVE_ACL_GROUP_000 &&
+	    a0_d <= CCS_DIRECTIVE_ACL_GROUP_255 && 
+	    b0_d >= CCS_DIRECTIVE_ACL_GROUP_000 &&
+	    b0_d <= CCS_DIRECTIVE_ACL_GROUP_255 && a0_d != b0_d)
+		return a0_d - b0_d;
+	ret = strcmp(a1, b1);
 	if (ret)
 		return ret;
 	return strcmp(a2, b2);
@@ -1176,21 +1184,22 @@ static int ccs_profile_entry_compare(const void *a, const void *b)
 {
 	const struct ccs_generic_acl *a0 = (struct ccs_generic_acl *) a;
 	const struct ccs_generic_acl *b0 = (struct ccs_generic_acl *) b;
+	const enum ccs_editpolicy_directives a0_d = a0->directive;
+	const enum ccs_editpolicy_directives b0_d = b0->directive;
 	const char *a1 = a0->operand;
 	const char *b1 = b0->operand;
-	const int a2 = a0->directive;
-	const int b2 = b0->directive;
-	if (a2 >= 256 || b2 >= 256) {
+	if (a0_d >= CCS_DIRECTIVE_ADDRESS_GROUP ||
+	    b0_d >= CCS_DIRECTIVE_ADDRESS_GROUP) {
 		if (a1[0] == 'P')
 			return -1;
 		if (b1[0] == 'P')
 			return 1;
 	}
 	if (!ccs_profile_sort_type) {
-		if (a2 == b2)
+		if (a0_d == b0_d)
 			return strcmp(a1, b1);
 		else
-			return a2 - b2;
+			return a0_d - b0_d;
 	} else {
 		const int a3 = strcspn(a1, "=");
 		const int b3 = strcspn(b1, "=");
@@ -1200,7 +1209,7 @@ static int ccs_profile_entry_compare(const void *a, const void *b)
 		if (a3 != b3)
 			return a3 - b3;
 		else
-			return a2 - b2;
+			return a0_d - b0_d;
 	}
 }
 
@@ -1698,11 +1707,11 @@ static void ccs_parse_domain_line(const struct ccs_path_info *ns, char *line,
 		   ccs_str_starts(line, "task manual_domain_transition ")) {
 		ccs_add_acl_domain_transition(line, index);
 	} else if (parse_flags) {
-		unsigned int profile;
-		if (sscanf(line, "use_profile %u", &profile) == 1)
-			ccs_dp.list[index].profile = (u8) profile;
-		else if (sscanf(line, "use_group %u", &profile) == 1)
-			ccs_dp.list[index].group = (u8) profile;
+		unsigned int idx;
+		if (sscanf(line, "use_profile %u", &idx) == 1 && idx < 256)
+			ccs_dp.list[index].profile = (u8) idx;
+		else if (sscanf(line, "use_group %u", &idx) == 1 && idx < 256)
+			ccs_dp.list[index].group = (u8) idx;
 	}
 }
 
@@ -2560,26 +2569,30 @@ static int ccs_gacl_compare(const void *a, const void *b)
 {
 	const struct ccs_generic_acl *a0 = (struct ccs_generic_acl *) a;
 	const struct ccs_generic_acl *b0 = (struct ccs_generic_acl *) b;
-	const char *a1 = ccs_directives[a0->directive].alias;
-	const char *b1 = ccs_directives[b0->directive].alias;
+	const enum ccs_editpolicy_directives a0_d = a0->directive;
+	const enum ccs_editpolicy_directives b0_d = b0->directive;
+	const char *a1 = ccs_directives[a0_d].alias;
+	const char *b1 = ccs_directives[b0_d].alias;
 	const char *a2 = a0->operand;
 	const char *b2 = b0->operand;
+	if (a0_d == CCS_DIRECTIVE_USE_GROUP && b0_d == CCS_DIRECTIVE_USE_GROUP)
+		return atoi(a2) - atoi(b2);
 	if (!ccs_acl_sort_type) {
 		const int ret = strcmp(a1, b1);
 		if (ret)
 			return ret;
 		return strcmp(a2, b2);
-	} else if (a0->directive == CCS_DIRECTIVE_USE_GROUP) {
+	} else if (a0_d == CCS_DIRECTIVE_USE_GROUP) {
 		return 1;
-	} else if (b0->directive == CCS_DIRECTIVE_USE_GROUP) {
+	} else if (b0_d == CCS_DIRECTIVE_USE_GROUP) {
 		return -1;
-	} else if (a0->directive == CCS_DIRECTIVE_TRANSITION_FAILED) {
+	} else if (a0_d == CCS_DIRECTIVE_TRANSITION_FAILED) {
 		return 2;
-	} else if (b0->directive == CCS_DIRECTIVE_TRANSITION_FAILED) {
+	} else if (b0_d == CCS_DIRECTIVE_TRANSITION_FAILED) {
 		return -2;
-	} else if (a0->directive == CCS_DIRECTIVE_QUOTA_EXCEEDED) {
+	} else if (a0_d == CCS_DIRECTIVE_QUOTA_EXCEEDED) {
 		return 3;
-	} else if (b0->directive == CCS_DIRECTIVE_QUOTA_EXCEEDED) {
+	} else if (b0_d == CCS_DIRECTIVE_QUOTA_EXCEEDED) {
 		return -3;
 	} else {
 		const int ret = strcmp(a2, b2);
