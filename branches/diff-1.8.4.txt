@@ -1,295 +1,257 @@
-Index: policy_io.c
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
 ===================================================================
---- policy_io.c	(リビジョン 6261)
-+++ policy_io.c	(作業コピー)
-@@ -356,6 +356,7 @@
- static const char * const ccs_group_name[CCS_MAX_GROUP] = {
- 	[CCS_PATH_GROUP]    = "path_group ",
- 	[CCS_NUMBER_GROUP]  = "number_group ",
-+	[CCS_ACL_GROUP]     = "acl_group ",
- #ifdef CONFIG_CCSECURITY_NETWORK
- 	[CCS_ADDRESS_GROUP] = "address_group ",
- #endif
-@@ -3422,6 +3423,27 @@
- #endif
- 
- /**
-+ * ccs_write_use_group_acl - Write "struct ccs_use_group_acl" list.
-+ *
-+ * @param: Pointer to "struct ccs_acl_param".
-+ *
-+ * Returns 0 on success, negative value otherwise.
-+ *
-+ * Caller holds ccs_read_lock().
-+ */
-+static int ccs_write_use_group_acl(struct ccs_acl_param *param)
-+{
-+	struct ccs_use_group_acl *e = &param->e.use_group_acl;
-+	if (!ccs_correct_word(param->data))
-+		return -EINVAL;
-+	e->head.type = CCS_TYPE_USE_GROUP_ACL;
-+	e->group = ccs_get_group(param, CCS_ACL_GROUP);
-+	if (!e->group)
-+		return -ENOMEM;
-+	return ccs_update_acl(sizeof(*e), param);
-+}
-+
-+/**
-  * ccs_write_acl - Write "struct ccs_acl_info" list.
-  *
-  * @ns:        Pointer to "struct ccs_policy_namespace".
-@@ -3462,6 +3484,7 @@
- 		{ "ipc signal ", ccs_write_ipc },
- #endif
- 		{ "task ", ccs_write_task },
-+		{ "use_group @", ccs_write_use_group_acl },
- 	};
- 	u8 i;
- 	/* Forced zero clear for using memcmp() at ccs_update_acl(). */
-@@ -3546,11 +3569,14 @@
- 				domain->profile = (u8) profile;
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(revision 6393)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(working copy)
+@@ -1237,8 +1237,9 @@
+ 	const struct ccs_path_info *domainname;
+ 	/* Namespace for this domain. Never NULL. */
+ 	struct ccs_policy_namespace *ns;
++	/* Group numbers to use. */
++	unsigned long group[CCS_MAX_ACL_GROUPS / BITS_PER_LONG];
+ 	u8 profile;        /* Profile number to use. */
+-	u8 group;          /* Group number to use.   */
+ 	bool is_deleted;   /* Delete flag.           */
+ 	bool flags[CCS_MAX_DOMAIN_INFO_FLAGS];
+ };
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/permission.c
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/permission.c	(revision 6395)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/permission.c	(working copy)
+@@ -773,7 +773,7 @@
+ 	do {
+ 		struct ccs_acl_info *ptr;
+ 		const struct list_head *list = &domain->acl_info_list;
+-		bool retried = false;
++		u16 i = 0;
+ retry:
+ 		list_for_each_entry_srcu(ptr, list, list, &ccs_ss) {
+ 			if (!ccs_check_entry(r, ptr))
+@@ -785,9 +785,10 @@
+ 			ccs_audit_log(r);
+ 			return 0;
+ 		}
+-		if (!retried) {
+-			retried = true;
+-			list = &domain->ns->acl_group[domain->group];
++		for (; i < CCS_MAX_ACL_GROUPS; i++) {
++			if (!test_bit(i, domain->group))
++				continue;
++			list = &domain->ns->acl_group[i++];
+ 			goto retry;
+ 		}
+ 		r->granted = false;
+Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
+===================================================================
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(revision 6394)
++++ trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(working copy)
+@@ -3549,7 +3549,9 @@
+ 	if (sscanf(data, "use_group %u\n", &idx) == 1 &&
+ 	    idx < CCS_MAX_ACL_GROUPS) {
+ 		if (!is_delete)
+-			domain->group = (u8) idx;
++			set_bit(idx, domain->group);
++		else
++			clear_bit(idx, domain->group);
  		return 0;
  	}
--	if (sscanf(data, "use_group %u\n", &profile) == 1
--	    && profile < CCS_MAX_ACL_GROUPS) {
+ 	for (idx = 0; idx < CCS_MAX_DOMAIN_INFO_FLAGS; idx++) {
+@@ -4086,21 +4088,33 @@
+ 			ccs_set_lf(head);
+ 			ccs_io_printf(head, "use_profile %u\n",
+ 				      domain->profile);
+-			ccs_io_printf(head, "use_group %u\n", domain->group);
+ 			for (i = 0; i < CCS_MAX_DOMAIN_INFO_FLAGS; i++)
+ 				if (domain->flags[i])
+ 					ccs_set_string(head, ccs_dif[i]);
++			head->r.index = 0;
+ 			head->r.step++;
++			/* fall through */
++		case 1:
++			while (head->r.index < CCS_MAX_ACL_GROUPS) {
++				i = head->r.index++;
++				if (!test_bit(i, domain->group))
++					continue;
++				ccs_io_printf(head, "use_group %u\n", i);
++				if (!ccs_flush(head))
++					return;
++			}
++			head->r.index = 0;
++			head->r.step++;
+ 			ccs_set_lf(head);
+ 			/* fall through */
+-		case 1:
++		case 2:
+ 			if (!ccs_read_acl(head, &domain->acl_info_list))
+ 				return;
+ 			head->r.step++;
+ 			if (!ccs_set_lf(head))
+ 				return;
+ 			/* fall through */
+-		case 2:
++		case 3:
+ 			head->r.step = 0;
+ 			if (head->r.print_this_domain_only)
+ 				goto done;
+@@ -5835,7 +5849,7 @@
+ 		const struct ccs_domain_info *domain =
+ 			security->ccs_domain_info;
+ 		e.profile = domain->profile;
+-		e.group = domain->group;
++		memcpy(e.group, domain->group, sizeof(e.group));
+ 	}
+ 	e.domainname = ccs_get_name(domainname);
+ 	if (!e.domainname)
+@@ -5858,10 +5872,13 @@
+ 		security->ccs_domain_info = entry;
+ 		if (created) {
+ 			struct ccs_request_info r;
++			int i;
+ 			ccs_init_request_info(&r, CCS_MAC_FILE_EXECUTE);
+ 			r.granted = false;
+ 			ccs_write_log(&r, "use_profile %u\n", entry->profile);
+-			ccs_write_log(&r, "use_group %u\n", entry->group);
++			for (i = 0; i < CCS_MAX_ACL_GROUPS; i++)
++				if (test_bit(i, entry->group))
++					ccs_write_log(&r, "use_group %u\n", i);
+ 			ccs_update_stat(CCS_STAT_POLICY_UPDATES);
+ 		}
+ 	}
+Index: trunk/1.8.x/ccs-tools/usr_lib_ccs/init_policy.c
+===================================================================
+--- trunk/1.8.x/ccs-tools/usr_lib_ccs/init_policy.c	(revision 6393)
++++ trunk/1.8.x/ccs-tools/usr_lib_ccs/init_policy.c	(working copy)
+@@ -957,7 +957,7 @@
+ /* Which profile number does <kernel> domain use? */
+ static unsigned char default_profile = 0;
+ /* Which ACL group does <kernel> domain use? */
+-static unsigned char default_group = 0;
++static _Bool use_group[256] = { };
+ 
+ /**
+  * make_domain_policy - Make /etc/ccs/policy/current/domain_policy.conf .
+@@ -967,6 +967,7 @@
+ static void make_domain_policy(void)
+ {
+ 	FILE *fp;
++	int i;
+ 	if (!chdir_policy())
+ 		return;
+ 	if (!access("domain_policy.conf", R_OK))
+@@ -977,8 +978,10 @@
+ 		return;
+ 	}
+ 	fprintf(stderr, "Creating domain policy... ");
+-	fprintf(fp, "<kernel>\nuse_profile %u\nuse_group %u\n",
+-		default_profile, default_group);
++	fprintf(fp, "<kernel>\nuse_profile %u\n", default_profile);
++	for (i = 0; i < 256; i++)
++		if (use_group[i])
++			fprintf(fp, "use_group %u\n", i);
+ 	close_file(fp, 1, "domain_policy.tmp", "domain_policy.conf");
+ }
+ 
+@@ -1685,7 +1688,7 @@
+ 		} else if (!strncmp(arg, "use_profile=", 12)) {
+ 			default_profile = atoi(arg + 12);
+ 		} else if (!strncmp(arg, "use_group=", 10)) {
+-			default_group = atoi(arg + 10);
++			use_group[(unsigned char) atoi(arg + 10)] = 1;
+ 		} else if (!strncmp(arg, "grant_log=", 10)) {
+ 			grant_log = arg + 10;
+ 		} else if (!strncmp(arg, "reject_log=", 11)) {
+@@ -1701,6 +1704,11 @@
+ 	}
+ 	if (!dir)
+ 		dir = "/etc/ccs";
++	for (i = 0; i < 256; i++)
++		if (use_group[i])
++			break;
++	if (i == 256)
++		use_group[0] = 1;
+ 	policy_dir = strdup(dir);
+ 	memset(path, 0, sizeof(path));
+ 	make_policy_dir();
+Index: trunk/1.8.x/ccs-tools/usr_sbin/editpolicy.c
+===================================================================
+--- trunk/1.8.x/ccs-tools/usr_sbin/editpolicy.c	(revision 6394)
++++ trunk/1.8.x/ccs-tools/usr_sbin/editpolicy.c	(working copy)
+@@ -1711,7 +1711,7 @@
+ 		if (sscanf(line, "use_profile %u", &idx) == 1 && idx < 256)
+ 			ccs_dp.list[index].profile = (u8) idx;
+ 		else if (sscanf(line, "use_group %u", &idx) == 1 && idx < 256)
+-			ccs_dp.list[index].group = (u8) idx;
++			ccs_dp.list[index].group[idx] = 1;
+ 	}
+ }
+ 
+@@ -1747,7 +1747,7 @@
+ 		for (index = 0; index < ccs_dp.list_len; index++) {
+ 			char *cp;
+ 			const struct ccs_domain *ptr = &ccs_dp.list[index];
+-			if (ptr->group != group || ptr->target || ptr->is_dd)
++			if (!ptr->group[group] || ptr->target || ptr->is_dd)
+ 				continue;
+ 			cp = ccs_strdup(line);
+ 			ccs_parse_domain_line(ns, cp, index, false);
+Index: trunk/1.8.x/ccs-tools/usr_sbin/editpolicy.h
+===================================================================
+--- trunk/1.8.x/ccs-tools/usr_sbin/editpolicy.h	(revision 6393)
++++ trunk/1.8.x/ccs-tools/usr_sbin/editpolicy.h	(working copy)
+@@ -455,8 +455,8 @@
+ 	const struct ccs_path_info **string_ptr;
+ 	int string_count;
+ 	int number;   /* domain number (-1 if target or is_dd) */
++	_Bool group[256];
+ 	u8 profile;
+-	u8 group;
+ 	_Bool is_djt; /* domain jump target */
+ 	_Bool is_dk;  /* domain keeper */
+ 	_Bool is_du;  /* unreachable domain */
+Index: trunk/1.8.x/ccs-tools/usr_sbin/editpolicy_offline.c
+===================================================================
+--- trunk/1.8.x/ccs-tools/usr_sbin/editpolicy_offline.c	(revision 6394)
++++ trunk/1.8.x/ccs-tools/usr_sbin/editpolicy_offline.c	(working copy)
+@@ -801,8 +801,9 @@
+ 	struct list_head acl_info_list;
+ 	/* Name of this domain. Never NULL.          */
+ 	const struct ccs_path_info *domainname;
++	/* Group numbers to use.   */
++	bool group[CCS_MAX_ACL_GROUPS];
+ 	u8 profile;        /* Profile number to use. */
+-	u8 group;          /* Group number to use.   */
+ 	bool is_deleted;   /* Delete flag.           */
+ 	bool flags[CCS_MAX_DOMAIN_INFO_FLAGS];
+ };
+@@ -3938,8 +3939,7 @@
+ 	}
+ 	if (sscanf(data, "use_group %u\n", &idx) == 1 &&
+ 	    idx < CCS_MAX_ACL_GROUPS) {
 -		if (!is_delete)
--			domain->group = (u8) profile;
--		return 0;
-+	if (!strncmp(data, "use_group ", 10)) {
-+		char *ep;
-+		profile = simple_strtoul(data + 10, &ep, 10);
-+		if (profile < CCS_MAX_ACL_GROUPS && !*ep) {
-+			if (!is_delete)
-+				domain->group = (u8) profile;
-+			return 0;
-+		}
+-			domain->group = (u8) idx;
++		domain->group[idx] = !is_delete;
+ 		return 0;
  	}
- 	for (profile = 0; profile < CCS_MAX_DOMAIN_INFO_FLAGS; profile++) {
- 		const char *cp = ccs_dif[profile];
-@@ -3811,7 +3837,12 @@
- {
- 	if (head->type == CCS_EXCEPTION_POLICY) {
- 		ccs_print_namespace(head);
--		ccs_io_printf(head, "acl_group %u ", head->r.acl_group_index);
-+		ccs_set_string(head, "acl_group ");
-+		if (head->r.acl_group_name)
-+			ccs_set_string(head, head->r.acl_group_name->name);
-+		else
-+			ccs_io_printf(head, "%u", head->r.acl_group_index);
-+		ccs_set_space(head);
- 	}
- 	ccs_set_string(head, category);
- }
-@@ -3837,6 +3868,8 @@
- 		return true;
- 	if (!ccs_flush(head))
- 		return false;
-+	//if (head->type == CCS_EXCEPTION_POLICY && head->r.acl_group_name)
-+	//printk(KERN_INFO "%s ptr=%p\n", __func__, acl);
- 	else if (acl_type == CCS_TYPE_PATH_ACL) {
- 		struct ccs_path_acl *ptr
- 			= container_of(acl, typeof(*ptr), head);
-@@ -3879,6 +3912,11 @@
- 			       "manual_domain_transition ");
- 		ccs_set_string(head, ptr->domainname->name);
- #endif
-+	} else if (acl_type == CCS_TYPE_USE_GROUP_ACL) {
-+		struct ccs_use_group_acl *ptr =
-+			container_of(acl, typeof(*ptr), head);
-+		ccs_set_group(head, "use_group @");
-+		ccs_set_string(head, ptr->group->group_name->name);
- 	} else if (head->r.print_transition_related_only &&
- 		   !may_trigger_transition) {
- 		return true;
-@@ -4194,8 +4232,17 @@
-  */
- static int ccs_write_group(struct ccs_acl_param *param, const u8 type)
- {
--	struct ccs_group *group = ccs_get_group(param, type);
-+	struct ccs_group *group;
- 	int error = -EINVAL;
-+	if (type == CCS_ACL_GROUP) {
-+		char *data;
-+		unsigned int group = simple_strtoul(param->data, &data, 10);
-+		if (group < CCS_MAX_ACL_GROUPS && *data++ == ' ')
-+			return ccs_write_acl(param->ns,
-+					     &param->ns->acl_group[group],
-+					     data, param->is_delete);
-+	}
-+	group = ccs_get_group(param, type);
- 	if (!group)
- 		return -ENOMEM;
- 	param->list = &group->member_list;
-@@ -4214,6 +4261,11 @@
- 		    !ccs_parse_number_union(param, &e->number))
- 			goto out;
- 		error = ccs_update_policy(sizeof(*e), param);
-+	} else if (type == CCS_ACL_GROUP) {
-+		error = ccs_write_acl(param->ns, param->list, param->data,
-+				      param->is_delete);
-+		//printk(KERN_INFO "%s: ptr=%p ret=%d\n", __func__, group,
-+		//error);
- #ifdef CONFIG_CCSECURITY_NETWORK
- 	} else {
- 		struct ccs_address_group *e = &param->e.address_group;
-@@ -4400,15 +4452,6 @@
- 	for (i = 0; i < CCS_MAX_GROUP; i++)
- 		if (ccs_str_starts(&param.data, ccs_group_name[i]))
- 			return ccs_write_group(&param, i);
--	if (ccs_str_starts(&param.data, "acl_group ")) {
--		unsigned int group;
--		char *data;
--		group = simple_strtoul(param.data, &data, 10);
--		if (group < CCS_MAX_ACL_GROUPS && *data++ == ' ')
--			return ccs_write_acl(head->w.ns,
--					     &head->w.ns->acl_group[group],
--					     data, is_delete);
--	}
- 	return -EINVAL;
- }
- 
-@@ -4427,6 +4470,22 @@
- 	struct ccs_policy_namespace *ns = container_of(head->r.ns, typeof(*ns),
- 						       namespace_list);
- 	struct list_head *list = &ns->group_list[idx];
-+	if (idx == CCS_ACL_GROUP) {
-+		list_for_each_cookie(head->r.group, list) {
-+			struct ccs_group *group =
-+				list_entry(head->r.group, typeof(*group),
-+					   head.list);
-+			printk(KERN_INFO "%s ptr=%p\n", __func__, group);
-+			head->r.acl_group_name = group->group_name;
-+			head->r.domain = &group->member_list;
-+			if (!ccs_read_acl(head, head->r.domain))
-+				return false;
-+			head->r.acl_group_name = NULL;
-+			head->r.domain = NULL;
-+		}
-+		head->r.group = NULL;
-+		return true;
-+	}
- 	list_for_each_cookie(head->r.group, list) {
- 		struct ccs_group *group =
- 			list_entry(head->r.group, typeof(*group), head.list);
-Index: gc.c
-===================================================================
---- gc.c	(リビジョン 6261)
-+++ gc.c	(作業コピー)
-@@ -152,6 +152,7 @@
- 		[CCS_TYPE_AUTO_TASK_ACL] = sizeof(struct ccs_task_acl),
- 		[CCS_TYPE_MANUAL_TASK_ACL] = sizeof(struct ccs_task_acl),
- #endif
-+		[CCS_TYPE_USE_GROUP_ACL] = sizeof(struct ccs_use_group_acl),
- 	};
- 	size_t size;
- 	if (type == CCS_ID_ACL)
-@@ -487,6 +488,12 @@
- 		}
- 		break;
- #endif
-+	case CCS_TYPE_USE_GROUP_ACL:
-+		{
-+			struct ccs_use_group_acl *entry =
-+				container_of(acl, typeof(*entry), head);
-+			ccs_put_group(entry->group);
-+		}
- 	}
- }
- 
-@@ -897,28 +904,35 @@
- 			struct list_head *list = &ns->group_list[i];
- 			struct ccs_group *group;
- 			struct ccs_group *tmp;
--			switch (i) {
--			case 0:
-+			if (i == CCS_PATH_GROUP)
- 				id = CCS_ID_PATH_GROUP;
--				break;
--			case 1:
-+			else if (i == CCS_NUMBER_GROUP)
- 				id = CCS_ID_NUMBER_GROUP;
--				break;
--			default:
-+			else if (i == CCS_ACL_GROUP)
-+				id = CCS_ID_ACL;
- #ifdef CONFIG_CCSECURITY_NETWORK
-+			else
- 				id = CCS_ID_ADDRESS_GROUP;
--#else
--				continue;
- #endif
--				break;
--			}
- 			list_for_each_entry_safe(group, tmp, list, head.list) {
--				ccs_collect_member(id, &group->member_list);
-+				if (id == CCS_ID_ACL)
-+					ccs_collect_acl(&group->member_list);
-+				else
-+					ccs_collect_member(id, &group->
-+							   member_list);
- 				if (!list_empty(&group->member_list) ||
--				    atomic_read(&group->head.users) > 0)
-+				    atomic_read(&group->head.users) > 0) {
-+					if (id == CCS_ID_ACL)
-+						printk("%s users=%d\n",
-+			       __func__, atomic_read(&group->head.users));
- 					continue;
-+				}
- 				atomic_set(&group->head.users,
- 					   CCS_GC_IN_PROGRESS);
-+				if (id == CCS_ID_ACL)
-+					printk("%s trying to gc %s\n",
-+					       __func__,
-+					       group->group_name->name);
- 				ccs_try_to_gc(CCS_ID_GROUP, &group->head.list);
- 			}
- 		}
-Index: internal.h
-===================================================================
---- internal.h	(リビジョン 6261)
-+++ internal.h	(作業コピー)
-@@ -454,6 +454,7 @@
- 	CCS_TYPE_AUTO_TASK_ACL,
- 	CCS_TYPE_MANUAL_TASK_ACL,
- #endif
-+	CCS_TYPE_USE_GROUP_ACL,
- };
- 
- /* Index numbers for "struct ccs_condition". */
-@@ -555,6 +556,7 @@
- enum ccs_group_id {
- 	CCS_PATH_GROUP,
- 	CCS_NUMBER_GROUP,
-+	CCS_ACL_GROUP,
- #ifdef CONFIG_CCSECURITY_NETWORK
- 	CCS_ADDRESS_GROUP,
- #endif
-@@ -1400,6 +1402,12 @@
- 	struct ccs_name_union name;
- };
- 
-+/* Structure for "use_group @" directive. */
-+struct ccs_use_group_acl {
-+	struct ccs_acl_info head; /* type = CCS_TYPE_USE_GROUP_ACL */
-+	struct ccs_group *group;
-+};
-+
- /* Structure for holding string data. */
- struct ccs_name {
- 	struct ccs_shared_acl_head head;
-@@ -1427,6 +1435,7 @@
- 		struct ccs_signal_acl signal_acl;
- 		struct ccs_inet_acl inet_acl;
- 		struct ccs_unix_acl unix_acl;
-+		struct ccs_use_group_acl use_group_acl;
- 		/**/
- 		struct ccs_acl_head acl_head;
- 		struct ccs_transition_control transition_control;
-@@ -1450,6 +1459,7 @@
- 		struct list_head *domain;
- 		struct list_head *group;
- 		struct list_head *acl;
-+		const struct ccs_path_info *acl_group_name; 
- 		size_t avail;
- 		unsigned int step;
- 		unsigned int query_index;
+ 	for (idx = 0; idx < CCS_MAX_DOMAIN_INFO_FLAGS; idx++) {
+@@ -4334,7 +4334,7 @@
+ 	if (head.eof)
+ 		return;
+ 	list_for_each_entry(domain, &ccs_domain_list, list) {
+-		u8 i;
++		u16 i;
+ 		if (domain->is_deleted)
+ 			continue;
+ 		if (head.print_this_domain_only &&
+@@ -4343,10 +4343,12 @@
+ 		/* Print domainname and flags. */
+ 		cprintf("%s\n", domain->domainname->name);
+ 		cprintf("use_profile %u\n", domain->profile);
+-		cprintf("use_group %u\n", domain->group);
+ 		for (i = 0; i < CCS_MAX_DOMAIN_INFO_FLAGS; i++)
+ 			if (domain->flags[i])
+ 				cprintf("%s", ccs_dif[i]);
++		for (i = 0; i < CCS_MAX_ACL_GROUPS; i++)
++			if (domain->group[i])
++				cprintf("use_group %u\n", i);
+ 		cprintf("\n");
+ 		ccs_read_domain2(&domain->acl_info_list);
+ 		cprintf("\n");
