@@ -279,6 +279,7 @@ static void ccs_test_init(void)
 	}
 	fprintf(domain_fp, "select pid=%u\n", pid);
 	fprintf(domain_fp, "use_profile 255\n");
+	fprintf(domain_fp, "use_group 0\n");
 	fprintf(domain_fp, "file read/write/truncate/getattr "
 		"proc:/ccs/domain_policy\n");
 	fprintf(domain_fp, "file read/write/truncate/getattr "

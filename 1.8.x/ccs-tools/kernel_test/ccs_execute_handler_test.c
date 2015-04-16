@@ -92,6 +92,7 @@ int main(int raw_argc, char *raw_argv[])
 	fprintf(domain_fp, "task auto_execute_handler %s\n", cp);
 	fprintf(domain_fp, "%s %s\n", self_domain, cp);
 	fprintf(domain_fp, "use_profile 0\n");
+	fprintf(domain_fp, "use_group 0\n");
 	fflush(domain_fp);
 	set_profile(3, "file::open");
 	if (fork() == 0) {
