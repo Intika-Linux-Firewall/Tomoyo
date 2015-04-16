@@ -32,6 +32,32 @@
 <h4>ChangeLog for ccs-patch 1.8.3</h4>
 
 <pre>
+Fix 2015/04/08
+
+    @ Fix incorrect readdir() permission check.
+
+      CONFIG_CCSECURITY_FILE_READDIR was meant for allowing users to control
+      readdir() permission check. However, CONFIG_CCSECURITY_FILE_GETATTR was
+      by error used for controlling readdir() permission check. This fix
+      should not affect kernels built with default configuration, for both
+      CONFIG_CCSECURITY_FILE_READDIR and CONFIG_CCSECURITY_FILE_GETATTR are
+      defined by default.
+
+
+Fix 2015/01/01
+
+    @ Fix missing chmod(-1) check in Linux 3.1 and later kernels.
+
+      Commit e57712ebebbb9db7 "merge fchmod() and fchmodat() guts, kill
+      ancient broken kludge" changed chmod(-1) from no-op to setting to
+      07777. Therefore, TOMOYO must not ignore chmod(-1) case.
+
+    @ Fix potentially using bogus attributes when stat() fails.
+
+      We should reset attributes information when executing execute_handler
+      program, or attributes of original program could be used when stat()
+      on execute_handler program failed.
+
 Fix 2012/10/08
 
     @ Fix KABI breakage on Ubuntu 12.10.

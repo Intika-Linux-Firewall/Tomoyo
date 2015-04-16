@@ -658,6 +658,7 @@ int main(int argc, char *argv[])
 	make_elf_lib();
 	fprintf(domain_fp, "%s " BINDIR "/true\n", self_domain);
 	fprintf(domain_fp, "use_profile 255\n");
+	fprintf(domain_fp, "use_group 0\n");
 	fprintf(domain_fp, "select pid=%u\n", pid);
 	fprintf(profile_fp, "255-PREFERENCE={ max_reject_log=1024 }\n");
 	stage_file_test();

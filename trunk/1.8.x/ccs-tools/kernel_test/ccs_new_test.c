@@ -82,6 +82,7 @@ static void setup_execute_bin_true(void)
 {
 	fprintf(domain_fp, "%s " BINDIR "/true\n", self_domain);
 	fprintf(domain_fp, "use_profile 0\n");
+	fprintf(domain_fp, "use_group 0\n");
 	fprintf(domain_fp, "select pid=%u\n", pid);
 }
 
