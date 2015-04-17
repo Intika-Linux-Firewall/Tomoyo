@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.3+   2011/03/01
+ * Version: 1.8.3+   2015/04/17
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -34,6 +34,19 @@ static struct ccs_readline_data ccs_rl = { };
 struct ccs_path_group_entry *ccs_path_group_list = NULL;
 /* Length of ccs_path_group_list array. */
 int ccs_path_group_list_len = 0;
+/* Array of "number_group" entry. */
+struct ccs_number_group_entry *ccs_number_group_list = NULL;
+/* Length of ccs_number_group_list array. */
+int ccs_number_group_list_len = 0;
+/* Array of "address_group" entry. */
+struct ccs_address_group_entry *ccs_address_group_list = NULL;
+/* Length of ccs_address_group_list array. */
+int ccs_address_group_list_len = 0;
+/* Array of "acl_group" entry. */
+char **acl_group_list[256];
+/* Length of acl_group_list array.*/
+int acl_group_list_len[256];
+
 /* Array of string ACL entries. */
 struct ccs_generic_acl *ccs_gacl_list = NULL;
 /* Length of ccs_generic_list array. */
@@ -126,10 +139,17 @@ static enum ccs_screen_type ccs_generic_list_loop(void);
 static enum ccs_screen_type ccs_select_window(const int current);
 static int ccs_add_path_group_entry(const struct ccs_path_info *ns,
 				    const char *group_name,
-				    const char *member_name,
-				    const _Bool is_delete);
+				    const char *member_name);
 static int ccs_add_path_group_policy(const struct ccs_path_info *ns,
-				     char *data, const _Bool is_delete);
+				     char *data);
+static int ccs_add_number_group_entry(const char *group_name,
+				      const char *member_name);
+static int ccs_add_number_group_policy(char *data);
+static int ccs_add_address_group_entry(const char *group_name,
+				       const char *member_name);
+static int ccs_add_address_group_policy(char *data);
+static void ccs_add_acl_group_policy(const int group, const char *data);
+static void ccs_editpolicy_clear_groups(void);
 static int ccs_add_transition_control_entry(const struct ccs_path_info *ns,
 					    const char *domainname,
 					    const char *program, const enum
@@ -171,6 +191,13 @@ static void ccs_show_current(void);
 static void ccs_show_list(void);
 static void ccs_sigalrm_handler(int sig);
 static void ccs_up_arrow_key(void);
+
+#define ccs_alloc(ptr, size, count)					\
+	({								\
+		ptr = ccs_realloc((ptr), (size) * ((count) + 1));	\
+		memset(&ptr[(count)], 0, size);				\
+		&ptr[(count)++];					\
+	})
 
 /**
  * ccs_find_domain3 - Find a domain by name and other attributes.
@@ -232,16 +259,12 @@ static int ccs_assign_domain3(const char *domainname, const char *target,
 	int index = ccs_find_domain3(domainname, target, is_dd);
 	if (index >= 0)
 		return index;
-	index = ccs_dp.list_len++;
-	ccs_dp.list = ccs_realloc(ccs_dp.list, ccs_dp.list_len *
-				  sizeof(struct ccs_domain));
-	ptr = &ccs_dp.list[index];
-	memset(ptr, 0, sizeof(*ptr));
+	ptr = ccs_alloc(ccs_dp.list, sizeof(*ptr), ccs_dp.list_len);
 	ptr->domainname = ccs_savename(domainname);
 	if (target)
 		ptr->target = ccs_savename(target);
 	ptr->is_dd = is_dd;
-	return index;
+	return ccs_dp.list_len - 1;
 }
 
 /**
@@ -275,11 +298,8 @@ static int ccs_add_string_entry3(const char *entry, const int index)
 		if (cp == acl_ptr[i])
 			return 0;
 
-	acl_ptr = ccs_realloc(acl_ptr, (acl_count + 1) *
-			      sizeof(const struct ccs_path_info *));
-	acl_ptr[acl_count++] = cp;
-	ccs_dp.list[index].string_ptr = acl_ptr;
-	ccs_dp.list[index].string_count = acl_count;
+	*ccs_alloc(ccs_dp.list[index].string_ptr, sizeof(*acl_ptr),
+		   ccs_dp.list[index].string_count) = cp;
 	return 0;
 }
 
@@ -590,20 +610,113 @@ static int ccs_add_transition_control_policy
 /**
  * ccs_add_path_group_policy - Add "path_group" entry.
  *
- * @ns:        Pointer to "const struct ccs_path_info".
- * @data:      Line to parse.
- * @is_delete: True if it is delete request, false otherwise.
+ * @ns:   Pointer to "const struct ccs_path_info".
+ * @data: Line to parse.
  *
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_add_path_group_policy(const struct ccs_path_info *ns,
-				     char *data, const _Bool is_delete)
+				     char *data)
 {
 	char *cp = strchr(data, ' ');
 	if (!cp)
 		return -EINVAL;
 	*cp++ = '\0';
-	return ccs_add_path_group_entry(ns, data, cp, is_delete);
+	return ccs_add_path_group_entry(ns, data, cp);
+}
+
+/**
+ * ccs_add_number_group_policy - Add "number_group" entry.
+ *
+ * @data: Line to parse.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_add_number_group_policy(char *data)
+{
+	char *cp = strchr(data, ' ');
+	if (!cp)
+		return -EINVAL;
+	*cp++ = '\0';
+	return ccs_add_number_group_entry(data, cp);
+}
+
+/**
+ * ccs_add_address_group_policy - Add "address_group" entry.
+ *
+ * @data: Line to parse.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_add_address_group_policy(char *data)
+{
+	char *cp = strchr(data, ' ');
+	if (!cp)
+		return -EINVAL;
+	*cp++ = '\0';
+	return ccs_add_address_group_entry(data, cp);
+}
+
+/**
+ * ccs_add_acl_group_policys - Add "acl_group" entry.
+ *
+ * @group: Group number.
+ * @data:  Line to parse.
+ *
+ * Returns nothing.
+ */
+static void ccs_add_acl_group_policy(const int group, const char *data)
+{
+	char **ptr = acl_group_list[group];
+	const int len = acl_group_list_len[group];
+	int i;
+	for (i = 0; i < len; i++)
+		if (!strcmp(ptr[i], data))
+			return;
+	*ccs_alloc(acl_group_list[group], sizeof(char *),
+		   acl_group_list_len[group]) = ccs_strdup(data);
+}
+
+/**
+ * ccs_editpolicy_clear_groups - Clear path_group/number_group/address_group/acl_group for reloading policy.
+ *
+ * Returns nothing.
+ */
+static void ccs_editpolicy_clear_groups(void)
+{
+	int i;
+	for (i = 0; i < 256; i++)
+		while (acl_group_list_len[i])
+			free(acl_group_list[i][--acl_group_list_len[i]]);
+	while (ccs_path_group_list_len)
+		free(ccs_path_group_list[--ccs_path_group_list_len].
+		     member_name);
+	while (ccs_number_group_list_len)
+		free(ccs_number_group_list[--ccs_number_group_list_len].
+		     member_name);
+	while (ccs_address_group_list_len)
+		free(ccs_address_group_list[--ccs_address_group_list_len].
+		     member_name);
+}
+
+/**
+ * ccs_find_path_group_ns - Find "path_group" entry.
+ *
+ * @ns:         Pointer to "const struct ccs_path_info".
+ * @group_name: Name of path group.
+ *
+ * Returns pointer to "struct ccs_path_group_entry" if found, NULL otherwise.
+ */
+struct ccs_path_group_entry *ccs_find_path_group_ns
+(const struct ccs_path_info *ns, const char *group_name)
+{
+	int i;
+	for (i = 0; i < ccs_path_group_list_len; i++)
+		if (!ccs_pathcmp(ccs_path_group_list[i].ns, ns) &&
+		    !strcmp(group_name,
+			    ccs_path_group_list[i].group_name->name))
+			return &ccs_path_group_list[i];
+	return NULL;
 }
 
 /**
@@ -1224,17 +1337,15 @@ static int ccs_profile_entry_compare(const void *a, const void *b)
 static void ccs_add_generic_entry(const char *line, const enum
 				  ccs_editpolicy_directives directive)
 {
+	struct ccs_generic_acl *ptr;
 	int i;
 	for (i = 0; i < ccs_gacl_list_count; i++)
 		if (ccs_gacl_list[i].directive == directive &&
 		    !strcmp(line, ccs_gacl_list[i].operand))
 			return;
-	i = ccs_gacl_list_count++;
-	ccs_gacl_list = ccs_realloc(ccs_gacl_list, ccs_gacl_list_count *
-				    sizeof(struct ccs_generic_acl));
-	ccs_gacl_list[i].directive = directive;
-	ccs_gacl_list[i].selected = 0;
-	ccs_gacl_list[i].operand = ccs_strdup(line);
+	ptr = ccs_alloc(ccs_gacl_list, sizeof(*ptr), ccs_gacl_list_count);
+	ptr->directive = directive;
+	ptr->operand = ccs_strdup(line);
 }
 
 /**
@@ -1314,16 +1425,21 @@ static void ccs_read_generic_policy(void)
 			/* Remember groups for ccs_editpolicy_optimize(). */
 			if (directive != CCS_DIRECTIVE_PATH_GROUP &&
 			    directive != CCS_DIRECTIVE_NUMBER_GROUP &&
-			    directive != CCS_DIRECTIVE_ADDRESS_GROUP)
+			    directive != CCS_DIRECTIVE_ADDRESS_GROUP &&
+			    (directive < CCS_DIRECTIVE_ACL_GROUP_000 ||
+			     directive > CCS_DIRECTIVE_ACL_GROUP_255))
 				break;
 			cp = ccs_strdup(line);
 			if (directive == CCS_DIRECTIVE_PATH_GROUP)
-				ccs_add_path_group_policy(ccs_current_ns, cp,
-							  false);
+				ccs_add_path_group_policy(ccs_current_ns, cp);
 			else if (directive == CCS_DIRECTIVE_NUMBER_GROUP)
-				ccs_add_number_group_policy(cp, false);
+				ccs_add_number_group_policy(cp);
+			else if (directive == CCS_DIRECTIVE_ADDRESS_GROUP)
+				ccs_add_address_group_policy(cp);
 			else
-				ccs_add_address_group_policy(cp, false);
+				ccs_add_acl_group_policy
+					(directive -
+					 CCS_DIRECTIVE_ACL_GROUP_000, cp);
 			free(cp);
 			break;
 		case CCS_SCREEN_ACL_LIST:
@@ -1404,12 +1520,8 @@ static int ccs_add_transition_control_entry
 		if (!ccs_correct_domain(domainname))
 			if (!ccs_correct_path(domainname))
 				return -EINVAL;
-	ccs_transition_control_list =
-		ccs_realloc(ccs_transition_control_list,
-			    (ccs_transition_control_list_len + 1) *
-			    sizeof(struct ccs_transition_control_entry));
-	ptr = &ccs_transition_control_list[ccs_transition_control_list_len++];
-	memset(ptr, 0, sizeof(*ptr));
+	ptr = ccs_alloc(ccs_transition_control_list, sizeof(*ptr),
+			ccs_transition_control_list_len);
 	ptr->ns = ns;
 	if (program && strcmp(program, "any"))
 		ptr->program = ccs_savename(program);
@@ -1425,14 +1537,12 @@ static int ccs_add_transition_control_entry
  * @ns:          Pointer to "const struct ccs_path_info".
  * @group_name:  Name of address group.
  * @member_name: Address string.
- * @is_delete:   True if it is delete request, false otherwise.
  *
  * Returns 0 on success, negative value otherwise.
  */
 static int ccs_add_path_group_entry(const struct ccs_path_info *ns,
 				    const char *group_name,
-				    const char *member_name,
-				    const _Bool is_delete)
+				    const char *member_name)
 {
 	const struct ccs_path_info *saved_group_name;
 	const struct ccs_path_info *saved_member_name;
@@ -1449,35 +1559,101 @@ static int ccs_add_path_group_entry(const struct ccs_path_info *ns,
 			continue;
 		if (saved_group_name != group->group_name)
 			continue;
-		for (j = 0; j < group->member_name_len; j++) {
-			if (group->member_name[j] != saved_member_name)
-				continue;
-			if (!is_delete)
+		for (j = 0; j < group->member_name_len; j++)
+			if (group->member_name[j] == saved_member_name)
 				return 0;
-			while (j < group->member_name_len - 1)
-				group->member_name[j] =
-					group->member_name[j + 1];
-			group->member_name_len--;
-			return 0;
-		}
 		break;
 	}
-	if (is_delete)
-		return -ENOENT;
 	if (i == ccs_path_group_list_len) {
-		ccs_path_group_list =
-			ccs_realloc(ccs_path_group_list,
-				    (ccs_path_group_list_len + 1) *
-				    sizeof(struct ccs_path_group_entry));
-		group = &ccs_path_group_list[ccs_path_group_list_len++];
-		memset(group, 0, sizeof(*group));
+		group = ccs_alloc(ccs_path_group_list, sizeof(*group),
+				  ccs_path_group_list_len);
 		group->ns = ns;
 		group->group_name = saved_group_name;
 	}
-	group->member_name =
-		ccs_realloc(group->member_name, (group->member_name_len + 1) *
-			    sizeof(const struct ccs_path_info *));
-	group->member_name[group->member_name_len++] = saved_member_name;
+	*ccs_alloc(group->member_name, sizeof(saved_member_name),
+		   group->member_name_len) = saved_member_name;
+	return 0;
+}
+
+/**
+ * ccs_add_number_group_entry - Add "number_group" entry.
+ *
+ * @group_name:  Name of number group.
+ * @member_name: Number string.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_add_number_group_entry(const char *group_name,
+				      const char *member_name)
+{
+	const struct ccs_path_info *saved_group_name;
+	int i;
+	int j;
+	struct ccs_number_entry entry;
+	struct ccs_number_group_entry *group = NULL;
+	if (ccs_parse_number(member_name, &entry))
+		return -EINVAL;
+	if (!ccs_correct_word(group_name))
+		return -EINVAL;
+	saved_group_name = ccs_savename(group_name);
+	for (i = 0; i < ccs_number_group_list_len; i++) {
+		group = &ccs_number_group_list[i];
+		if (saved_group_name != group->group_name)
+			continue;
+		for (j = 0; j < group->member_name_len; j++)
+			if (!memcmp(&group->member_name[j], &entry,
+				    sizeof(entry)))
+				return 0;
+		break;
+	}
+	if (i == ccs_number_group_list_len) {
+		group = ccs_alloc(ccs_number_group_list, sizeof(*group),
+				  ccs_number_group_list_len);
+		group->group_name = saved_group_name;
+	}
+	*ccs_alloc(group->member_name, sizeof(entry), group->member_name_len) =
+		entry;
+	return 0;
+}
+
+/**
+ * ccs_add_address_group_entry - Add "address_group" entry.
+ *
+ * @group_name:  Name of address group.
+ * @member_name: Address string.
+ *
+ * Returns 0 on success, negative value otherwise.
+ */
+static int ccs_add_address_group_entry(const char *group_name,
+				       const char *member_name)
+{
+	const struct ccs_path_info *saved_group_name;
+	int i;
+	int j;
+	struct ccs_ip_address_entry entry;
+	struct ccs_address_group_entry *group = NULL;
+	if (ccs_parse_ip(member_name, &entry))
+		return -EINVAL;
+	if (!ccs_correct_word(group_name))
+		return -EINVAL;
+	saved_group_name = ccs_savename(group_name);
+	for (i = 0; i < ccs_address_group_list_len; i++) {
+		group = &ccs_address_group_list[i];
+		if (saved_group_name != group->group_name)
+			continue;
+		for (j = 0; j < group->member_name_len; j++)
+			if (!memcmp(&group->member_name[j], &entry,
+				    sizeof(entry)))
+				return 0;
+		break;
+	}
+	if (i == ccs_address_group_list_len) {
+		group = ccs_alloc(ccs_address_group_list, sizeof(*group),
+				  ccs_address_group_list_len);
+		group->group_name = saved_group_name;
+	}
+	*ccs_alloc(group->member_name, sizeof(entry), group->member_name_len) =
+		entry;
 	return 0;
 }
 
@@ -1515,9 +1691,8 @@ static void ccs_add_condition_domain_transition(char *line, const int index)
 		 ccs_dp.list[index].domainname->name, cp);
 	domainname[sizeof(domainname) - 1] = '\0';
 	ccs_normalize_line(domainname);
-	ccs_jump_list = ccs_realloc(ccs_jump_list,
-				    (ccs_jump_list_len + 1) * sizeof(char *));
-	ccs_jump_list[ccs_jump_list_len++] = ccs_strdup(domainname);
+	*ccs_alloc(ccs_jump_list, sizeof(char *), ccs_jump_list_len) =
+		ccs_strdup(domainname);
 	ccs_assign_domain3(domainname, *cp == '<' ? cp : domainname, false);
 }
 
@@ -1541,9 +1716,8 @@ static void ccs_add_acl_domain_transition(char *line, const int index)
 		}
 	if (!ccs_correct_domain(line))
 		return;
-	ccs_jump_list = ccs_realloc(ccs_jump_list,
-				    (ccs_jump_list_len + 1) * sizeof(char *));
-	ccs_jump_list[ccs_jump_list_len++] = ccs_strdup(line);
+	*ccs_alloc(ccs_jump_list, sizeof(char *), ccs_jump_list_len) =
+		ccs_strdup(line);
 	snprintf(domainname, sizeof(domainname) - 1, "%s  %s",
 		 ccs_dp.list[index].domainname->name, ccs_get_last_word(line));
 	domainname[sizeof(domainname) - 1] = '\0';
@@ -1583,11 +1757,8 @@ static _Bool ccs_parse_transition_preference(char *program, char *domainname,
 		goto add;
 	return false;
 add:
-	ccs_transition_preference_list =
-		ccs_realloc(ccs_transition_preference_list, sizeof(*ptr) *
-			    (ccs_transition_preference_list_len + 1));
-	ptr = &ccs_transition_preference_list
-		[ccs_transition_preference_list_len++];
+	ptr = ccs_alloc(ccs_transition_preference_list, sizeof(*ptr),
+			ccs_transition_preference_list_len);
 	ptr->index = index;
 	ptr->domainname = ccs_strdup(domainname);
 	ptr->program = ccs_strdup(program);
@@ -1734,16 +1905,17 @@ static void ccs_parse_exception_line(const struct ccs_path_info *ns,
 		return;
 	}
 	if (ccs_str_starts(line, "path_group "))
-		ccs_add_path_group_policy(ns, line, false);
+		ccs_add_path_group_policy(ns, line);
 	else if (ccs_str_starts(line, "address_group "))
-		ccs_add_address_group_policy(line, false);
+		ccs_add_address_group_policy(line);
 	else if (ccs_str_starts(line, "number_group "))
-		ccs_add_number_group_policy(line, false);
+		ccs_add_number_group_policy(line);
 	else if (sscanf(line, "acl_group %u", &group) == 1 && group < 256) {
 		int index;
 		line = strchr(line + 10, ' ');
 		if (!line++)
 			return;
+		ccs_add_acl_group_policy(group, line);
 		for (index = 0; index < ccs_dp.list_len; index++) {
 			char *cp;
 			const struct ccs_domain *ptr = &ccs_dp.list[index];
@@ -1821,23 +1993,7 @@ static void ccs_read_domain_and_exception_policy(void)
 	}
 
 	/* Load domain transition related entries and group entries. */
-	fp = NULL;
-	if (ccs_network_mode)
-		/* We can read after write. */
-		fp = ccs_editpolicy_open_write
-			(CCS_PROC_POLICY_EXCEPTION_POLICY);
-	else
-		/* Don't set error message if failed. */
-		fp = fopen(CCS_PROC_POLICY_EXCEPTION_POLICY, "r+");
-	if (fp) {
-		fprintf(fp, "select transition_only\n");
-		if (ccs_network_mode)
-			fputc(0, fp);
-		fflush(fp);
-	} else {
-		fp = ccs_editpolicy_open_read
-			(CCS_PROC_POLICY_EXCEPTION_POLICY);
-	}
+	fp = ccs_editpolicy_open_read(CCS_PROC_POLICY_EXCEPTION_POLICY);
 	if (fp) {
 		ccs_get();
 		while (true) {
@@ -3695,6 +3851,8 @@ static void ccs_save_offline(void)
 
 int main(int argc, char *argv[])
 {
+	memset(acl_group_list, 0, sizeof(acl_group_list));
+	memset(acl_group_list_len, 0, sizeof(acl_group_list_len));
 	ccs_parse_args(argc, argv);
 	ccs_editpolicy_init_keyword_map();
 	if (ccs_offline_mode)

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.3   2011/09/29
+ * Version: 1.8.3+   2015/04/17
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -406,6 +406,18 @@ struct ccs_path_group_entry {
 	int member_name_len;
 };
 
+struct ccs_address_group_entry {
+	const struct ccs_path_info *group_name;
+	struct ccs_ip_address_entry *member_name;
+	int member_name_len;
+};
+
+struct ccs_number_group_entry {
+	const struct ccs_path_info *group_name;
+	struct ccs_number_entry *member_name;
+	int member_name_len;
+};
+
 struct ccs_readline_data {
 	const char **history;
 	int count;
@@ -432,11 +444,8 @@ struct ccs_screen {
 enum ccs_color_pair ccs_editpolicy_color_head(void);
 enum ccs_editpolicy_directives ccs_find_directive(const _Bool forward,
 						  char *line);
-int ccs_add_address_group_policy(char *data, const _Bool is_delete);
-int ccs_add_number_group_policy(char *data, const _Bool is_delete);
 int ccs_editpolicy_get_current(void);
 void ccs_editpolicy_attr_change(const attr_t attr, const _Bool flg);
-void ccs_editpolicy_clear_groups(void);
 void ccs_editpolicy_color_change(const attr_t attr, const _Bool flg);
 void ccs_editpolicy_color_init(void);
 void ccs_editpolicy_init_keyword_map(void);
@@ -472,9 +481,15 @@ struct ccs_domain_policy3 {
 extern enum ccs_screen_type ccs_current_screen;
 extern int ccs_list_item_count;
 extern int ccs_path_group_list_len;
+extern int ccs_number_group_list_len;
+extern int ccs_address_group_list_len;
+extern int acl_group_list_len[256];
 extern struct ccs_domain_policy3 ccs_dp;
 extern struct ccs_editpolicy_directive ccs_directives[CCS_MAX_DIRECTIVE_INDEX];
 extern struct ccs_generic_acl *ccs_gacl_list;
 extern struct ccs_path_group_entry *ccs_path_group_list;
+extern struct ccs_number_group_entry *ccs_number_group_list;
+extern struct ccs_address_group_entry *ccs_address_group_list;
+extern char **acl_group_list[256];
 extern struct ccs_screen ccs_screen[CCS_MAXSCREEN];
 extern const struct ccs_path_info *ccs_current_ns;
