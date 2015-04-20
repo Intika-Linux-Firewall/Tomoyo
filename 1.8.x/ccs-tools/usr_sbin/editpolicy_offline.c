@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.3+   2015/04/17
+ * Version: 1.8.3+   2015/04/21
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -1129,13 +1129,13 @@ static const char * const ccs_memory_headers[CCS_MAX_MEMORY_STAT] = {
 };
 
 /* String table for domain transition control keywords. */
-static const char * const ccs_transition_type[CCS_MAX_TRANSITION_TYPE] = {
-	[CCS_TRANSITION_CONTROL_NO_RESET]      = "no_reset_domain ",
-	[CCS_TRANSITION_CONTROL_RESET]         = "reset_domain ",
-	[CCS_TRANSITION_CONTROL_NO_INITIALIZE] = "no_initialize_domain ",
-	[CCS_TRANSITION_CONTROL_INITIALIZE]    = "initialize_domain ",
-	[CCS_TRANSITION_CONTROL_NO_KEEP]       = "no_keep_domain ",
-	[CCS_TRANSITION_CONTROL_KEEP]          = "keep_domain ",
+static const char * const ccs_transition_type[MAX_TRANSITION_TYPE] = {
+	[TRANSITION_NO_RESET]      = "no_reset_domain ",
+	[TRANSITION_RESET]         = "reset_domain ",
+	[TRANSITION_NO_INITIALIZE] = "no_initialize_domain ",
+	[TRANSITION_INITIALIZE]    = "initialize_domain ",
+	[TRANSITION_NO_KEEP]       = "no_keep_domain ",
+	[TRANSITION_KEEP]          = "keep_domain ",
 };
 
 /* String table for grouping keywords. */
@@ -2353,8 +2353,8 @@ static int ccs_write_transition_control(struct ccs_acl_param *param,
 	if (domainname) {
 		*domainname = '\0';
 		domainname += 6;
-	} else if (type == CCS_TRANSITION_CONTROL_NO_KEEP ||
-		   type == CCS_TRANSITION_CONTROL_KEEP) {
+	} else if (type == TRANSITION_NO_KEEP ||
+		   type == TRANSITION_KEEP) {
 		domainname = program;
 		program = NULL;
 	}
@@ -4471,7 +4471,7 @@ static int ccs_write_exception(void)
 		return ccs_write_aggregator(&param);
 	if (ccs_str_starts(param.data, "deny_autobind "))
 		return ccs_write_reserved_port(&param);
-	for (i = 0; i < CCS_MAX_TRANSITION_TYPE; i++)
+	for (i = 0; i < MAX_TRANSITION_TYPE; i++)
 		if (ccs_str_starts(param.data, ccs_transition_type[i]))
 			return ccs_write_transition_control(&param, i);
 	for (i = 0; i < CCS_MAX_GROUP; i++)
@@ -4743,11 +4743,11 @@ static void ccs_write_control(char *buffer, const size_t buffer_len)
 }
 
 /**
- * ccs_editpolicy_offline_init - Initialize variables for offline daemon.
+ * editpolicy_offline_init - Initialize variables for offline daemon.
  *
  * Returns nothing.
  */
-static void ccs_editpolicy_offline_init(void)
+static void editpolicy_offline_init(void)
 {
 	static _Bool first = true;
 	int i;
@@ -4772,17 +4772,17 @@ static void ccs_editpolicy_offline_init(void)
 }
 
 /**
- * ccs_editpolicy_offline_main - Read request and handle policy I/O.
+ * editpolicy_offline_main - Read request and handle policy I/O.
  *
  * @fd: Socket file descriptor. 
  *
  * Returns nothing.
  */
-static void ccs_editpolicy_offline_main(const int fd)
+static void editpolicy_offline_main(const int fd)
 {
 	int i;
 	static char buffer[4096];
-	ccs_editpolicy_offline_init();
+	editpolicy_offline_init();
 	/* Read filename. */
 	for (i = 0; i < sizeof(buffer); i++) {
 		if (read(fd, buffer + i, 1) != 1)
@@ -4857,14 +4857,14 @@ restart:
 }
 
 /**
- * ccs_editpolicy_offline_daemon - Emulate /proc/ccs/ interface.
+ * editpolicy_offline_daemon - Emulate /proc/ccs/ interface.
  *
  * @listener: Listener fd. This is a listening PF_INET socket.
  * @notifier: Notifier fd. This is a pipe's reader side.
  *
  * This function does not return.
  */
-void ccs_editpolicy_offline_daemon(const int listener, const int notifier)
+void editpolicy_offline_daemon(const int listener, const int notifier)
 {
 	while (1) {
 		struct pollfd pfd[2] = {
@@ -4880,7 +4880,7 @@ void ccs_editpolicy_offline_daemon(const int listener, const int notifier)
 		fd = accept(listener, (struct sockaddr *) &addr, &size);
 		if (fd == EOF)
 			continue;
-		ccs_editpolicy_offline_main(fd);
+		editpolicy_offline_main(fd);
 		close(fd);
 	}
 }
