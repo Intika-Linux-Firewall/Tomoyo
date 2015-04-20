@@ -1,6 +1,6 @@
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(revision 6393)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(revision 6402)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h	(working copy)
 @@ -1237,8 +1237,9 @@
  	const struct ccs_path_info *domainname;
@@ -15,7 +15,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/internal.h
  };
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/permission.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/permission.c	(revision 6395)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/permission.c	(revision 6402)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/permission.c	(working copy)
 @@ -773,7 +773,7 @@
  	do {
@@ -42,7 +42,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/permission.c
  		r->granted = false;
 Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
 ===================================================================
---- trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(revision 6394)
+--- trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(revision 6402)
 +++ trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c	(working copy)
 @@ -3549,7 +3549,9 @@
  	if (sscanf(data, "use_group %u\n", &idx) == 1 &&
@@ -118,7 +118,7 @@ Index: trunk/1.8.x/ccs-patch/security/ccsecurity/policy_io.c
  	}
 Index: trunk/1.8.x/ccs-tools/usr_lib_ccs/init_policy.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/usr_lib_ccs/init_policy.c	(revision 6393)
+--- trunk/1.8.x/ccs-tools/usr_lib_ccs/init_policy.c	(revision 6402)
 +++ trunk/1.8.x/ccs-tools/usr_lib_ccs/init_policy.c	(working copy)
 @@ -957,7 +957,7 @@
  /* Which profile number does <kernel> domain use? */
@@ -173,31 +173,31 @@ Index: trunk/1.8.x/ccs-tools/usr_lib_ccs/init_policy.c
  	make_policy_dir();
 Index: trunk/1.8.x/ccs-tools/usr_sbin/editpolicy.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/usr_sbin/editpolicy.c	(revision 6394)
+--- trunk/1.8.x/ccs-tools/usr_sbin/editpolicy.c	(revision 6404)
 +++ trunk/1.8.x/ccs-tools/usr_sbin/editpolicy.c	(working copy)
-@@ -1711,7 +1711,7 @@
+@@ -1801,7 +1801,7 @@
  		if (sscanf(line, "use_profile %u", &idx) == 1 && idx < 256)
- 			ccs_dp.list[index].profile = (u8) idx;
+ 			w.dp.list[index].profile = (u8) idx;
  		else if (sscanf(line, "use_group %u", &idx) == 1 && idx < 256)
--			ccs_dp.list[index].group = (u8) idx;
-+			ccs_dp.list[index].group[idx] = 1;
+-			w.dp.list[index].group = (u8) idx;
++			w.dp.list[index].group[idx] = 1;
  	}
  }
  
-@@ -1747,7 +1747,7 @@
- 		for (index = 0; index < ccs_dp.list_len; index++) {
+@@ -1838,7 +1838,7 @@
+ 		for (index = 0; index < w.dp.list_len; index++) {
  			char *cp;
- 			const struct ccs_domain *ptr = &ccs_dp.list[index];
+ 			const struct ccs_domain *ptr = &w.dp.list[index];
 -			if (ptr->group != group || ptr->target || ptr->is_dd)
 +			if (!ptr->group[group] || ptr->target || ptr->is_dd)
  				continue;
  			cp = ccs_strdup(line);
- 			ccs_parse_domain_line(ns, cp, index, false);
+ 			parse_domain_line(ns, cp, index, false);
 Index: trunk/1.8.x/ccs-tools/usr_sbin/editpolicy.h
 ===================================================================
---- trunk/1.8.x/ccs-tools/usr_sbin/editpolicy.h	(revision 6393)
+--- trunk/1.8.x/ccs-tools/usr_sbin/editpolicy.h	(revision 6404)
 +++ trunk/1.8.x/ccs-tools/usr_sbin/editpolicy.h	(working copy)
-@@ -455,8 +455,8 @@
+@@ -464,8 +464,8 @@
  	const struct ccs_path_info **string_ptr;
  	int string_count;
  	int number;   /* domain number (-1 if target or is_dd) */
@@ -209,7 +209,7 @@ Index: trunk/1.8.x/ccs-tools/usr_sbin/editpolicy.h
  	_Bool is_du;  /* unreachable domain */
 Index: trunk/1.8.x/ccs-tools/usr_sbin/editpolicy_offline.c
 ===================================================================
---- trunk/1.8.x/ccs-tools/usr_sbin/editpolicy_offline.c	(revision 6394)
+--- trunk/1.8.x/ccs-tools/usr_sbin/editpolicy_offline.c	(revision 6404)
 +++ trunk/1.8.x/ccs-tools/usr_sbin/editpolicy_offline.c	(working copy)
 @@ -801,8 +801,9 @@
  	struct list_head acl_info_list;
