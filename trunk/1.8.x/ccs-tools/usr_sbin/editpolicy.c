@@ -3141,28 +3141,38 @@ out:
 }
 
 /**
+ * ccs_select_ns_window - Check whether to switch to ACL list or not.
+ *
+ * @current: Index in the namespace list.
+ *
+ * Returns next window to display if valid, CCS_MAXSCREEN otherwise.
+ */
+static enum ccs_screen_type ccs_select_ns_window(const int current)
+{
+	if (current != EOF) {
+		const char *namespace = ccs_gacl_list[current].operand;
+		enum ccs_screen_type next = ccs_previous_screen;
+		if (next == CCS_SCREEN_ACL_LIST &&
+		    strcmp(ccs_current_ns->name, namespace))
+			next = CCS_SCREEN_DOMAIN_LIST;
+		ccs_current_ns = ccs_savename(namespace);
+		return next;
+	}
+	return CCS_MAXSCREEN;
+}
+
+/**
  * ccs_select_acl_window - Check whether to switch to ACL list or not.
  *
  * @current: Index in the domain policy.
  *
- * Returns true if next window is ACL list or namespace list, false otherwise.
+ * Returns next window to display if valid, CCS_MAXSCREEN otherwise.
  */
-static _Bool ccs_select_acl_window(const int current)
+static enum ccs_screen_type ccs_select_acl_window(const int current)
 {
 	char *old_domain;
-	if (current == EOF)
-		return false;
-	if (ccs_current_screen == CCS_SCREEN_NS_LIST) {
-		const char *namespace = ccs_gacl_list[current].operand;
-		if (ccs_previous_screen == CCS_SCREEN_ACL_LIST &&
-		    strcmp(ccs_current_ns->name, namespace))
-			ccs_previous_screen = CCS_SCREEN_DOMAIN_LIST;
-		ccs_current_ns = ccs_savename(namespace);
-		ccs_current_screen = ccs_previous_screen;
-		return true;
-	}
-	if (ccs_current_screen != CCS_SCREEN_DOMAIN_LIST)
-		return false;
+	if (ccs_current_screen != CCS_SCREEN_DOMAIN_LIST || current == EOF)
+		return CCS_MAXSCREEN;
 	ccs_current_pid = 0;
 	if (ccs_domain_sort_type) {
 		ccs_current_pid = ccs_task_list[current].pid;
@@ -3183,13 +3193,12 @@ static _Bool ccs_select_acl_window(const int current)
 			ccs_current_ns = ccs_get_ns(domainname);
 			free(ccs_current_domain);
 			ccs_current_domain = ccs_strdup(domainname);
-			ccs_current_screen = CCS_SCREEN_DOMAIN_LIST;
 			ccs_force_move_cursor = true;
-			return true;
+			return CCS_SCREEN_DOMAIN_LIST;
 		}
-		return false;
+		return CCS_MAXSCREEN;
 	} else if (ccs_deleted_domain(current)) {
-		return false;
+		return CCS_MAXSCREEN;
 	}
 	old_domain = ccs_current_domain;
 	if (ccs_domain_sort_type)
@@ -3200,8 +3209,7 @@ static _Bool ccs_select_acl_window(const int current)
 	ccs_no_restore_cursor = old_domain &&
 		strcmp(old_domain, ccs_current_domain);
 	free(old_domain);
-	ccs_current_screen = CCS_SCREEN_ACL_LIST;
-	return true;
+	return CCS_SCREEN_ACL_LIST;
 }
 
 /**
@@ -3231,34 +3239,49 @@ static enum ccs_screen_type ccs_select_window(const int current)
 	clrtobot();
 	refresh();
 	while (true) {
+		enum ccs_screen_type next;
 		int c = ccs_getch2();
-		if (c == 'E' || c == 'e')
+		switch (c) {
+		case 'E':
+		case 'e':
 			return CCS_SCREEN_EXCEPTION_LIST;
-		if (c == 'D' || c == 'd')
+		case 'D':
+		case 'd':
 			return CCS_SCREEN_DOMAIN_LIST;
-		if (c == 'A' || c == 'a')
-			if (ccs_select_acl_window(current))
-				return ccs_current_screen;
-		if (c == 'P' || c == 'p')
+		case 'A':
+		case 'a':
+			next = ccs_select_acl_window(current);
+			if (next == CCS_MAXSCREEN)
+				break;
+			return next;
+		case 'P':
+		case 'p':
 			return CCS_SCREEN_PROFILE_LIST;
-		if (c == 'M' || c == 'm')
+		case 'M':
+		case 'm':
 			return CCS_SCREEN_MANAGER_LIST;
-		if (c == 'N' || c == 'n') {
-			ccs_previous_screen = ccs_current_screen;
+		case 'N':
+		case 'n':
 			return CCS_SCREEN_NS_LIST;
-		}
-		if (!ccs_offline_mode) {
+		case '\t':
+			return ccs_previous_screen;
 			/*
-			if (c == 'I' || c == 'i')
-				return CCS_SCREEN_QUERY_LIST;
+		case 'I':
+		case 'i':
+			if (ccs_offline_mode)
+				break;
+			return CCS_SCREEN_QUERY_LIST;
 			*/
-			if (c == 'S' || c == 's')
-				return CCS_SCREEN_STAT_LIST;
+		case 'S':
+		case 's':
+			if (ccs_offline_mode)
+				break;
+			return CCS_SCREEN_STAT_LIST;
+		case 'Q':
+		case 'q':
+		case EOF:
+			return CCS_MAXSCREEN;
 		}
-		if (c == 'Q' || c == 'q')
-			return CCS_MAXSCREEN;
-		if (c == EOF)
-			return CCS_MAXSCREEN;
 	}
 }
 
@@ -3431,6 +3454,7 @@ start2:
 	while (true) {
 		const int current = ccs_editpolicy_get_current();
 		const int c = ccs_getch2();
+		enum ccs_screen_type next;
 		saved_cursor[ccs_current_screen].current = ptr->current;
 		saved_cursor[ccs_current_screen].y = ptr->y;
 		if (c == 'q' || c == 'Q')
@@ -3438,12 +3462,8 @@ start2:
 		if ((c == '\r' || c == '\n') &&
 		    ccs_current_screen == CCS_SCREEN_ACL_LIST)
 			return CCS_SCREEN_DOMAIN_LIST;
-		if (c == '\t') {
-			if (ccs_current_screen == CCS_SCREEN_DOMAIN_LIST)
-				return CCS_SCREEN_EXCEPTION_LIST;
-			else
-				return CCS_SCREEN_DOMAIN_LIST;
-		}
+		if (c == '\t')
+			return ccs_previous_screen;
 		if (ccs_need_reload) {
 			ccs_need_reload = false;
 			goto start;
@@ -3538,9 +3558,13 @@ start2:
 			break;
 		case '\r':
 		case '\n':
-			if (ccs_select_acl_window(current))
-				return ccs_current_screen;
-			break;
+			if (ccs_current_screen == CCS_SCREEN_NS_LIST)
+				next = ccs_select_ns_window(current);
+			else
+				next = ccs_select_acl_window(current);
+			if (next == CCS_MAXSCREEN)
+				break;
+			return next;
 		case 's':
 		case 'S':
 			if (ccs_readonly_mode)
@@ -3710,6 +3734,7 @@ usage:
 	}
 	if (!ccs_current_ns)
 		ccs_current_ns = ccs_savename("<kernel>");
+	ccs_previous_screen = ccs_current_screen;
 }
 
 /**
@@ -3883,8 +3908,12 @@ start:
 	ccs_rl.max = 20;
 	ccs_rl.history = ccs_malloc(ccs_rl.max * sizeof(const char *));
 	while (ccs_current_screen < CCS_MAXSCREEN) {
+		enum ccs_screen_type next;
 		ccs_resize_window();
-		ccs_current_screen = ccs_generic_list_loop();
+		next = ccs_generic_list_loop();
+		if (next != ccs_current_screen)
+			ccs_previous_screen = ccs_current_screen;
+		ccs_current_screen = next;
 	}
 	alarm(0);
 	clear();
