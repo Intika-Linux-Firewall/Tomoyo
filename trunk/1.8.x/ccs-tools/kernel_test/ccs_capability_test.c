@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.3   2013/02/14
+ * Version: 1.8.3+   2015/04/21
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -105,7 +105,7 @@ static void stage_capability_test(void)
 	set_capability("use_kernel_module");
 	if (!is_kernel26) {
 		show_prompt("use_kernel_module(create_module())");
-		show_result((int) create_module("", 0));
+		show_result((long) create_module("", 0));
 	}
 	show_prompt("use_kernel_module(init_module())");
 	show_result(init_module("", NULL));

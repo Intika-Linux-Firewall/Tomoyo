@@ -18,9 +18,9 @@ LANG=C rpm --checksig kernel-3.10.0-229.1.2.el7.src.rpm | grep -F ': rsa sha1 (m
 rpm -ivh kernel-3.10.0-229.1.2.el7.src.rpm || die "Can't install source package."
 
 cd ~/rpmbuild/SOURCES/ || die "Can't chdir to ~/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.3-20150408.tar.gz ]
+if [ ! -r ccs-patch-1.8.3-20150421.tar.gz ]
 then
-    wget -O ccs-patch-1.8.3-20150408.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20150408.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.3-20150421.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.3-20150421.tar.gz' || die "Can't download patch."
 fi
 
 cd ~/rpmbuild/SPECS/ || die "Can't chdir to ~/rpmbuild/SPECS/ ."
@@ -33,7 +33,7 @@ patch << "EOF" || die "Can't patch spec file."
  Summary: The Linux kernel
  
 -# % define buildid .local
-+%define buildid _tomoyo_1.8.3p9
++%define buildid _tomoyo_1.8.3p10
  
  # For a kernel released for public testing, released_kernel should be 1.
  # For internal testing builds during development, it should be 0.
@@ -69,7 +69,7 @@ patch << "EOF" || die "Can't patch spec file."
  ApplyOptionalPatch linux-kernel-test.patch
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.3-20150408.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.3-20150421.tar.gz
 +patch -sp1 < patches/ccs-patch-3.10-centos-7.diff
 +
  # Any further pre-build tree manipulations happen here.
