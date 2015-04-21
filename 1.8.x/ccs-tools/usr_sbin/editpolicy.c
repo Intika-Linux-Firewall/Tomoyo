@@ -3057,46 +3057,31 @@ static enum screen_type select_ns_window(void)
 static enum screen_type select_acl_window(void)
 {
 	const int current = editpolicy_get_current();
-	char *old_domain;
+	const char *old_domain = w.current_domain;
+	const char *new_domain;
+	enum screen_type next = SCREEN_ACL_LIST;
 	if (active != SCREEN_DOMAIN_LIST || current == EOF)
 		return MAX_SCREEN_TYPE;
 	w.current_pid = 0;
 	if (w.show_tasklist) {
 		w.current_pid = ccs_task_list[current].pid;
-	} else if (is_jump_source(current)) {
-		struct ccs_screen *ptr = &screen[active];
-		const int redirect_index = find_target_domain(current);
-		if (redirect_index >= 0) {
-			ptr->current = redirect_index - ptr->y;
-			while (ptr->current < 0) {
-				ptr->current++;
-				ptr->y--;
-			}
-			show_list();
-		}
-		if (redirect_index == -2) {
-			const char *domainname =
-				w.dp.list[current].target->name;
-			current_ns = get_ns(domainname);
-			free(w.current_domain);
-			w.current_domain = ccs_strdup(domainname);
-			w.force_move_cursor = true;
-			return SCREEN_DOMAIN_LIST;
-		}
-		return MAX_SCREEN_TYPE;
+		new_domain = ccs_strdup(ccs_task_list[current].domain);
 	} else if (is_deleted_domain(current)) {
 		return MAX_SCREEN_TYPE;
+	} else if (is_jump_source(current)) {
+		if (find_target_domain(current) == EOF)
+			return MAX_SCREEN_TYPE;
+		new_domain = w.dp.list[current].target->name;
+		current_ns = get_ns(new_domain);
+		w.force_move_cursor = true;
+		next = SCREEN_DOMAIN_LIST;
+	} else {
+		new_domain = w.dp.list[current].domainname->name;
 	}
-	old_domain = w.current_domain;
-	if (w.show_tasklist)
-		w.current_domain = ccs_strdup(ccs_task_list[current].domain);
-	else
-		w.current_domain = ccs_strdup(w.dp.list[current].
-					      domainname->name);
-	w.no_restore_cursor = old_domain &&
-		strcmp(old_domain, w.current_domain);
-	free(old_domain);
-	return SCREEN_ACL_LIST;
+	w.no_restore_cursor = old_domain && strcmp(old_domain, new_domain);
+	free((char *) old_domain);
+	w.current_domain = ccs_strdup(new_domain);
+	return next;
 }
 
 /**
@@ -3107,12 +3092,13 @@ static enum screen_type select_acl_window(void)
 static enum screen_type select_window(void)
 {
 	const int current = editpolicy_get_current();
+	const _Bool allow_acl = active == SCREEN_DOMAIN_LIST && current != EOF
+		&& !is_jump_source(current) && !is_deleted_domain(current);
 	move(0, 0);
 	printw("Press one of below keys to switch window.\n\n");
 	printw("e     <<< Exception Policy Editor >>>\n");
 	printw("d     <<< Domain Transition Editor >>>\n");
-	if (active == SCREEN_DOMAIN_LIST && current != EOF &&
-	    !is_jump_source(current) && !is_deleted_domain(current))
+	if (allow_acl)
 		printw("a     <<< Domain Policy Editor >>>\n");
 	printw("p     <<< Profile Editor >>>\n");
 	printw("m     <<< Manager Policy Editor >>>\n");
@@ -3136,6 +3122,8 @@ static enum screen_type select_window(void)
 			return SCREEN_DOMAIN_LIST;
 		case 'A':
 		case 'a':
+			if (!allow_acl)
+				break;
 			next = select_acl_window();
 			if (next == MAX_SCREEN_TYPE)
 				break;
