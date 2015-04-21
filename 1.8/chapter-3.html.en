@@ -173,19 +173,20 @@
 
 <h4><a name="3.3.2">3.3.2. Download and patch the kernel</a></h4>
 
-<p>Download the kernel source from <a href="https://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> or <a href="https://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> or <a href="https://www.kernel.org/pub/linux/kernel/v3.x/">linux-3</a>.<br>
+<p>Download the kernel source from <a href="https://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> or <a href="https://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a> or <a href="https://www.kernel.org/pub/linux/kernel/v3.x/">linux-3</a> or <a href="https://www.kernel.org/pub/linux/kernel/v4.x/">linux-4</a>.<br>
 Linux kernel 2.4.37 is supported from the linux-2.4 tree.<br>
 Linux kernel 2.6.27 and later are supported from the linux-2.6 tree.<br>
-Linux kernel 3.0 and later are supported from the linux-3 tree.</p>
+Linux kernel 3.0 and later are supported from the linux-3 tree.<br>
+Linux kernel 4.0 and later are supported from the linux-4 tree.</p>
 
 <p>Extract the kernel source and go to the extracted directory.<br>
-In the operations below, "$VERSION.$PATCHLEVEL.diff" should for example be replaced with "3.19.diff" if using Linux kernel 3.19.3 :</p>
+In the operations below, "$VERSION.$PATCHLEVEL.diff" should for example be replaced with "3.19.diff" if using Linux kernel 3.19.4 :</p>
 
 <pre class="command">
-$ wget -O ccs-patch-1.8.3-20150408.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20150408.tar.gz'
-$ wget -O ccs-patch-1.8.3-20150408.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20150408.tar.gz.asc'
-$ gpg ccs-patch-1.8.3-20150408.tar.gz.asc
-$ tar -zxf ccs-patch-1.8.3-20150408.tar.gz
+$ wget -O ccs-patch-1.8.3-20150421.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20150421.tar.gz'
+$ wget -O ccs-patch-1.8.3-20150421.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.3-20150421.tar.gz.asc'
+$ gpg ccs-patch-1.8.3-20150421.tar.gz.asc
+$ tar -zxf ccs-patch-1.8.3-20150421.tar.gz
 $ patch -sp1 &lt; patches/ccs-patch-$VERSION.$PATCHLEVEL.diff
 </pre>
 
@@ -242,10 +243,10 @@ $ su
 <p>Make sure the dependencies described above have been installed. Compile and install the tools with the following commands:</p>
 
 <pre class="command">
-$ wget -O ccs-tools-1.8.3-20140601.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20140601.tar.gz'
-$ wget -O ccs-tools-1.8.3-20140601.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20140601.tar.gz.asc'
-$ gpg ccs-tools-1.8.3-20140601.tar.gz.asc
-$ tar -zxf ccs-tools-1.8.3-20140601.tar.gz
+$ wget -O ccs-tools-1.8.3-20150421.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20150421.tar.gz'
+$ wget -O ccs-tools-1.8.3-20150421.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.3-20150421.tar.gz.asc'
+$ gpg ccs-tools-1.8.3-20150421.tar.gz.asc
+$ tar -zxf ccs-tools-1.8.3-20150421.tar.gz
 $ cd ccs-tools/
 $ make -s USRLIBDIR=/usr/lib
 $ su
