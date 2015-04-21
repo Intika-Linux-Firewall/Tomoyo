@@ -2,7 +2,7 @@ Summary: Userspace tools for TOMOYO Linux 1.8.x
 
 Name: ccs-tools
 Version: 1.8.3
-Release: 9
+Release: 10
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
@@ -15,9 +15,9 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: ccs-tools < 1.8.3-9
+Conflicts: ccs-tools < 1.8.3-10
 
-Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.3-20140601.tar.gz
+Source0: http://osdn.dl.sourceforge.jp/tomoyo/49693/ccs-tools-1.8.3-20150421.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
@@ -52,6 +52,12 @@ ldconfig || true
 /usr/share/man/man8/*
 
 %changelog
+* Tue Apr 21 2015 1.8.3-10
+- Let ccs-editpolicy handle more optimization coverage.
+- Let ccs-editpolicy switch to previous screen by TAB key.
+- Redefine source code's symbol names used by ccs-editpolicy.
+- Updated programs for testing kernel's functionality.
+
 * Sun Jun 01 2014 1.8.3-9
 - Let ccs-editpolicy print "acl_group $N" correctly when using offline mode.
 
