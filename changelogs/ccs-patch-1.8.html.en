@@ -32,6 +32,14 @@
 <h4>ChangeLog for ccs-patch 1.8.3</h4>
 
 <pre>
+Fix 2015/04/15
+
+    @ Fix incorrect retry request check.
+
+      When a request was asked to retry, acl_group referenced by domain's
+      use_group keyword was by error ignored. As a result, retrying was not
+      able to use permissions defined by acl_group.
+
 Fix 2015/04/08
 
     @ Fix incorrect readdir() permission check.
