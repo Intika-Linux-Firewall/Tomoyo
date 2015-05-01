@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.3+   2015/04/21
+ * Version: 1.8.4   2015/05/05
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -790,7 +790,7 @@ struct ccs_policy_namespace {
 	struct list_head acl_group[CCS_MAX_ACL_GROUPS];
 	/* List for connecting to ccs_namespace_list list. */
 	struct list_head namespace_list;
-	/* Profile version. Currently only 20100903 is defined. */
+	/* Profile version. Currently only 20150505 is supported. */
 	unsigned int profile_version;
 	/* Name of this namespace (e.g. "<kernel>", "</usr/sbin/httpd>" ). */
 	const char *name;
@@ -801,8 +801,9 @@ struct ccs_domain2_info {
 	struct list_head acl_info_list;
 	/* Name of this domain. Never NULL.          */
 	const struct ccs_path_info *domainname;
+	/* Group numbers to use.   */
+	bool group[CCS_MAX_ACL_GROUPS];
 	u8 profile;        /* Profile number to use. */
-	u8 group;          /* Group number to use.   */
 	bool is_deleted;   /* Delete flag.           */
 	bool flags[CCS_MAX_DOMAIN_INFO_FLAGS];
 };
@@ -2476,7 +2477,7 @@ static struct ccs_policy_namespace *ccs_assign_namespace(const char *domainname)
 		name[len] = '\0';
 		entry->name = name;
 	}
-	entry->profile_version = 20100903;
+	entry->profile_version = 20150505;
 	for (len = 0; len < CCS_MAX_ACL_GROUPS; len++)
 		INIT_LIST_HEAD(&entry->acl_group[len]);
 	ccs_namespace_enabled = !list_empty(&ccs_namespace_list);
@@ -3938,8 +3939,7 @@ static int ccs_write_domain(void)
 	}
 	if (sscanf(data, "use_group %u\n", &idx) == 1 &&
 	    idx < CCS_MAX_ACL_GROUPS) {
-		if (!is_delete)
-			domain->group = (u8) idx;
+		domain->group[idx] = !is_delete;
 		return 0;
 	}
 	for (idx = 0; idx < CCS_MAX_DOMAIN_INFO_FLAGS; idx++) {
@@ -4334,7 +4334,7 @@ static void ccs_read_domain(void)
 	if (head.eof)
 		return;
 	list_for_each_entry(domain, &ccs_domain_list, list) {
-		u8 i;
+		u16 i;
 		if (domain->is_deleted)
 			continue;
 		if (head.print_this_domain_only &&
@@ -4343,10 +4343,12 @@ static void ccs_read_domain(void)
 		/* Print domainname and flags. */
 		cprintf("%s\n", domain->domainname->name);
 		cprintf("use_profile %u\n", domain->profile);
-		cprintf("use_group %u\n", domain->group);
 		for (i = 0; i < CCS_MAX_DOMAIN_INFO_FLAGS; i++)
 			if (domain->flags[i])
 				cprintf("%s", ccs_dif[i]);
+		for (i = 0; i < CCS_MAX_ACL_GROUPS; i++)
+			if (domain->group[i])
+				cprintf("use_group %u\n", i);
 		cprintf("\n");
 		ccs_read_domain2(&domain->acl_info_list);
 		cprintf("\n");

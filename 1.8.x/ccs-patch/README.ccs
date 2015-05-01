@@ -3201,3 +3201,15 @@ Fix 2015/04/15
       When a request was asked to retry, acl_group referenced by domain's
       use_group keyword was by error ignored. As a result, retrying was not
       able to use permissions defined by acl_group.
+
+Fix 2015/05/01
+
+    @ Support multiple use_group entries.
+
+      Until now, each domain can include only one use_group entry.
+      I changed to allow each domain to include up to 256 use_group entries.
+      As a result, you will be able to reduce duplication of policy by
+      defining multiple acl_group entries based on use cases and including
+      them from each domain as needed.
+
+Version 1.8.4   2015/05/05   Usability enhancement release.

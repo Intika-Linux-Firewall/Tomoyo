@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.3+   2015/04/21
+ * Version: 1.8.4   2015/05/05
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -1801,7 +1801,7 @@ static void parse_domain_line(const struct ccs_path_info *ns, char *line,
 		if (sscanf(line, "use_profile %u", &idx) == 1 && idx < 256)
 			w.dp.list[index].profile = (u8) idx;
 		else if (sscanf(line, "use_group %u", &idx) == 1 && idx < 256)
-			w.dp.list[index].group = (u8) idx;
+			w.dp.list[index].group[idx] = 1;
 	}
 }
 
@@ -1838,7 +1838,7 @@ static void parse_exception_line(const struct ccs_path_info *ns, char *line)
 		for (index = 0; index < w.dp.list_len; index++) {
 			char *cp;
 			const struct ccs_domain *ptr = &w.dp.list[index];
-			if (ptr->group != group || ptr->target || ptr->is_dd)
+			if (!ptr->group[group] || ptr->target || ptr->is_dd)
 				continue;
 			cp = ccs_strdup(line);
 			parse_domain_line(ns, cp, index, false);
