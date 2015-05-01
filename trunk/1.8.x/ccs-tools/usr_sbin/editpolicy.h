@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.3+   2015/04/21
+ * Version: 1.8.4   2015/05/05
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -464,8 +464,8 @@ struct ccs_domain {
 	const struct ccs_path_info **string_ptr;
 	int string_count;
 	int number;   /* domain number (-1 if target or is_dd) */
+	_Bool group[256];
 	u8 profile;
-	u8 group;
 	_Bool is_djt; /* domain jump target */
 	_Bool is_dk;  /* domain keeper */
 	_Bool is_du;  /* unreachable domain */

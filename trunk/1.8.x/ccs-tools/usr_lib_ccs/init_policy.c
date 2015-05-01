@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.3+   2014/01/05
+ * Version: 1.8.4   2015/05/05
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -926,7 +926,7 @@ static void make_profile(void)
 	fprintf(stderr, "Creating default profile... ");
 	if (file_only_profile)
 		file_only = "::file";
-	fprintf(fp, "PROFILE_VERSION=20100903\n");
+	fprintf(fp, "PROFILE_VERSION=20150505\n");
 	fprintf(fp, "0-COMMENT=-----Disabled Mode-----\n"
 		"0-PREFERENCE={ max_audit_log=%u max_learning_entry=%u "
 		"enforcing_penalty=%u }\n"
@@ -957,7 +957,7 @@ static void make_profile(void)
 /* Which profile number does <kernel> domain use? */
 static unsigned char default_profile = 0;
 /* Which ACL group does <kernel> domain use? */
-static unsigned char default_group = 0;
+static _Bool use_group[256] = { };
 
 /**
  * make_domain_policy - Make /etc/ccs/policy/current/domain_policy.conf .
@@ -967,6 +967,7 @@ static unsigned char default_group = 0;
 static void make_domain_policy(void)
 {
 	FILE *fp;
+	int i;
 	if (!chdir_policy())
 		return;
 	if (!access("domain_policy.conf", R_OK))
@@ -977,8 +978,10 @@ static void make_domain_policy(void)
 		return;
 	}
 	fprintf(stderr, "Creating domain policy... ");
-	fprintf(fp, "<kernel>\nuse_profile %u\nuse_group %u\n",
-		default_profile, default_group);
+	fprintf(fp, "<kernel>\nuse_profile %u\n", default_profile);
+	for (i = 0; i < 256; i++)
+		if (use_group[i])
+			fprintf(fp, "use_group %u\n", i);
 	close_file(fp, 1, "domain_policy.tmp", "domain_policy.conf");
 }
 
@@ -1685,7 +1688,7 @@ int main(int argc, char *argv[])
 		} else if (!strncmp(arg, "use_profile=", 12)) {
 			default_profile = atoi(arg + 12);
 		} else if (!strncmp(arg, "use_group=", 10)) {
-			default_group = atoi(arg + 10);
+			use_group[(unsigned char) atoi(arg + 10)] = 1;
 		} else if (!strncmp(arg, "grant_log=", 10)) {
 			grant_log = arg + 10;
 		} else if (!strncmp(arg, "reject_log=", 11)) {
@@ -1701,6 +1704,11 @@ int main(int argc, char *argv[])
 	}
 	if (!dir)
 		dir = "/etc/ccs";
+	for (i = 0; i < 256; i++)
+		if (use_group[i])
+			break;
+	if (i == 256)
+		use_group[0] = 1;
 	policy_dir = strdup(dir);
 	memset(path, 0, sizeof(path));
 	make_policy_dir();
