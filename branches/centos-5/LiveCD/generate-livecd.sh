@@ -21,6 +21,7 @@ echo "********** Updating root filesystem for LiveCD. **********"
 
 echo '<kernel>' > ext3/etc/ccs/domain_policy.conf
 echo 'use_profile 1' >> ext3/etc/ccs/domain_policy.conf
+echo 'use_group 0' >> ext3/etc/ccs/domain_policy.conf
 
 mkdir -p -m 700 ext3/var/log/tomoyo
 grep -q mount ext3/etc/rc.d/rc.local || echo 'mount -t tmpfs -o size=64m none /var/log/tomoyo/' >> ext3/etc/rc.d/rc.local
