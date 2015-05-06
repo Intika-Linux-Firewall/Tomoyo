@@ -3,7 +3,7 @@
 LIVECD_HOME=~/LiveCD/
 CD_LABEL="Ubuntu 12.04 i386 TOMOYO 1.8.4"
 ISOIMAGE_NAME=../ubuntu-12.04-desktop-i386-tomoyo-1.8.4.iso
-KERNEL_VERSION=3.2.0-82-generic-pae-ccs
+KERNEL_VERSION=3.2.0-83-generic-pae-ccs
 
 # set -v
 
@@ -65,6 +65,7 @@ rm -f squash/boot/*.bak
 rm -f squash/*.deb
 rm -f squash/root/.bash_history
 rm -f squash/etc/resolv.conf
+rm -f squash/etc/resolv.conf2
 rm -f squash/sources.list
 rm -f squash/package-install.sh
 rm -f squash/var/lib/apt/lists/*_*

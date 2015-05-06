@@ -1,5 +1,5 @@
 cd
-apt-get -y install lzma squashfs-tools mkisofs
+apt-get -y install lzma squashfs-tools genisoimage
 wget http://old-releases.ubuntu.com/releases/precise/ubuntu-12.04-desktop-i386.iso
 wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/ubuntu-12.04/LiveCD.tar.gz?root=tomoyo&view=tar' | tar -zxf -
 cd LiveCD/
@@ -17,8 +17,9 @@ umount mnt/
 cd squash/
 cp -p ../package-install.sh /etc/apt/sources.list .
 cp -p /etc/resolv.conf etc/
+cp -p /etc/resolv.conf etc/resolv.conf2 # due to overwritten during update.
 mount --bind /dev/ dev/
 chroot . /package-install.sh
-umount dev/
+umount dev/ || reboot # due to restarting process during update.
 cd ../
 ./generate-livecd.sh

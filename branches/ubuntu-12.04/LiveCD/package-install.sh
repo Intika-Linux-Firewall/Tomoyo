@@ -27,7 +27,9 @@ apt-get -y -o Dir::Etc::SourceList=/sources.list update || die "apt-get update f
 apt-get -y -o Dir::Etc::SourceList=/sources.list install linux-generic-pae-ccs linux-headers-generic-pae-ccs ccs-tools || die "Can't install packages."
 apt-get -y -o Dir::Etc::SourceList=/sources.list purge linux-image-3.2.0-23-generic-pae linux-image-generic-pae linux-headers-generic-pae linux-generic-pae || die "Can't uninstall packages."
 apt-get -y -o Dir::Etc::SourceList=/sources.list upgrade || die "apt-get upgrade failed. Try again later."
+cp -p /etc/resolv.conf2 /etc/resolv.conf
 apt-get -y -o Dir::Etc::SourceList=/sources.list dist-upgrade || die "apt-get dist-upgrade failed. Try again later."
+cp -p /etc/resolv.conf2 /etc/resolv.conf
 apt-get -y -o Dir::Etc::SourceList=/sources.list autoremove
 dpkg --purge linux-headers-3.2.0-23 linux-headers-3.2.0-23-generic-pae
 find / -name '*.pyc' -print0 | xargs -0 rm --
@@ -54,6 +56,9 @@ echo 'initialize_domain /usr/sbin/tomoyo-setlevel from any'
 echo 'initialize_domain /usr/sbin/tomoyo-setprofile from any'
 echo 'initialize_domain /usr/sbin/tomoyo-queryd from any'
 ) >> /etc/tomoyo/policy/current/exception_policy.conf
+
+# Due to CD-R's capacity limit (700MB), remove libreoffice package.
+apt-get -y remove libreoffice-core
 
 umount -l /dev/pts/
 umount -l /sys/
