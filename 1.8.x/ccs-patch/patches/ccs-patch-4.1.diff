@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for kernel 4.1-rc7.
+This is TOMOYO Linux patch for kernel 4.1.
 
-Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testing/linux-4.1-rc7.tar.xz
+Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.1.tar.xz
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -29,8 +29,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  security/security.c       |  111 +++++++++++++++++++++++++++++++++++++++++-----
  25 files changed, 252 insertions(+), 37 deletions(-)
 
---- linux-4.1-rc7.orig/fs/exec.c
-+++ linux-4.1-rc7/fs/exec.c
+--- linux-4.1.orig/fs/exec.c
++++ linux-4.1/fs/exec.c
 @@ -1461,7 +1461,7 @@ static int exec_binprm(struct linux_binp
  	old_vpid = task_pid_nr_ns(current, task_active_pid_ns(current->parent));
  	rcu_read_unlock();
@@ -40,8 +40,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  	if (ret >= 0) {
  		audit_bprm(bprm);
  		trace_sched_process_exec(current, old_pid, bprm);
---- linux-4.1-rc7.orig/fs/open.c
-+++ linux-4.1-rc7/fs/open.c
+--- linux-4.1.orig/fs/open.c
++++ linux-4.1/fs/open.c
 @@ -1106,6 +1106,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
@@ -51,8 +51,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-4.1-rc7.orig/fs/proc/version.c
-+++ linux-4.1-rc7/fs/proc/version.c
+--- linux-4.1.orig/fs/proc/version.c
++++ linux-4.1/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -60,12 +60,12 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 4.1-rc7 2015/06/09\n");
++	printk(KERN_INFO "Hook version: 4.1 2015/06/22\n");
 +	return 0;
 +}
 +fs_initcall(ccs_show_version);
---- linux-4.1-rc7.orig/include/linux/init_task.h
-+++ linux-4.1-rc7/include/linux/init_task.h
+--- linux-4.1.orig/include/linux/init_task.h
++++ linux-4.1/include/linux/init_task.h
 @@ -182,6 +182,14 @@ extern struct task_group root_task_group
  # define INIT_KASAN(tsk)
  #endif
@@ -89,8 +89,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  }
  
  
---- linux-4.1-rc7.orig/include/linux/sched.h
-+++ linux-4.1-rc7/include/linux/sched.h
+--- linux-4.1.orig/include/linux/sched.h
++++ linux-4.1/include/linux/sched.h
 @@ -6,6 +6,8 @@
  #include <linux/sched/prio.h>
  
@@ -111,8 +111,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-4.1-rc7.orig/include/linux/security.h
-+++ linux-4.1-rc7/include/linux/security.h
+--- linux-4.1.orig/include/linux/security.h
++++ linux-4.1/include/linux/security.h
 @@ -53,6 +53,7 @@ struct msg_queue;
  struct xattr;
  struct xfrm_sec_ctx;
@@ -329,8 +329,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-4.1-rc7.orig/include/net/ip.h
-+++ linux-4.1-rc7/include/net/ip.h
+--- linux-4.1.orig/include/net/ip.h
++++ linux-4.1/include/net/ip.h
 @@ -216,6 +216,8 @@ void inet_get_local_port_range(struct ne
  #ifdef CONFIG_SYSCTL
  static inline int inet_is_local_reserved_port(struct net *net, int port)
@@ -349,8 +349,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  	return 0;
  }
  #endif
---- linux-4.1-rc7.orig/kernel/fork.c
-+++ linux-4.1-rc7/kernel/fork.c
+--- linux-4.1.orig/kernel/fork.c
++++ linux-4.1/kernel/fork.c
 @@ -257,6 +257,7 @@ void __put_task_struct(struct task_struc
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
@@ -377,8 +377,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  bad_fork_cleanup_perf:
  	perf_event_free_task(p);
  bad_fork_cleanup_policy:
---- linux-4.1-rc7.orig/kernel/kexec.c
-+++ linux-4.1-rc7/kernel/kexec.c
+--- linux-4.1.orig/kernel/kexec.c
++++ linux-4.1/kernel/kexec.c
 @@ -41,6 +41,7 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -396,8 +396,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-4.1-rc7.orig/kernel/module.c
-+++ linux-4.1-rc7/kernel/module.c
+--- linux-4.1.orig/kernel/module.c
++++ linux-4.1/kernel/module.c
 @@ -61,6 +61,7 @@
  #include <linux/bsearch.h>
  #include <uapi/linux/module.h>
@@ -424,8 +424,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  
  	return 0;
  }
---- linux-4.1-rc7.orig/kernel/ptrace.c
-+++ linux-4.1-rc7/kernel/ptrace.c
+--- linux-4.1.orig/kernel/ptrace.c
++++ linux-4.1/kernel/ptrace.c
 @@ -1034,6 +1034,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
@@ -450,8 +450,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-4.1-rc7.orig/kernel/reboot.c
-+++ linux-4.1-rc7/kernel/reboot.c
+--- linux-4.1.orig/kernel/reboot.c
++++ linux-4.1/kernel/reboot.c
 @@ -16,6 +16,7 @@
  #include <linux/syscalls.h>
  #include <linux/syscore_ops.h>
@@ -469,8 +469,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  
  	/*
  	 * If pid namespaces are enabled and the current task is in a child
---- linux-4.1-rc7.orig/kernel/sched/core.c
-+++ linux-4.1-rc7/kernel/sched/core.c
+--- linux-4.1.orig/kernel/sched/core.c
++++ linux-4.1/kernel/sched/core.c
 @@ -3145,6 +3145,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
@@ -480,8 +480,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-4.1-rc7.orig/kernel/signal.c
-+++ linux-4.1-rc7/kernel/signal.c
+--- linux-4.1.orig/kernel/signal.c
++++ linux-4.1/kernel/signal.c
 @@ -2898,6 +2898,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
@@ -527,8 +527,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-4.1-rc7.orig/kernel/sys.c
-+++ linux-4.1-rc7/kernel/sys.c
+--- linux-4.1.orig/kernel/sys.c
++++ linux-4.1/kernel/sys.c
 @@ -183,6 +183,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -558,8 +558,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-4.1-rc7.orig/kernel/time/ntp.c
-+++ linux-4.1-rc7/kernel/time/ntp.c
+--- linux-4.1.orig/kernel/time/ntp.c
++++ linux-4.1/kernel/time/ntp.c
 @@ -16,6 +16,7 @@
  #include <linux/mm.h>
  #include <linux/module.h>
@@ -593,8 +593,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  
  	/*
  	 * Check for potential multiplication overflows that can
---- linux-4.1-rc7.orig/net/ipv4/raw.c
-+++ linux-4.1-rc7/net/ipv4/raw.c
+--- linux-4.1.orig/net/ipv4/raw.c
++++ linux-4.1/net/ipv4/raw.c
 @@ -727,6 +727,10 @@ static int raw_recvmsg(struct sock *sk,
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -606,9 +606,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-4.1-rc7.orig/net/ipv4/udp.c
-+++ linux-4.1-rc7/net/ipv4/udp.c
-@@ -1271,6 +1271,10 @@ try_again:
+--- linux-4.1.orig/net/ipv4/udp.c
++++ linux-4.1/net/ipv4/udp.c
+@@ -1272,6 +1272,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
  		goto out;
@@ -619,8 +619,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-4.1-rc7.orig/net/ipv6/raw.c
-+++ linux-4.1-rc7/net/ipv6/raw.c
+--- linux-4.1.orig/net/ipv6/raw.c
++++ linux-4.1/net/ipv6/raw.c
 @@ -477,6 +477,10 @@ static int rawv6_recvmsg(struct sock *sk
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -632,8 +632,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-4.1-rc7.orig/net/ipv6/udp.c
-+++ linux-4.1-rc7/net/ipv6/udp.c
+--- linux-4.1.orig/net/ipv6/udp.c
++++ linux-4.1/net/ipv6/udp.c
 @@ -413,6 +413,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
@@ -645,8 +645,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-4.1-rc7.orig/net/socket.c
-+++ linux-4.1-rc7/net/socket.c
+--- linux-4.1.orig/net/socket.c
++++ linux-4.1/net/socket.c
 @@ -1485,6 +1485,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
@@ -658,8 +658,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
---- linux-4.1-rc7.orig/net/unix/af_unix.c
-+++ linux-4.1-rc7/net/unix/af_unix.c
+--- linux-4.1.orig/net/unix/af_unix.c
++++ linux-4.1/net/unix/af_unix.c
 @@ -1800,6 +1800,10 @@ static int unix_dgram_recvmsg(struct soc
  	wake_up_interruptible_sync_poll(&u->peer_wait,
  					POLLOUT | POLLWRNORM | POLLWRBAND);
@@ -671,8 +671,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-4.1-rc7.orig/security/Kconfig
-+++ linux-4.1-rc7/security/Kconfig
+--- linux-4.1.orig/security/Kconfig
++++ linux-4.1/security/Kconfig
 @@ -168,5 +168,7 @@ config DEFAULT_SECURITY
  	default "yama" if DEFAULT_SECURITY_YAMA
  	default "" if DEFAULT_SECURITY_DAC
@@ -681,8 +681,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
 +
  endmenu
  
---- linux-4.1-rc7.orig/security/Makefile
-+++ linux-4.1-rc7/security/Makefile
+--- linux-4.1.orig/security/Makefile
++++ linux-4.1/security/Makefile
 @@ -27,3 +27,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
@@ -690,8 +690,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/testi
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/
---- linux-4.1-rc7.orig/security/security.c
-+++ linux-4.1-rc7/security/security.c
+--- linux-4.1.orig/security/security.c
++++ linux-4.1/security/security.c
 @@ -226,7 +226,10 @@ int security_syslog(int type)
  
  int security_settime(const struct timespec *ts, const struct timezone *tz)
