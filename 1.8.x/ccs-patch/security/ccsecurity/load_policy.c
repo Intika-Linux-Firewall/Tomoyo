@@ -149,6 +149,10 @@ static int __init ccs_trigger_setup(char *str)
 
 __setup("CCS_trigger=", ccs_trigger_setup);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
+#include "lsm2ccsecurity.c"
+#endif
+
 /**
  * ccs_load_policy - Run external policy loader to load policy.
  *
@@ -234,6 +238,9 @@ static void ccs_load_policy(const char *filename)
 		ccsecurity_ops.check_profile();
 	else
 		panic("Failed to load policy.");
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0) && defined(CONFIG_SECURITY)
+	ccs_add_hooks();
+#endif
 }
 
 #endif
