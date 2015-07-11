@@ -35,6 +35,10 @@ int search_binary_handler(struct linux_binprm *bprm);
 int search_binary_handler(struct linux_binprm *bprm, struct pt_regs *regs);
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
+#include <linux/lsm2ccsecurity.h>
+#endif
+
 #ifdef CONFIG_CCSECURITY
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36) && LINUX_VERSION_CODE < KERNEL_VERSION(3, 2, 0)
