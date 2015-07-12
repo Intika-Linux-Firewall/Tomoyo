@@ -51,6 +51,10 @@ static int __init ccs_setup(char *str)
 
 __setup("ccsecurity=", ccs_setup);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
+#include "lsm2ccsecurity.c"
+#endif
+
 #ifndef CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER
 
 /* Path to the policy loader. (default = CONFIG_CCSECURITY_POLICY_LOADER) */
@@ -149,10 +153,6 @@ static int __init ccs_trigger_setup(char *str)
 
 __setup("CCS_trigger=", ccs_trigger_setup);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0)
-#include "lsm2ccsecurity.c"
-#endif
-
 /**
  * ccs_load_policy - Run external policy loader to load policy.
  *
@@ -238,9 +238,6 @@ static void ccs_load_policy(const char *filename)
 		ccsecurity_ops.check_profile();
 	else
 		panic("Failed to load policy.");
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0) && defined(CONFIG_SECURITY)
-	ccs_add_hooks();
-#endif
 }
 
 #endif
@@ -320,6 +317,9 @@ extern spinlock_t vfsmount_lock;
 const struct ccsecurity_exports ccsecurity_exports = {
 #ifndef CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER
 	.load_policy = ccs_load_policy,
+#endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0) && defined(CONFIG_SECURITY)
+	.add_hooks = ccs_add_hooks,
 #endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0)
 	.d_absolute_path = d_absolute_path,
