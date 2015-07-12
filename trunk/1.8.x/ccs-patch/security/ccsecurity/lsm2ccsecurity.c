@@ -1,5 +1,5 @@
 /*
- * security/ccsecurity/hooks-4.c
+ * security/ccsecurity/lsm2ccsecurity.c
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
