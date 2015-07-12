@@ -1,13 +1,13 @@
 /*
- * include/linux/ccsecurity-4.h
+ * include/linux/lsm2ccsecurity.h
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
  * Version: 1.8.4   2015/07/11
  */
 
-#ifndef _LINUX_CCSECURITY_4_H
-#define _LINUX_CCSECURITY_4_H
+#ifndef _LINUX_LSM2CCSECURITY_H
+#define _LINUX_LSM2CCSECURITY_H
 
 #include <linux/version.h>
 #include <linux/uidgid.h>
@@ -179,4 +179,4 @@ static inline int ccs_path_chroot(struct path *path)
 
 #endif /* defined(CONFIG_CCSECURITY) */
 
-#endif /* !defined(_LINUX_CCSECURITY_4_H) */
+#endif /* !defined(_LINUX_LSM2CCSECURITY_H) */

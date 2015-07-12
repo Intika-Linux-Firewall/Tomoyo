@@ -65,7 +65,7 @@ patch -p0 << "EOF" || die "Can't patch link-headers."
 +if [ $flavour == "NEW_FLAVOUR" ]
 +then
 +    cd $hdrdir/../../../../$symdir/usr/src/$symdir/include/linux/
-+    for i in sched.h init_task.h security.h ccsecurity.h
++    for i in sched.h init_task.h security.h ccsecurity.h lsm2ccsecurity.h
 +    do
 +	rm -f $hdrdir/include/linux/$i
 +	cp -p $i $hdrdir/include/linux/$i
