@@ -21,8 +21,7 @@ int ccs_sb_umount(struct vfsmount *mnt, int flags);
 int ccs_sb_pivotroot(struct path *old_path, struct path *new_path);
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)
-int ccs_inode_getattr(const struct struct vfsmount *mnt,
-		      struct dentry *dentry);
+int ccs_inode_getattr(struct vfsmount *mnt, struct dentry *dentry);
 #else
 int ccs_inode_getattr(const struct path *path);
 #endif
