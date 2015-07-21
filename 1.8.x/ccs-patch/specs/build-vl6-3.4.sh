@@ -10,17 +10,17 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.4.106-3vl6.src.rpm ]
+if [ ! -r kernel-3.4.108-2vl6.src.rpm ]
 then
-    wget http://updates.vinelinux.org/Vine-6.3/updates/SRPMS/kernel-3.4.106-3vl6.src.rpm || die "Can't download source package."
+    wget http://updates.vinelinux.org/Vine-6.3/updates/SRPMS/kernel-3.4.108-2vl6.src.rpm || die "Can't download source package."
 fi
-LANG=C rpm --checksig kernel-3.4.106-3vl6.src.rpm | grep -F ': (sha1) dsa sha1 md5 gpg OK' || die "Can't verify signature."
-rpm -ivh kernel-3.4.106-3vl6.src.rpm || die "Can't install source package."
+LANG=C rpm --checksig kernel-3.4.108-2vl6.src.rpm | grep -F ': (sha1) dsa sha1 md5 gpg OK' || die "Can't verify signature."
+rpm -ivh kernel-3.4.108-2vl6.src.rpm || die "Can't install source package."
 
 cd /root/rpm/SOURCES/ || die "Can't chdir to /root/rpm/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.4-20150505.tar.gz ]
+if [ ! -r ccs-patch-1.8.4-20150721.tar.gz ]
 then
-    wget -O ccs-patch-1.8.4-20150505.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.4-20150505.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.4-20150721.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.4-20150721.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -29,11 +29,11 @@ patch << "EOF" || die "Can't patch spec file."
 --- kernel34-vl.spec
 +++ kernel34-vl.spec
 @@ -34,7 +34,7 @@
- %define patchlevel 106
+ %define patchlevel 108
  %define kversion 3.%{sublevel}
  %define rpmversion 3.%{sublevel}.%{patchlevel}
--%define release 3%{?_dist_release}
-+%define release 3%{?_dist_release}_tomoyo_1.8.4
+-%define release 2%{?_dist_release}
++%define release 2%{?_dist_release}_tomoyo_1.8.4
  
  %define make_target bzImage
  %define hdrarch %_target_cpu
@@ -56,18 +56,18 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -730,6 +733,10 @@
+@@ -725,6 +728,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.4-20150505.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.4-20150721.tar.gz
 +patch -sp1 < patches/ccs-patch-3.4-vine-linux-6.diff
 +
  cp %{SOURCE10} Documentation/
  
  # put Vine logo
-@@ -748,6 +755,9 @@
+@@ -743,6 +750,9 @@
  for i in *.config
  do 
  	mv $i .config 
