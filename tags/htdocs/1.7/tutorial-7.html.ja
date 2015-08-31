@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
 <title>TOMOYO Linuxの世界　第７回：「いろんな機能を試してみよう」</title>
-<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+<link rel="stylesheet" href="http://tomoyo.osdn.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <p>Info: Version <a href="../1.8/">1.8.x</a> is available.</p>
@@ -36,7 +36,7 @@
 </td></tr>
 </table>
 
-<p>TOMOYO Linux のネットワークアクセス制御機能を用いると，たとえば「 /usr/sbin/sshd からログインしたユーザＩＤが 500 のユーザが実行した svn プロセスのみが，ホスト 202.221.179.21 のポート 80 に対してＴＣＰプロトコルを用いた通信を行うことができる」といった制御が可能となります．次節以降，実際に設定してみることにしましょう．</p>
+<p>TOMOYO Linux のネットワークアクセス制御機能を用いると，たとえば「 /usr/sbin/sshd からログインしたユーザＩＤが 500 のユーザが実行した svn プロセスのみが，ホスト 202.221.179.11 のポート 80 に対してＴＣＰプロトコルを用いた通信を行うことができる」といった制御が可能となります．次節以降，実際に設定してみることにしましょう．</p>
 
 <h3>準備</h3>
 
@@ -89,13 +89,13 @@
 </td></tr>
 </table>
 
-<p>学習させるためのコマンドとして，ここでは /usr/bin/curl コマンドを用いて http://www.sourceforge.jp/ にアクセスしてみます（図５）．</p>
+<p>学習させるためのコマンドとして，ここでは /usr/bin/curl コマンドを用いて http://www.osdn.jp/ にアクセスしてみます（図５）．</p>
 
 <table border="1" summary="fig">
 <tr><td>
 ■図５　/usr/bin/curl コマンドを学習させる
 <pre>
-# curl http://www.sourceforge.jp/ &gt; /dev/null
+# curl http://www.osdn.jp/ &gt; /dev/null
 </pre>
 </td></tr>
 </table>
@@ -109,7 +109,7 @@
 </td></tr>
 </table>
 
-<p>allow_network で始まる行が，ネットワークに対するアクセス制御のためのアクセス許可です．「 allow_network UDP connect 192.168.1.2 53 」という部分は，ＵＤＰプロトコルを用いてＤＮＳサーバ 192.168.1.2 のポート 53 にアクセスすることを許可するという意味です．また，「 allow_network TCP connect 202.221.179.21 80 」という部分は，ＴＣＰプロトコルを用いてＨＴＴＰサーバ 202.221.179.21 （本稿執筆時点の www.sourceforge.jp のＩＰアドレスです）のポート 80 にアクセスすることを許可するという意味です．</p>
+<p>allow_network で始まる行が，ネットワークに対するアクセス制御のためのアクセス許可です．「 allow_network UDP connect 192.168.1.2 53 」という部分は，ＵＤＰプロトコルを用いてＤＮＳサーバ 192.168.1.2 のポート 53 にアクセスすることを許可するという意味です．また，「 allow_network TCP connect 202.221.179.11 80 」という部分は，ＴＣＰプロトコルを用いてＨＴＴＰサーバ 202.221.179.11 （本稿執筆時点の www.osdn.jp のＩＰアドレスです）のポート 80 にアクセスすることを許可するという意味です．</p>
 
 <h4>(2)サーバ側の学習</h4>
 
@@ -150,7 +150,7 @@
 <tr><td>
 ■図１０　ユーザごとに接続可能なサーバを制限
 <pre>
-allow_network TCP connect 202.221.179.21 80 if task.uid=500
+allow_network TCP connect 202.221.179.11 80 if task.uid=500
 allow_network TCP connect 66.35.250.203 80 if task.uid=501
 </pre>
 </td></tr>
@@ -162,7 +162,7 @@ allow_network TCP connect 66.35.250.203 80 if task.uid=501
 <tr><td>
 ■図１１　ping コマンドを実行
 <pre>
-# ping -c 4 www.sourceforge.jp
+# ping -c 4 www.osdn.jp
 </pre>
 </td></tr>
 </table>
@@ -174,7 +174,7 @@ allow_network TCP connect 66.35.250.203 80 if task.uid=501
 </td></tr>
 </table>
 
-<p>「 allow_network RAW connect 202.221.179.21 1 」というアクセス許可が与えられていることを確認できます．これは， ping コマンドが動作しているドメインではＩＰソケット上でプロトコル番号１のプロトコル（ ICMP ）を用いて 202.221.179.21 と通信を行うことを許可するという意味です．</p>
+<p>「 allow_network RAW connect 202.221.179.11 1 」というアクセス許可が与えられていることを確認できます．これは， ping コマンドが動作しているドメインではＩＰソケット上でプロトコル番号１のプロトコル（ ICMP ）を用いて 202.221.179.11 と通信を行うことを許可するという意味です．</p>
 
 <h3>チューニングしてみよう</h3>
 
@@ -523,6 +523,6 @@ kill 4649: Operation not permitted
 <hr>
 
 <p><a href="index.html.ja#tutorial">目次へ戻る</a></p>
-<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
+<p><a href="http://osdn.jp/"><img src="http://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
 </body>
 </html>

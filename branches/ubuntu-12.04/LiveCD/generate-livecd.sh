@@ -36,14 +36,14 @@ EOF'
 	) >> squash/etc/init.d/rc.local
 fi
 
-if ! grep -qF tomoyo.sourceforge.jp squash/etc/init.d/rc.local
+if ! grep -qF tomoyo.osdn.jp squash/etc/init.d/rc.local
 then
     (
-	echo 'if ! grep -qF tomoyo.sourceforge.jp /etc/apt/sources.list'
+	echo 'if ! grep -qF tomoyo.osdn.jp /etc/apt/sources.list'
 	echo 'then'
 	echo 'echo "" >> /etc/apt/sources.list'
 	echo 'echo "# TOMOYO Linux 1.8 kernel and tools" >> /etc/apt/sources.list'
-	echo 'echo "deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu12.04/ ./" >> /etc/apt/sources.list'
+	echo 'echo "deb http://tomoyo.osdn.jp/repos-1.8/Ubuntu12.04/ ./" >> /etc/apt/sources.list'
 	echo 'fi'
     ) >> squash/etc/init.d/rc.local
 fi
@@ -52,9 +52,9 @@ cd squash/usr/share/doc/ || die "Can't change directory."
 rm -fR tomoyo/ || die "Can't delete directory."
 mkdir tomoyo/ || die "Can't create directory."
 cd tomoyo/ || die "Can't change directory."
-wget -O ubuntu12.04-live.html.en 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/ubuntu12.04-live.html.en?revision=HEAD&root=tomoyo' || die "Can't copy document."
-wget -O ubuntu12.04-live.html.ja 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/ubuntu12.04-live.html.ja?revision=HEAD&root=tomoyo' || die "Can't copy document."
-wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/media.ubuntu12.04.tar.gz?root=tomoyo&view=tar' | tar -zxf - || die "Can't copy document."
+wget -O ubuntu12.04-live.html.en 'http://osdn.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/ubuntu12.04-live.html.en?revision=HEAD&root=tomoyo' || die "Can't copy document."
+wget -O ubuntu12.04-live.html.ja 'http://osdn.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/ubuntu12.04-live.html.ja?revision=HEAD&root=tomoyo' || die "Can't copy document."
+wget -O - 'http://osdn.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/media.ubuntu12.04.tar.gz?root=tomoyo&view=tar' | tar -zxf - || die "Can't copy document."
 ln -s ubuntu12.04-live.html.en index.html.en
 ln -s ubuntu12.04-live.html.ja index.html.ja
 cd ../../../../../ || die "Can't change directory."

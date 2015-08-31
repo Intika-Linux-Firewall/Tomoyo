@@ -20,7 +20,7 @@ rpm -ivh kernel-3.4.108-2vl6.src.rpm || die "Can't install source package."
 cd /root/rpm/SOURCES/ || die "Can't chdir to /root/rpm/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.4-20150721.tar.gz ]
 then
-    wget -O ccs-patch-1.8.4-20150721.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.4-20150721.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.4-20150721.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.4-20150721.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."

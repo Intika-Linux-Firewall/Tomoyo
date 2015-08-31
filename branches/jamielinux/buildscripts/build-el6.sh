@@ -3,8 +3,8 @@ set -e
 
 DOWNLOAD_DIR="${HOME}/sources"
 
-URL_CCS="http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684"
-URL_CCS_SVN="http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches"
+URL_CCS="http://osdn.jp/frs/redir.php?f=/tomoyo/49684"
+URL_CCS_SVN="http://osdn.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches"
 URL_KERNEL="ftp://ftp.redhat.com/pub/redhat/linux/enterprise/6Server/en/os/SRPMS/"
 
 ARCH="$(uname -m)"

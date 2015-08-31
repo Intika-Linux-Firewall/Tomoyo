@@ -22,7 +22,7 @@ rpm -ivh kernel-3.19.8-100.fc20.src.rpm || die "Can't install source package."
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.4-20150721.tar.gz ]
 then
-    wget -O ccs-patch-1.8.4-20150721.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.4-20150721.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.4-20150721.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.4-20150721.tar.gz' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."

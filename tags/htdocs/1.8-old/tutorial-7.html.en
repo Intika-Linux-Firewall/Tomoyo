@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
 <meta http-equiv="Content-Style-Type" content="text/css">
 <title>The world of TOMOYO Linux&nbsp;&nbsp;The seventh installment: "Let's try various functionalities."</title>
-<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+<link rel="stylesheet" href="http://tomoyo.osdn.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <p style="text-align:right;"><a href="tutorial-7.html.ja">Japanese Page</a></p>
@@ -41,7 +41,7 @@ Unix domain address on filesystem / Unix domain address in abstract name space
 </td></tr>
 </table>
 
-<p>By using TOMOYO Linux's access control on networks, you can allow, for example, svn command which is executed by a user whose user ID is 500 and who logged in via /usr/sbin/sshd can communicate with port 80 on host 202.221.179.21 using TCP protocol. I explain steps to configure in following sections.</p>
+<p>By using TOMOYO Linux's access control on networks, you can allow, for example, svn command which is executed by a user whose user ID is 500 and who logged in via /usr/sbin/sshd can communicate with port 80 on host 202.221.179.11 using TCP protocol. I explain steps to configure in following sections.</p>
 
 <h3>Preparation</h3>
 
@@ -109,13 +109,13 @@ Unix domain address on filesystem / Unix domain address in abstract name space
 </td></tr>
 </table>
 
-<p>As an example command that uses networks, let's access http://www.sourceforge.jp/ using /usr/bin/curl command. (Fig. 6)</p>
+<p>As an example command that uses networks, let's access http://www.osdn.jp/ using /usr/bin/curl command. (Fig. 6)</p>
 
 <table border="1" summary="fig">
 <tr><td>
 &diams; Fig. 6&nbsp;&nbsp;Execute /usr/bin/curl command
 <pre>
-# curl http://www.sourceforge.jp/ &gt; /dev/null
+# curl http://www.osdn.jp/ &gt; /dev/null
 </pre>
 </td></tr>
 </table>
@@ -129,7 +129,7 @@ Unix domain address on filesystem / Unix domain address in abstract name space
 </td></tr>
 </table>
 
-<p>Lines starting with "network" keyword are permissions for access control on networks. "network inet dgram send 192.168.1.2 53" and "network inet dgram recv 192.168.1.2 53" allow communicating with port 53 (i.e. DNS service) on host 192.168.1.2 using UDP protocol. Also, "network inet stream connect 202.221.179.21 80" allows communicating with port 80 (i.e. HTTP service) on host 202.221.179.21 (this is IP address for www.sourceforge.jp as of this writing) using TCP protocol.</p>
+<p>Lines starting with "network" keyword are permissions for access control on networks. "network inet dgram send 192.168.1.2 53" and "network inet dgram recv 192.168.1.2 53" allow communicating with port 53 (i.e. DNS service) on host 192.168.1.2 using UDP protocol. Also, "network inet stream connect 202.221.179.11 80" allows communicating with port 80 (i.e. HTTP service) on host 202.221.179.11 (this is IP address for www.osdn.jp as of this writing) using TCP protocol.</p>
 
 <h4>(2) Examples for server applications</h4>
 
@@ -170,7 +170,7 @@ Unix domain address on filesystem / Unix domain address in abstract name space
 <tr><td>
 &diams; Fig. 11&nbsp;&nbsp;Restricting remote servers based on user ID
 <pre>
-network inet stream connect 202.221.179.21 80 task.uid=500
+network inet stream connect 202.221.179.11 80 task.uid=500
 network inet stream connect 66.35.250.203 80 task.uid=501
 </pre>
 </td></tr>
@@ -182,7 +182,7 @@ network inet stream connect 66.35.250.203 80 task.uid=501
 <tr><td>
 &diams; Fig. 12&nbsp;&nbsp;Executing ping command
 <pre>
-# ping -c 4 www.sourceforge.jp
+# ping -c 4 www.osdn.jp
 </pre>
 </td></tr>
 </table>
@@ -194,7 +194,7 @@ network inet stream connect 66.35.250.203 80 task.uid=501
 </td></tr>
 </table>
 
-<p>You can see a line "network inet raw send 202.221.179.21 1" and a line "network inet raw recv 202.221.179.21 1". Fig. 12 shows that the domain which ping command is running is allowed to communicate with host 202.21.179.21 using IP sockets with protocol number 1 (i.e. ICOMP).</p>
+<p>You can see a line "network inet raw send 202.221.179.11 1" and a line "network inet raw recv 202.221.179.11 1". Fig. 12 shows that the domain which ping command is running is allowed to communicate with host 202.21.179.21 using IP sockets with protocol number 1 (i.e. ICOMP).</p>
 
 <h3>Let's tune policy</h3>
 
@@ -521,6 +521,6 @@ kill 4649: Operation not permitted
 <hr>
 
 <p><a href="index.html.en#tutorial">Return to index page.</a></p>
-<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
+<p><a href="http://osdn.jp/"><img src="http://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
 </body>
 </html>

@@ -20,12 +20,12 @@ rpm -ivh kernel-2.6.33.3-85.fc13.src.rpm || die "Can't install source package."
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.4-20150505.tar.gz ]
 then
-    wget -O ccs-patch-1.8.4-20150505.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.4-20150505.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.4-20150505.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.4-20150505.tar.gz' || die "Can't download patch."
 fi
 
 if [ ! -r ccs-patch-2.6.33-fedora-13-20110614.diff ]
 then
-    wget -O ccs-patch-2.6.33-fedora-13-20110614.diff 'http://sourceforge.jp/projects/tomoyo/svn/view/branches/ccs-patch-2.6.33-fedora-13.diff?revision=5185&root=tomoyo' || die "Can't download patch."
+    wget -O ccs-patch-2.6.33-fedora-13-20110614.diff 'http://osdn.jp/projects/tomoyo/svn/view/branches/ccs-patch-2.6.33-fedora-13.diff?revision=5185&root=tomoyo' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."

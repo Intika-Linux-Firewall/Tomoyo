@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
 	int len;
 	int fd;
 	unsigned int status;
-	char *server = "sourceforge.jp";
+	char *server = "osdn.jp";
 	char *query = getenv("QUERY_STRING");
 	if (!query)
 		goto query_error;

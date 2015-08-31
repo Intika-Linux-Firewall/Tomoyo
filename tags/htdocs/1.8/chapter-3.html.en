@@ -70,69 +70,69 @@
 # apt-key add kumaneko-key
 </pre>
 
-<p>The binary packages provided by this project can be manually downloaded from <a href="http://sourceforge.jp/projects/tomoyo/releases/?package_id=12016" target="_blank">this SourceForge page</a>. A package for the kernel and a package for the userspace tools are required. Alternatively, packages can be installed very easily straight from the repository using the following commands:</p>
+<p>The binary packages provided by this project can be manually downloaded from <a href="http://osdn.jp/projects/tomoyo/releases/?package_id=12016" target="_blank">this SourceForge page</a>. A package for the kernel and a package for the userspace tools are required. Alternatively, packages can be installed very easily straight from the repository using the following commands:</p>
 
 <p><strong>CentOS 6 (686 flavour)</strong></p>
 <pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/CentOS6/ccs.repo
+# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.osdn.jp/repos-1.8/CentOS6/ccs.repo
 # yum install ccs-kernel ccs-tools
 </pre>
 
 <p><strong>CentOS 5 (686 flavour)</strong></p>
 <pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/CentOS5/ccs.repo
+# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.osdn.jp/repos-1.8/CentOS5/ccs.repo
 # yum install ccs-kernel ccs-tools
 </pre>
 
 <p><strong>CentOS 4 (686 flavour)</strong></p>
 <pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/CentOS4/ccs.repo
+# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.osdn.jp/repos-1.8/CentOS4/ccs.repo
 # yum install ccs-kernel-smp ccs-tools
 </pre>
 
 <p><strong>CentOS 3 (686 flavour)</strong></p>
 <pre class="command">
-# wget -O - http://tomoyo.sourceforge.jp/repos-1.8/CentOS3/ccs.repo &gt;&gt; /etc/yum.conf
+# wget -O - http://tomoyo.osdn.jp/repos-1.8/CentOS3/ccs.repo &gt;&gt; /etc/yum.conf
 # yum install ccs-kernel-smp ccs-tools
 </pre>
 
 <p><strong>Asianux 3 (686 flavour)</strong></p>
 <pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Asianux3/ccs.repo
+# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.osdn.jp/repos-1.8/Asianux3/ccs.repo
 # yum install ccs-kernel ccs-tools
 </pre>
 
 <p><strong>Vine Linux 6 (686-pae flavour)</strong></p>
 <pre class="command">
-# echo "repomd http://tomoyo.sourceforge.jp/repos-1.8/VineLinux6/ ./" &gt;&gt; /etc/apt/sources.list
+# echo "repomd http://tomoyo.osdn.jp/repos-1.8/VineLinux6/ ./" &gt;&gt; /etc/apt/sources.list
 # apt-get update
 # apt-get install ccs-kernel-pae ccs-tools
 </pre>
 
 <p><strong>Debian Squeeze (686 flavour)</strong></p>
 <pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/DebianSqueeze/ ./' &gt;&gt; /etc/apt/sources.list
+# echo 'deb http://tomoyo.osdn.jp/repos-1.8/DebianSqueeze/ ./' &gt;&gt; /etc/apt/sources.list
 # apt-get update
 # apt-get install linux-image-2.6-686-ccs ccs-tools
 </pre>
 
 <p><strong>Debian Wheezy (686-pae flavour)</strong></p>
 <pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/DebianWheezy/ ./' &gt;&gt; /etc/apt/sources.list
+# echo 'deb http://tomoyo.osdn.jp/repos-1.8/DebianWheezy/ ./' &gt;&gt; /etc/apt/sources.list
 # apt-get update
 # apt-get install linux-image-3.2.0-4-686-pae-ccs ccs-tools
 </pre>
 
 <p><strong>Ubuntu 12.04 (generic-pae flavour)</strong></p>
 <pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu12.04/ ./' &gt;&gt; /etc/apt/sources.list
+# echo 'deb http://tomoyo.osdn.jp/repos-1.8/Ubuntu12.04/ ./' &gt;&gt; /etc/apt/sources.list
 # apt-get update
 # apt-get install linux-generic-pae-ccs ccs-tools
 </pre>
 
 <p><strong>Ubuntu 10.04 (generic-pae flavour)</strong></p>
 <pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu10.04/ ./' &gt;&gt; /etc/apt/sources.list
+# echo 'deb http://tomoyo.osdn.jp/repos-1.8/Ubuntu10.04/ ./' &gt;&gt; /etc/apt/sources.list
 # apt-get update
 # apt-get install linux-generic-pae-ccs ccs-tools
 </pre>
@@ -143,7 +143,7 @@
 
 <p>If we do not provide binary packages for your distribution, then you will have to compile your own kernel.</p>
 
-<p>If you wish to obtain the most functionality out of TOMOYO Linux possible but do not wish to compile a kernel, the AKARI module can be used. This module provides more functionality that the 2.x branch, but is missing a small number of features that the 1.x branch provides. It is easy to use with any kernel from Linux 2.6.0 and later, depending on how the kernel has been configured and the CPU architecture. <a href="http://akari.sourceforge.jp/comparison.html.en">This chart</a> provides a detailed comparison between AKARI and both the 1.x and 2.x branches. If you would prefer to use this module, please visit the <a href="http://akari.sourceforge.jp/">AKARI website</a>.</p>
+<p>If you wish to obtain the most functionality out of TOMOYO Linux possible but do not wish to compile a kernel, the AKARI module can be used. This module provides more functionality that the 2.x branch, but is missing a small number of features that the 1.x branch provides. It is easy to use with any kernel from Linux 2.6.0 and later, depending on how the kernel has been configured and the CPU architecture. <a href="http://akari.osdn.jp/comparison.html.en">This chart</a> provides a detailed comparison between AKARI and both the 1.x and 2.x branches. If you would prefer to use this module, please visit the <a href="http://akari.osdn.jp/">AKARI website</a>.</p>
 
 <h4><a name="3.3.1">3.3.1. Install dependencies</a></h4>
 
@@ -183,8 +183,8 @@ Linux kernel 4.0 and later are supported from the linux-4 tree.</p>
 In the operations below, "$VERSION.$PATCHLEVEL.diff" should for example be replaced with "3.19.diff" if using Linux kernel 3.19.4 :</p>
 
 <pre class="command">
-$ wget -O ccs-patch-1.8.4-20150721.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.4-20150721.tar.gz'
-$ wget -O ccs-patch-1.8.4-20150721.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.4-20150721.tar.gz.asc'
+$ wget -O ccs-patch-1.8.4-20150721.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.4-20150721.tar.gz'
+$ wget -O ccs-patch-1.8.4-20150721.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.4-20150721.tar.gz.asc'
 $ gpg ccs-patch-1.8.4-20150721.tar.gz.asc
 $ tar -zxf ccs-patch-1.8.4-20150721.tar.gz
 $ patch -sp1 &lt; patches/ccs-patch-$VERSION.$PATCHLEVEL.diff
@@ -243,8 +243,8 @@ $ su
 <p>Make sure the dependencies described above have been installed. Compile and install the tools with the following commands:</p>
 
 <pre class="command">
-$ wget -O ccs-tools-1.8.4-20150505.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.4-20150505.tar.gz'
-$ wget -O ccs-tools-1.8.4-20150505.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.4-20150505.tar.gz.asc'
+$ wget -O ccs-tools-1.8.4-20150505.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.4-20150505.tar.gz'
+$ wget -O ccs-tools-1.8.4-20150505.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.4-20150505.tar.gz.asc'
 $ gpg ccs-tools-1.8.4-20150505.tar.gz.asc
 $ tar -zxf ccs-tools-1.8.4-20150505.tar.gz
 $ cd ccs-tools/
@@ -370,7 +370,7 @@ GRUB_CMDLINE_LINUX="vconsole.keymap=us crashkernel=auto  vconsole.font=latarcyrh
 <p class="language">Go to <a href="chapter-3.html.ja">Japanese page</a>.</p>
 <p class="timestamp">Last modified: $Date$</p>
 <p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="http://www.nttdata.com/global/en/">NTT DATA Corporation</a>.</p>
-<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
+<p><a href="http://osdn.jp/"><img src="http://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
 </div>
 
 </body>

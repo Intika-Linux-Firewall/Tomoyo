@@ -20,7 +20,7 @@ rpm -ivh kernel-2.6.32-573.3.1.el6.src.rpm || die "Can't install source package.
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.3-20140915.tar.gz ]
 then
-    wget -O ccs-patch-1.7.3-20140915.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.3-20140915.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.7.3-20140915.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.3-20140915.tar.gz' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
