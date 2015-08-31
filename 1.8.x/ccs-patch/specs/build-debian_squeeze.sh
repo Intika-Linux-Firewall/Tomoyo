@@ -40,7 +40,7 @@ mkdir -p /root/rpmbuild/SOURCES/
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.4-20150721.tar.gz ]
 then
-    wget -O ccs-patch-1.8.4-20150721.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.4-20150721.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.4-20150721.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.4-20150721.tar.gz' || die "Can't download patch."
 fi
 
 # Install kernel source packages.

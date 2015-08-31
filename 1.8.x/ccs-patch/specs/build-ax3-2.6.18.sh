@@ -20,7 +20,7 @@ rpm -ivh kernel-2.6.18-398.1.AXS3.src.rpm || die "Can't install source package."
 cd /usr/src/asianux/SOURCES/ || die "Can't chdir to /usr/src/asianux/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.4-20150721.tar.gz ]
 then
-    wget -O ccs-patch-1.8.4-20150721.tar.gz 'http://sourceforge.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.4-20150721.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.4-20150721.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.4-20150721.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."

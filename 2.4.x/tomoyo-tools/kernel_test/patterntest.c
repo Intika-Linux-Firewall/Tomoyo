@@ -459,30 +459,30 @@ static const struct {
 	{ "pipe:[12345]", "pipe:[\\$]", 1 },
 	{ "socket:[family=1:type=2:protocol=3]",
 	  "socket:[family=1:type=2:protocol=\\$]", 1 },
-	{ "http://tomoyo.sourceforge.jp/", "\\*/\\*/\\*/", 1 },
-	{ "http://tomoyo.sourceforge.jp/index.html", "\\*/\\*/\\*/\\*", 1 },
-	{ "http://tomoyo.sourceforge.jp/index.html",
+	{ "http://tomoyo.osdn.jp/", "\\*/\\*/\\*/", 1 },
+	{ "http://tomoyo.osdn.jp/index.html", "\\*/\\*/\\*/\\*", 1 },
+	{ "http://tomoyo.osdn.jp/index.html",
 	  "\\*/\\*/\\*/\\*\\*\\@\\*\\@", 1 },
-	{ "http://tomoyo.sourceforge.jp/index.html",
+	{ "http://tomoyo.osdn.jp/index.html",
 	  "\\*/\\@\\*/\\*\\@/\\*\\@\\*\\@\\*", 1 },
-	{ "http://tomoyo.sourceforge.jp/1.7/index.html",
+	{ "http://tomoyo.osdn.jp/1.7/index.html",
 	  "http://\\{\\*\\}/\\@.html", 1 },
-	{ "http://tomoyo.sourceforge.jp/index.html",
-	  "\\*://\\@.sourceforge.jp/\\*", 1 },
-	{ "http://tomoyo.sourceforge.jp/index.html",
-	  "\\*://\\@.sourceforge.jp/\\*", 1 },
-	{ "http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/"
+	{ "http://tomoyo.osdn.jp/index.html",
+	  "\\*://\\@.osdn.jp/\\*", 1 },
+	{ "http://tomoyo.osdn.jp/index.html",
+	  "\\*://\\@.osdn.jp/\\*", 1 },
+	{ "http://osdn.jp/projects/tomoyo/svn/view/trunk/1.7.x/"
 	  "ccs-patch/security/ccsecurity/?root=tomoyo",
-	  "\\*://\\@sourceforge.jp/\\{\\*\\}/?root=tomoyo", 1 },
-	{ "http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/"
+	  "\\*://\\@osdn.jp/\\{\\*\\}/?root=tomoyo", 1 },
+	{ "http://osdn.jp/projects/tomoyo/svn/view/trunk/1.7.x/"
 	  "ccs-patch/security/?root=tomoyo",
-	  "\\*://\\@sourceforge.jp/\\{\\*\\}/?root=tomoyo", 1 },
-	{ "http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/"
+	  "\\*://\\@osdn.jp/\\{\\*\\}/?root=tomoyo", 1 },
+	{ "http://osdn.jp/projects/tomoyo/svn/view/trunk/1.7.x/"
 	  "ccs-patch/?root=tomoyo",
-	  "\\*://\\@sourceforge.jp/\\{\\*\\}/?root=tomoyo", 1 },
-	{ "http://sourceforge.jp/projects/tomoyo/svn/view/trunk/1.7.x/"
+	  "\\*://\\@osdn.jp/\\{\\*\\}/?root=tomoyo", 1 },
+	{ "http://osdn.jp/projects/tomoyo/svn/view/trunk/1.7.x/"
 	  "/ccs-patch///security//ccsecurity///?root=tomoyo",
-	  "\\*://\\@sourceforge.jp/\\{\\*\\-.\\-..\\-\\*%\\*\\}/"
+	  "\\*://\\@osdn.jp/\\{\\*\\-.\\-..\\-\\*%\\*\\}/"
 	  "?root=tomoyo\\*\\*", 1 },
 	{ "/var/www/html/test/test/test/index.html",
 	  "/var/www/html/\\{test\\}/\\*.html", 1 },
@@ -492,9 +492,9 @@ static const struct {
 	{ "/bin/", "/bin/\\*", 0 },
 	{ "/bin/", "/bin/\\@", 0 },
 	{ "/bin/", "/bin/\\@\\@", 0 },
-	{ "http://tomoyo.sourceforge.jp/", "\\*/\\*/\\*/\?", 0 },
-	{ "http://tomoyo.sourceforge.jp/index.html", "\\*/\\*/\\*/\\@", 0 },
-	{ "http://tomoyo.sourceforge.jp/index.html", "http://\\*/\\@", 0 },
+	{ "http://tomoyo.osdn.jp/", "\\*/\\*/\\*/\?", 0 },
+	{ "http://tomoyo.osdn.jp/index.html", "\\*/\\*/\\*/\\@", 0 },
+	{ "http://tomoyo.osdn.jp/index.html", "http://\\*/\\@", 0 },
 	{ "socket:[family=1:type=2:protocol=3]",
 	  "/\\{\\*\\}/socket:[\\*]", 0 },
 	{ NULL, NULL, 0 }
