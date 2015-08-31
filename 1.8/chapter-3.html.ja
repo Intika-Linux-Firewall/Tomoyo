@@ -70,69 +70,69 @@
 # apt-key add kumaneko-key
 </pre>
 
-<p>プロジェクトで配布しているバイナリパッケージは <a href="http://sourceforge.jp/projects/tomoyo/releases/?package_id=12016" target="_blank">SourceForge のページ</a>から手動でダウンロードすることも可能です。カーネルパッケージと管理ツールパッケージが必要です。レポジトリを使うと簡単にダウンロードできます。レポジトリを使う場合には以下のコマンドを実行してください：</p>
+<p>プロジェクトで配布しているバイナリパッケージは <a href="http://osdn.jp/projects/tomoyo/releases/?package_id=12016" target="_blank">SourceForge のページ</a>から手動でダウンロードすることも可能です。カーネルパッケージと管理ツールパッケージが必要です。レポジトリを使うと簡単にダウンロードできます。レポジトリを使う場合には以下のコマンドを実行してください：</p>
 
 <p><strong>CentOS 6 (686 flavour)</strong></p>
 <pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/CentOS6/ccs.repo
+# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.osdn.jp/repos-1.8/CentOS6/ccs.repo
 # yum install ccs-kernel ccs-tools
 </pre>
 
 <p><strong>CentOS 5 (686 flavour)</strong></p>
 <pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/CentOS5/ccs.repo
+# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.osdn.jp/repos-1.8/CentOS5/ccs.repo
 # yum install ccs-kernel ccs-tools
 </pre>
 
 <p><strong>CentOS 4 (686 flavour)</strong></p>
 <pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/CentOS4/ccs.repo
+# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.osdn.jp/repos-1.8/CentOS4/ccs.repo
 # yum install ccs-kernel-smp ccs-tools
 </pre>
 
 <p><strong>CentOS 3 (686 flavour)</strong></p>
 <pre class="command">
-# wget -O - http://tomoyo.sourceforge.jp/repos-1.8/CentOS3/ccs.repo &gt;&gt; /etc/yum.conf
+# wget -O - http://tomoyo.osdn.jp/repos-1.8/CentOS3/ccs.repo &gt;&gt; /etc/yum.conf
 # yum install ccs-kernel-smp ccs-tools
 </pre>
 
 <p><strong>Asianux 3 (686 flavour)</strong></p>
 <pre class="command">
-# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.sourceforge.jp/repos-1.8/Asianux3/ccs.repo
+# wget -O /etc/yum.repos.d/ccs.repo http://tomoyo.osdn.jp/repos-1.8/Asianux3/ccs.repo
 # yum install ccs-kernel ccs-tools
 </pre>
 
 <p><strong>Vine Linux 6 (686-pae flavour)</strong></p>
 <pre class="command">
-# echo "repomd http://tomoyo.sourceforge.jp/repos-1.8/VineLinux6/ ./" &gt;&gt; /etc/apt/sources.list
+# echo "repomd http://tomoyo.osdn.jp/repos-1.8/VineLinux6/ ./" &gt;&gt; /etc/apt/sources.list
 # apt-get update
 # apt-get install ccs-kernel-pae ccs-tools
 </pre>
 
 <p><strong>Debian Squeeze (686 flavour)</strong></p>
 <pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/DebianSqueeze/ ./' &gt;&gt; /etc/apt/sources.list
+# echo 'deb http://tomoyo.osdn.jp/repos-1.8/DebianSqueeze/ ./' &gt;&gt; /etc/apt/sources.list
 # apt-get update
 # apt-get install linux-image-2.6-686-ccs ccs-tools
 </pre>
 
 <p><strong>Debian Wheezy (686-pae flavour)</strong></p>
 <pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/DebianWheezy/ ./' &gt;&gt; /etc/apt/sources.list
+# echo 'deb http://tomoyo.osdn.jp/repos-1.8/DebianWheezy/ ./' &gt;&gt; /etc/apt/sources.list
 # apt-get update
 # apt-get install linux-image-3.2.0-4-686-pae-ccs ccs-tools
 </pre>
 
 <p><strong>Ubuntu 12.04 (generic-pae flavour)</strong></p>
 <pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu12.04/ ./' &gt;&gt; /etc/apt/sources.list
+# echo 'deb http://tomoyo.osdn.jp/repos-1.8/Ubuntu12.04/ ./' &gt;&gt; /etc/apt/sources.list
 # apt-get update
 # apt-get install linux-generic-pae-ccs ccs-tools
 </pre>
 
 <p><strong>Ubuntu 10.04 (generic-pae flavour)</strong></p>
 <pre class="command">
-# echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu10.04/ ./' &gt;&gt; /etc/apt/sources.list
+# echo 'deb http://tomoyo.osdn.jp/repos-1.8/Ubuntu10.04/ ./' &gt;&gt; /etc/apt/sources.list
 # apt-get update
 # apt-get install linux-generic-pae-ccs ccs-tools
 </pre>
@@ -143,7 +143,7 @@
 
 <p>あなたが利用しているディストリビューション向けのバイナリパッケージが提供されていない場合、自分でカーネルをコンパイルする必要があります。</p>
 
-<p>ただし、カーネルのコンパイルをせずに TOMOYO Linux の機能の主要部分を使いたい場合には、 AKARI というカーネルモジュールを利用することができます。このモジュールは TOMOYO 2.x よりも豊富な機能を提供していますが、 TOMOYO 1.x の機能の一部は使えません。「カーネルがどのようなコンパイルオプションでコンパイルされたか」と「ＣＰＵアーキテクチャ」に依存するという制限がありますが、カーネル 2.6.0 以降の全てのバージョンに対応しており、簡単に利用できます。 <a href="http://akari.sourceforge.jp/comparison.html.ja">機能比較表</a>で AKARI と TOMOYO 1.x と TOMOYO 2.x の違いについて詳細に説明されています。もし、 AKARI を使うのであれば、 <a href="http://akari.sourceforge.jp/">AKARI のウェブサイト</a>へと移動してください。</p>
+<p>ただし、カーネルのコンパイルをせずに TOMOYO Linux の機能の主要部分を使いたい場合には、 AKARI というカーネルモジュールを利用することができます。このモジュールは TOMOYO 2.x よりも豊富な機能を提供していますが、 TOMOYO 1.x の機能の一部は使えません。「カーネルがどのようなコンパイルオプションでコンパイルされたか」と「ＣＰＵアーキテクチャ」に依存するという制限がありますが、カーネル 2.6.0 以降の全てのバージョンに対応しており、簡単に利用できます。 <a href="http://akari.osdn.jp/comparison.html.ja">機能比較表</a>で AKARI と TOMOYO 1.x と TOMOYO 2.x の違いについて詳細に説明されています。もし、 AKARI を使うのであれば、 <a href="http://akari.osdn.jp/">AKARI のウェブサイト</a>へと移動してください。</p>
 
 <h4><a name="3.3.1">3.3.1. 依存するパッケージのインストール</a></h4>
 
@@ -183,8 +183,8 @@ linux-4 についてはカーネル 4.0 以降に対応しています。</p>
 以下の操作において、例えばカーネル 3.19.4 を使う場合、 $VERSION.$PATCHLEVEL.diff を 3.19.diff に置き換えてください：</p>
 
 <pre class="command">
-$ wget -O ccs-patch-1.8.4-20150721.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.4-20150721.tar.gz'
-$ wget -O ccs-patch-1.8.4-20150721.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.4-20150721.tar.gz.asc'
+$ wget -O ccs-patch-1.8.4-20150721.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.4-20150721.tar.gz'
+$ wget -O ccs-patch-1.8.4-20150721.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.4-20150721.tar.gz.asc'
 $ gpg ccs-patch-1.8.4-20150721.tar.gz.asc
 $ tar -zxf ccs-patch-1.8.4-20150721.tar.gz
 $ patch -sp1 &lt; patches/ccs-patch-$VERSION.$PATCHLEVEL.diff
@@ -243,8 +243,8 @@ $ su
 <p>前述した依存するパッケージがインストールされていることを確認してください。以下のコマンドを実行することによりコンパイルおよびインストールできます：</p>
 
 <pre class="command">
-$ wget -O ccs-tools-1.8.4-20150505.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.4-20150505.tar.gz'
-$ wget -O ccs-tools-1.8.4-20150505.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.4-20150505.tar.gz.asc'
+$ wget -O ccs-tools-1.8.4-20150505.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.4-20150505.tar.gz'
+$ wget -O ccs-tools-1.8.4-20150505.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49693/ccs-tools-1.8.4-20150505.tar.gz.asc'
 $ gpg ccs-tools-1.8.4-20150505.tar.gz.asc
 $ tar -zxf ccs-tools-1.8.4-20150505.tar.gz
 $ cd ccs-tools/
@@ -370,7 +370,7 @@ GRUB_CMDLINE_LINUX="vconsole.keymap=jp106 crashkernel=auto  vconsole.font=latarc
 <p class="language">Go to <a href="chapter-3.html.en">English page</a>.</p>
 <p class="timestamp">Last modified: $Date$</p>
 <p class="trademark">Linux&reg; は世界各国における Linus Torvalds の登録商標です。 TOMOYO&reg; は<a href="http://www.nttdata.co.jp/">株式会社ＮＴＴデータ</a>の登録商標です。</p>
-<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
+<p><a href="http://osdn.jp/"><img src="http://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
 </div>
 
 </body>

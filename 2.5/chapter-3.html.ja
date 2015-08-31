@@ -55,7 +55,7 @@ ffffffff8115e460 T tomoyo_write_inet_network
 
 <p>存在しない場合、 TOMOYO Linux 対応カーネルを作成する必要がありますので、以下の手順に従ってインストールしてください。</p>
 
-<p>ただし、カーネルのコンパイルをせずに TOMOYO Linux の機能の主要部分を使いたい場合には、 AKARI というカーネルモジュールを利用することができます。このモジュールは TOMOYO 2.x よりも豊富な機能を提供していますが、 TOMOYO 1.x の機能の一部は使えません。「カーネルがどのようなコンパイルオプションでコンパイルされたか」と「ＣＰＵアーキテクチャ」に依存するという制限がありますが、カーネル 2.6.0 以降の全てのバージョンに対応しており、簡単に利用できます。 <a href="http://akari.sourceforge.jp/comparison.html.ja">機能比較表</a>で AKARI と TOMOYO 1.x と TOMOYO 2.x の違いについて詳細に説明されています。もし、 AKARI を使うのであれば、 <a href="http://akari.sourceforge.jp/">AKARI のウェブサイト</a>へと移動してください。</p>
+<p>ただし、カーネルのコンパイルをせずに TOMOYO Linux の機能の主要部分を使いたい場合には、 AKARI というカーネルモジュールを利用することができます。このモジュールは TOMOYO 2.x よりも豊富な機能を提供していますが、 TOMOYO 1.x の機能の一部は使えません。「カーネルがどのようなコンパイルオプションでコンパイルされたか」と「ＣＰＵアーキテクチャ」に依存するという制限がありますが、カーネル 2.6.0 以降の全てのバージョンに対応しており、簡単に利用できます。 <a href="http://akari.osdn.jp/comparison.html.ja">機能比較表</a>で AKARI と TOMOYO 1.x と TOMOYO 2.x の違いについて詳細に説明されています。もし、 AKARI を使うのであれば、 <a href="http://akari.osdn.jp/">AKARI のウェブサイト</a>へと移動してください。</p>
 
 <h4><a name="3.1.2">3.1.2. 依存するパッケージのインストール</a></h4>
 
@@ -90,12 +90,12 @@ ffffffff8115e460 T tomoyo_write_inet_network
 
 <p>カーネルのソースを展開して、そのディレクトリに移動してください。</p>
 
-<p>カーネル 2.6.33 ～ 3.4 で TOMOYO 2.5 を利用したい場合、カーネルのバージョンに合ったバックポートパッチを <a href="http://tomoyo.sourceforge.jp/2.5/patches/">http://tomoyo.sourceforge.jp/2.5/patches/</a> からダウンロードし、以下のコマンドを実行してください（例えばカーネル 2.6.33 を使う場合、 $KERNELVERSION を 2.6.33 に置き換えてください）：</p>
+<p>カーネル 2.6.33 ～ 3.4 で TOMOYO 2.5 を利用したい場合、カーネルのバージョンに合ったバックポートパッチを <a href="http://tomoyo.osdn.jp/2.5/patches/">http://tomoyo.osdn.jp/2.5/patches/</a> からダウンロードし、以下のコマンドを実行してください（例えばカーネル 2.6.33 を使う場合、 $KERNELVERSION を 2.6.33 に置き換えてください）：</p>
 
 <pre class="command">
 $ wget https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.5.tar.bz2
 $ tar -jxf linux-3.5.tar.bz2 --strip 1 linux-3.5/security/tomoyo/
-$ wget http://tomoyo.sourceforge.jp/2.5/patches/tomoyo-2.5-backport-for-$KERNELVERSION.patch
+$ wget http://tomoyo.osdn.jp/2.5/patches/tomoyo-2.5-backport-for-$KERNELVERSION.patch
 $ patch -p1 &lt; tomoyo-2.5-backport-for-$KERNELVERSION.patch
 </pre>
 
@@ -149,8 +149,8 @@ $ su
 <p>前述した依存するパッケージがインストールされていることを確認してください。以下のコマンドを実行することによりコンパイルおよびインストールできます。</p>
 
 <pre class="command">
-$ wget -O tomoyo-tools-2.5.0-20140601.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/53357/tomoyo-tools-2.5.0-20140601.tar.gz'
-$ wget -O tomoyo-tools-2.5.0-20140601.tar.gz.asc 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/53357/tomoyo-tools-2.5.0-20140601.tar.gz.asc'
+$ wget -O tomoyo-tools-2.5.0-20140601.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/53357/tomoyo-tools-2.5.0-20140601.tar.gz'
+$ wget -O tomoyo-tools-2.5.0-20140601.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/53357/tomoyo-tools-2.5.0-20140601.tar.gz.asc'
 $ wget http://I-love.SAKURA.ne.jp/kumaneko-key
 $ gpg --import kumaneko-key
 $ gpg tomoyo-tools-2.5.0-20140601.tar.gz.asc
@@ -255,7 +255,7 @@ GRUB_CMDLINE_LINUX="vconsole.keymap=jp106 crashkernel=auto  vconsole.font=latarc
 <p class="language">Go to <a href="chapter-3.html.en">English page</a>.</p>
 <p class="timestamp">Last modified: $Date$</p>
 <p class="trademark">Linux&reg; は世界各国における Linus Torvalds の登録商標です。 TOMOYO&reg; は<a href="http://www.nttdata.co.jp/">株式会社ＮＴＴデータ</a>の登録商標です。</p>
-<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
+<p><a href="http://osdn.jp/"><img src="http://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
 </div>
 
 </body>

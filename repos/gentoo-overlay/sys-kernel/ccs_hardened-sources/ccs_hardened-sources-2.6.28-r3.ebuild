@@ -11,7 +11,7 @@ inherit eutils kernel-2
 detect_version
 
 CCS_TGP="ccs-patch-1.6.7-20090401"
-CCS_TGP_SRC="mirror://sourceforge.jp/tomoyo/30297/${CCS_TGP}.tar.gz"
+CCS_TGP_SRC="mirror://osdn.jp/tomoyo/30297/${CCS_TGP}.tar.gz"
 CCS_PATCH_VER="2.6.28-hardened-gentoo"
 
 HGPV="${KV_MAJOR}.${KV_MINOR}.${KV_PATCH}-8"

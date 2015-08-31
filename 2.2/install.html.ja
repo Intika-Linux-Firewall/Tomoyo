@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
 <title>TOMOYO Linux 導入手順書</title>
-<link rel="stylesheet" href="http://tomoyo.sourceforge.jp/tomoyo.css" media="all" type="text/css">
+<link rel="stylesheet" href="http://tomoyo.osdn.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <p>This page is for TOMOYO 2.2 (for Linux 2.6.30 - 2.6.35 kernels). Please jump to <a href="../2.3/">this page</a> for TOMOYO 2.3 (for Linux 2.6.36 and later kernels).</p>
@@ -35,7 +35,7 @@ ffffffff8115e460 T tomoyo_io_printf
 
 <p>存在しない場合、 TOMOYO Linux 対応カーネルを作成する必要がありますので、以下の手順に従ってインストールしてください。</p>
 
-<p>ただし、カーネルのコンパイルをせずに TOMOYO Linux の機能の主要部分を使いたい場合には、 AKARI というカーネルモジュールを利用することができます。このモジュールは TOMOYO 2.x よりも豊富な機能を提供していますが、 TOMOYO 1.x の機能の一部は使えません。「カーネルがどのようなコンパイルオプションでコンパイルされたか」と「ＣＰＵアーキテクチャ」に依存するという制限がありますが、カーネル 2.6.0 以降の全てのバージョンに対応しており、簡単に利用できます。 <a href="http://akari.sourceforge.jp/comparison.html.ja">機能比較表</a>で AKARI と TOMOYO 1.x と TOMOYO 2.x の違いについて詳細に説明されています。もし、 AKARI を使うのであれば、 <a href="http://akari.sourceforge.jp/">AKARI のウェブサイト</a>へと移動してください。</p>
+<p>ただし、カーネルのコンパイルをせずに TOMOYO Linux の機能の主要部分を使いたい場合には、 AKARI というカーネルモジュールを利用することができます。このモジュールは TOMOYO 2.x よりも豊富な機能を提供していますが、 TOMOYO 1.x の機能の一部は使えません。「カーネルがどのようなコンパイルオプションでコンパイルされたか」と「ＣＰＵアーキテクチャ」に依存するという制限がありますが、カーネル 2.6.0 以降の全てのバージョンに対応しており、簡単に利用できます。 <a href="http://akari.osdn.jp/comparison.html.ja">機能比較表</a>で AKARI と TOMOYO 1.x と TOMOYO 2.x の違いについて詳細に説明されています。もし、 AKARI を使うのであれば、 <a href="http://akari.osdn.jp/">AKARI のウェブサイト</a>へと移動してください。</p>
 
 <p>もし、カーネル 2.6.33 以降を使うつもりであり、 <a href="../2.5/">TOMOYO 2.5</a> を使いたくない理由が無いのであれば、 TOMOYO 2.5 を利用することを推奨します。 TOMOYO 2.5 はより強力で使いやすいものになっています。</p>
 
@@ -52,7 +52,7 @@ ffffffff8115e460 T tomoyo_io_printf
 
 <p>カーネルのソースを "<a href="https://www.kernel.org/pub/linux/kernel/v2.6/longterm/v2.6.35/linux-2.6.35.14.tar.bz2">linux-2.6.35.14.tar.bz2</a>" からダウンロードして展開してください。</p>
 
-<p>メインラインのカーネルのソースに反映することが間に合わなかった不具合修正パッチがあるかもしれません。利用するカーネルのバージョンに合った全ての不具合修正パッチ（例えば 2.6.35 カーネルの場合には 2.6.35-tomoyo-\*.patch ）を <a href="http://tomoyo.sourceforge.jp/2.2/patches/">http://tomoyo.sourceforge.jp/2.2/patches/</a> からダウンロードして、カーネルのソースコードを展開したディレクトリから以下のコマンドを実行してください。（以下のコマンドは、適用済みのパッチがあればスキップします。）</p>
+<p>メインラインのカーネルのソースに反映することが間に合わなかった不具合修正パッチがあるかもしれません。利用するカーネルのバージョンに合った全ての不具合修正パッチ（例えば 2.6.35 カーネルの場合には 2.6.35-tomoyo-\*.patch ）を <a href="http://tomoyo.osdn.jp/2.2/patches/">http://tomoyo.osdn.jp/2.2/patches/</a> からダウンロードして、カーネルのソースコードを展開したディレクトリから以下のコマンドを実行してください。（以下のコマンドは、適用済みのパッチがあればスキップします。）</p>
 
 <table border="1">
 <tr><td>
@@ -105,7 +105,7 @@ ffffffff8115e460 T tomoyo_io_printf
 
 <table border="1">
 <tr><td>
-[root@tomoyo ~]# wget -O tomoyo-tools-2.2.0-20120414.tar.gz 'http://sourceforge.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/41908/tomoyo-tools-2.2.0-20120414.tar.gz'<br>
+[root@tomoyo ~]# wget -O tomoyo-tools-2.2.0-20120414.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/41908/tomoyo-tools-2.2.0-20120414.tar.gz'<br>
 [root@tomoyo ~]# tar -zxf tomoyo-tools-2.2.0-20120414.tar.gz<br>
 [root@tomoyo ~]# make -C tomoyo-tools/ install
 </td></tr>
@@ -114,6 +114,6 @@ ffffffff8115e460 T tomoyo_io_printf
 <hr>
 
 <p><a href="index.html.ja">目次へ戻る</a></p>
-<p><a href="http://sourceforge.jp/"><img src="http://sourceforge.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
+<p><a href="http://osdn.jp/"><img src="http://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
 </body>
 </html>
