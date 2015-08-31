@@ -16,13 +16,13 @@ mount -t proc none /proc/
 mount -t sysfs none /sys/
 mount -t devpts none /dev/pts/
 
-wget http://osdn.dl.sourceforge.jp/tomoyo/55680/tomoyo-tools_2.5.0-8_i386.deb
+wget http://osdn.dl.osdn.jp/tomoyo/55680/tomoyo-tools_2.5.0-8_i386.deb
 echo '93562e9f3d5f0bb3ae1f9d042e29c5fe  tomoyo-tools_2.5.0-8_i386.deb' | md5sum -c - || rm -f tomoyo-tools_2.5.0-8_i386.deb
 dpkg-deb -x tomoyo-tools_2.5.0-8_i386.deb /
 rm -f tomoyo-tools_2.5.0-8_i386.deb
 
 wget -O - http://I-love.SAKURA.ne.jp/kumaneko-key | apt-key add - || die "Can't install key."
-grep -qF tomoyo.sourceforge.jp /sources.list || echo 'deb http://tomoyo.sourceforge.jp/repos-1.8/Ubuntu12.04/ ./' >> /sources.list
+grep -qF tomoyo.osdn.jp /sources.list || echo 'deb http://tomoyo.osdn.jp/repos-1.8/Ubuntu12.04/ ./' >> /sources.list
 apt-get -y -o Dir::Etc::SourceList=/sources.list update || die "apt-get update failed. Try again later."
 apt-get -y -o Dir::Etc::SourceList=/sources.list install linux-generic-pae-ccs linux-headers-generic-pae-ccs ccs-tools || die "Can't install packages."
 apt-get -y -o Dir::Etc::SourceList=/sources.list purge linux-image-3.2.0-23-generic-pae linux-image-generic-pae linux-headers-generic-pae linux-generic-pae || die "Can't uninstall packages."
