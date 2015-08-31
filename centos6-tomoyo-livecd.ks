@@ -11,7 +11,7 @@ selinux --enforcing
 firewall --enabled --service=mdns
 repo --name=base    --baseurl=http://ftp.riken.jp/Linux/centos/6.6/os/i386/
 repo --name=updates --baseurl=http://ftp.riken.jp/Linux/centos/6.6/updates/i386/
-repo --name=ccs     --baseurl=http://tomoyo.sourceforge.jp/repos-1.8/CentOS6/
+repo --name=ccs     --baseurl=http://tomoyo.osdn.jp/repos-1.8/CentOS6/
 repo --name=adobe   --baseurl=http://linuxdownload.adobe.com/linux/i386/
 
 xconfig --startxonboot
@@ -1230,11 +1230,11 @@ mkdir tomoyo/
 cd tomoyo/
 mv /etc/hosts /etc/hosts.tmp
 #export http_proxy=http://proxy:port/
-echo '202.221.179.21 sourceforge.jp' > /etc/hosts
-echo '202.221.179.25 svn.sourceforge.jp' >> /etc/hosts
-wget -O centos6-live.html.en 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos6-live.html.en?revision=HEAD&root=tomoyo'
-wget -O centos6-live.html.ja 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos6-live.html.ja?revision=HEAD&root=tomoyo'
-wget -O - 'http://sourceforge.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/media.centos6.tar.gz?root=tomoyo&view=tar' | tar -zxf -
+echo '202.221.179.11 osdn.jp' > /etc/hosts
+echo '202.221.179.25 svn.osdn.jp' >> /etc/hosts
+wget -O centos6-live.html.en 'http://osdn.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos6-live.html.en?revision=HEAD&root=tomoyo'
+wget -O centos6-live.html.ja 'http://osdn.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos6-live.html.ja?revision=HEAD&root=tomoyo'
+wget -O - 'http://osdn.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/media.centos6.tar.gz?root=tomoyo&view=tar' | tar -zxf -
 mv /etc/hosts.tmp /etc/hosts
 ln -s centos6-live.html.en index.html.en
 ln -s centos6-live.html.ja index.html.ja
@@ -1269,7 +1269,7 @@ rm -f kumaneko-key
 cat > /etc/yum.repos.d/ccs.repo << EOF_ccs_repo 
 [ccs]
 name=TOMOYO Linux kernels and tools
-baseurl=http://tomoyo.sourceforge.jp/repos-1.8/CentOS6/
+baseurl=http://tomoyo.osdn.jp/repos-1.8/CentOS6/
 enabled=1
 gpgcheck=1
 EOF_ccs_repo
