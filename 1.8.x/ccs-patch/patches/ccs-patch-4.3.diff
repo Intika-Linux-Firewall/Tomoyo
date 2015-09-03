@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for linux-next.
 
-Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/snapshot/linux-next-next-20150806.tar.gz
+Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/snapshot/linux-next-next-20150828.tar.gz
 ---
  fs/exec.c                 |    2 -
  fs/open.c                 |    2 +
@@ -10,7 +10,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  include/linux/security.h  |   62 ++++++++++++++++++++++++++++------------------
  include/net/ip.h          |    4 ++
  kernel/fork.c             |    5 +++
- kernel/kexec.c            |    3 ++
+ kernel/kexec.c            |    4 ++
  kernel/module.c           |    5 +++
  kernel/ptrace.c           |   10 +++++++
  kernel/reboot.c           |    3 ++
@@ -26,7 +26,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  net/unix/af_unix.c        |    4 ++
  security/Kconfig          |    2 +
  security/Makefile         |    3 ++
- 24 files changed, 150 insertions(+), 25 deletions(-)
+ 24 files changed, 150 insertions(+), 26 deletions(-)
 
 --- linux-next.orig/fs/exec.c
 +++ linux-next/fs/exec.c
@@ -59,13 +59,13 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 4.2-rc5-next-20150806 2015/08/06\n");
++	printk(KERN_INFO "Hook version: 4.2-rc8-next-20150828 2015/09/03\n");
 +	return 0;
 +}
 +fs_initcall(ccs_show_version);
 --- linux-next.orig/include/linux/init_task.h
 +++ linux-next/include/linux/init_task.h
-@@ -173,6 +173,14 @@ extern struct task_group root_task_group
+@@ -182,6 +182,14 @@ extern struct task_group root_task_group
  # define INIT_KASAN(tsk)
  #endif
  
@@ -80,7 +80,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  /*
   *  INIT_TASK is used to set up the first task table, touch at
   * your own risk!. Base=0, limit=0x1fffff (=2MB)
-@@ -249,6 +257,7 @@ extern struct task_group root_task_group
+@@ -259,6 +267,7 @@ extern struct task_group root_task_group
  	INIT_VTIME(tsk)							\
  	INIT_NUMA_BALANCING(tsk)					\
  	INIT_KASAN(tsk)							\
@@ -99,7 +99,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  struct sched_param {
  	int sched_priority;
  };
-@@ -1799,6 +1801,10 @@ struct task_struct {
+@@ -1800,6 +1802,10 @@ struct task_struct {
  	unsigned long	task_state_change;
  #endif
  	int pagefault_disabled;
@@ -340,7 +340,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  #endif
 --- linux-next.orig/kernel/fork.c
 +++ linux-next/kernel/fork.c
-@@ -258,6 +258,7 @@ void __put_task_struct(struct task_struc
+@@ -257,6 +257,7 @@ void __put_task_struct(struct task_struc
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
  
@@ -348,7 +348,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1429,6 +1430,9 @@ static struct task_struct *copy_process(
+@@ -1431,6 +1432,9 @@ static struct task_struct *copy_process(
  		goto bad_fork_cleanup_perf;
  	/* copy all the process information */
  	shm_init_task(p);
@@ -358,7 +358,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	retval = copy_semundo(clone_flags, p);
  	if (retval)
  		goto bad_fork_cleanup_audit;
-@@ -1645,6 +1649,7 @@ bad_fork_cleanup_semundo:
+@@ -1647,6 +1651,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -368,15 +368,16 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  bad_fork_cleanup_policy:
 --- linux-next.orig/kernel/kexec.c
 +++ linux-next/kernel/kexec.c
-@@ -14,6 +14,7 @@
- #include <linux/list.h>
+@@ -15,7 +15,7 @@
  #include <linux/syscalls.h>
+ #include <linux/vmalloc.h>
  #include <linux/slab.h>
+-
 +#include <linux/ccsecurity.h>
  #include "kexec_internal.h"
  
  static int copy_user_segment_list(struct kimage *image,
-@@ -129,6 +130,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
+@@ -131,6 +131,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
  	/* We only trust the superuser with rebooting the system. */
  	if (!capable(CAP_SYS_BOOT) || kexec_load_disabled)
  		return -EPERM;
@@ -404,7 +405,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -3311,6 +3314,8 @@ static int may_init_module(void)
+@@ -3315,6 +3318,8 @@ static int may_init_module(void)
  {
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -460,7 +461,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	 * If pid namespaces are enabled and the current task is in a child
 --- linux-next.orig/kernel/sched/core.c
 +++ linux-next/kernel/sched/core.c
-@@ -3400,6 +3400,8 @@ int can_nice(const struct task_struct *p
+@@ -3454,6 +3454,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -557,7 +558,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  #include "ntp_internal.h"
  
-@@ -655,10 +656,15 @@ int ntp_validate_timex(struct timex *txc
+@@ -660,10 +661,15 @@ int ntp_validate_timex(struct timex *txc
  		if (!(txc->modes & ADJ_OFFSET_READONLY) &&
  		    !capable(CAP_SYS_TIME))
  			return -EPERM;
@@ -573,7 +574,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  		/*
  		 * if the quartz is off by more than 10% then
  		 * something is VERY wrong!
-@@ -671,6 +677,8 @@ int ntp_validate_timex(struct timex *txc
+@@ -676,6 +682,8 @@ int ntp_validate_timex(struct timex *txc
  
  	if ((txc->modes & ADJ_SETOFFSET) && (!capable(CAP_SYS_TIME)))
  		return -EPERM;
@@ -597,7 +598,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	if (len < copied) {
 --- linux-next.orig/net/ipv4/udp.c
 +++ linux-next/net/ipv4/udp.c
-@@ -1272,6 +1272,10 @@ try_again:
+@@ -1292,6 +1292,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
  		goto out;
