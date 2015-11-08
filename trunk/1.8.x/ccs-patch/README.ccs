@@ -3213,3 +3213,21 @@ Fix 2015/05/01
       them from each domain as needed.
 
 Version 1.8.4   2015/05/05   Usability enhancement release.
+
+Fix 2015/11/08
+
+    @ Use memory allocation flags used by TOMOYO 2.x.
+
+      Until now, TOMOYO 1.x was using memory allocation flags which are weaker
+      than TOMOYO 2.x in order to make sure that memory allocation request by
+      TOMOYO 1.x shall not cause silent livelock problem.
+
+      But as I learn about this livelock problem, I understood that this is
+      not a problem which TOMOYO can manage. While hitting a silent livelock
+      at memory allocation is a problem, refusing critical access requests
+      by critical processes due to memory allocation failure caused by use of
+      weaker memory allocation flags is also a problem.
+
+      Since situations regarding memory allocation flags in upstream kernels
+      are changing, it will be safer to use memory allocation flags used by
+      TOMOYO 2.x.
