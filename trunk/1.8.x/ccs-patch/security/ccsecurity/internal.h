@@ -884,6 +884,9 @@ enum ccs_value_type {
  */
 #define CCS_RETRY_REQUEST 1
 
+/* The gfp flags used by TOMOYO. */
+#define CCS_GFP_FLAGS GFP_NOFS
+
 /* Size of read buffer for /proc/ccs/ interface. */
 #define CCS_MAX_IO_READ_QUEUE 64
 
@@ -1204,7 +1207,7 @@ struct ccs_execve {
 	const struct ccs_path_info *transition;
 	/* For execute_handler */
 	const struct ccs_path_info *handler;
-	char *handler_path; /* = kstrdup(handler->name, GFP_NOFS) */
+	char *handler_path; /* = kstrdup(handler->name, CCS_GFP_FLAGS) */
 	/* For dumping argv[] and envp[]. */
 	struct ccs_page_dump dump;
 	/* For temporary use. */
