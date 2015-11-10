@@ -3231,3 +3231,10 @@ Fix 2015/11/08
       Since situations regarding memory allocation flags in upstream kernels
       are changing, it will be safer to use memory allocation flags used by
       TOMOYO 2.x.
+
+Fix 2015/11/10
+
+    @ Limit wildcard recursion depth.
+
+      Since wildcards that need recursion consume kernel stack memory,
+      we cannot allow infinite recursion.
