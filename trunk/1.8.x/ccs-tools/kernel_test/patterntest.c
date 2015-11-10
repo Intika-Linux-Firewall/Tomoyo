@@ -93,12 +93,11 @@ static u8 ccs_make_byte(const u8 c1, const u8 c2, const u8 c3)
 static bool ccs_is_correct_path(const char *filename, const s8 start_type,
 				const s8 pattern_type, const s8 end_type)
 {
+	u8 recursion = 20;
 	const char *const start = filename;
 	bool in_repetition = false;
 	bool contains_pattern = false;
 	unsigned char c;
-	unsigned char d;
-	unsigned char e;
 	if (!filename)
 		goto out;
 	c = *filename;
@@ -124,52 +123,57 @@ static bool ccs_is_correct_path(const char *filename, const s8 start_type,
 			break;
 		if (c == '\\') {
 			c = *filename++;
+			if (c >= '0' && c <= '3') {
+				unsigned char d;
+				unsigned char e;
+				d = *filename++;
+				if (d < '0' || d > '7')
+					goto out;
+				e = *filename++;
+				if (e < '0' || e > '7')
+					goto out;
+				c = ccs_make_byte(c, d, e);
+				if (c <= ' ' || c >= 127)
+					continue;
+				goto out;
+			}
 			switch (c) {
 			case '\\':  /* "\\" */
-				continue;
-			case '$':   /* "\$" */
 			case '+':   /* "\+" */
 			case '?':   /* "\?" */
+			case 'x':   /* "\x" */
+			case 'a':   /* "\a" */
+			case '-':   /* "\-" */
+				continue;
+			}
+			if (!recursion--)
+				goto out;
+			switch (c) {
 			case '*':   /* "\*" */
 			case '@':   /* "\@" */
-			case 'x':   /* "\x" */
+			case '$':   /* "\$" */
 			case 'X':   /* "\X" */
-			case 'a':   /* "\a" */
 			case 'A':   /* "\A" */
-			case '-':   /* "\-" */
 				if (pattern_type == -1)
-					break; /* Must not contain pattern */
+					goto out; /* Must not contain pattern */
 				contains_pattern = true;
 				continue;
 			case '{':   /* "/\{" */
 				if (filename - 3 < start ||
 				    *(filename - 3) != '/')
-					break;
+					goto out;
 				if (pattern_type == -1)
-					break; /* Must not contain pattern */
+					goto out; /* Must not contain pattern */
 				contains_pattern = true;
 				in_repetition = true;
 				continue;
 			case '}':   /* "\}/" */
 				if (*filename != '/')
-					break;
+					goto out;
 				if (!in_repetition)
-					break;
+					goto out;
 				in_repetition = false;
 				continue;
-			case '0':   /* "\ooo" */
-			case '1':
-			case '2':
-			case '3':
-				d = *filename++;
-				if (d < '0' || d > '7')
-					break;
-				e = *filename++;
-				if (e < '0' || e > '7')
-					break;
-				c = ccs_make_byte(c, d, e);
-				if (c <= ' ' || c >= 127)
-					continue;
 			}
 			goto out;
 		} else if (in_repetition && c == '/') {
@@ -444,7 +448,7 @@ static void ccs_fill_path_info(struct ccs_path_info *ptr)
 	ptr->const_len = ccs_const_part_length(name);
 	ptr->is_dir = len && (name[len - 1] == '/');
 	ptr->is_patterned = (ptr->const_len < len);
-	ptr->hash = full_name_hash(name, len);
+	ptr->hash = full_name_hash((const unsigned char *)name, len);
 }
 
 static const struct {
