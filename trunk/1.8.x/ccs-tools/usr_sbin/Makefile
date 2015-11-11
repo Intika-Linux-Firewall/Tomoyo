@@ -19,8 +19,8 @@ CFLAGS_PIC  := $(filter-out -fPIE,$(CFLAGS))
 LDFLAGS_PIC := $(filter-out -pie,$(filter-out -fPIE,$(LDFLAGS)))
 
 libccstools.so: ccstools.c ccstools.h
-	$(CC) $(CPPFLAGS) $(CFLAGS_PIC) $(LDFLAGS_PIC) -fPIC ccstools.c -shared -Wl,-soname,libccstools.so.3 -o libccstools.so.3.0.2
-	ln -sf libccstools.so.3.0.2 libccstools.so
+	$(CC) $(CPPFLAGS) $(CFLAGS_PIC) $(LDFLAGS_PIC) -fPIC ccstools.c -shared -Wl,-soname,libccstools.so.3 -o libccstools.so.3.0.3
+	ln -sf libccstools.so.3.0.3 libccstools.so
 
 .c:
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $< -lccstools -L. 
@@ -33,8 +33,8 @@ ccs-queryd: ccstools.h ccs-queryd.c readline.h /usr/include/curses.h libccstools
 
 install: all
 	mkdir -p -m 0755 $(INSTALLDIR)$(USRLIBDIR)
-	$(INSTALL) -m 0755 libccstools.so.3.0.2 $(INSTALLDIR)$(USRLIBDIR)
-	ln -sf libccstools.so.3.0.2 $(INSTALLDIR)$(USRLIBDIR)/libccstools.so.3
+	$(INSTALL) -m 0755 libccstools.so.3.0.3 $(INSTALLDIR)$(USRLIBDIR)
+	ln -sf libccstools.so.3.0.3 $(INSTALLDIR)$(USRLIBDIR)/libccstools.so.3
 ifeq ($(INSTALLDIR),)
 	ldconfig || true
 endif
