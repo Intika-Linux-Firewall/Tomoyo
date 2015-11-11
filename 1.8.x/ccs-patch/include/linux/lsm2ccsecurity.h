@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.4   2015/07/11
+ * Version: 1.8.5   2015/11/11
  */
 
 #ifndef _LINUX_LSM2CCSECURITY_H
