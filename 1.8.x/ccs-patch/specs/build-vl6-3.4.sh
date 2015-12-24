@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.4.108-2vl6.src.rpm ]
+if [ ! -r kernel-3.4.110-2vl6.src.rpm ]
 then
-    wget http://updates.vinelinux.org/Vine-6.3/updates/SRPMS/kernel-3.4.108-2vl6.src.rpm || die "Can't download source package."
+    wget http://updates.vinelinux.org/Vine-6.3/updates/SRPMS/kernel-3.4.110-2vl6.src.rpm || die "Can't download source package."
 fi
-LANG=C rpm --checksig kernel-3.4.108-2vl6.src.rpm | grep -F ': (sha1) dsa sha1 md5 gpg OK' || die "Can't verify signature."
-rpm -ivh kernel-3.4.108-2vl6.src.rpm || die "Can't install source package."
+LANG=C rpm --checksig kernel-3.4.110-2vl6.src.rpm | grep -F ': (sha1) dsa sha1 md5 gpg OK' || die "Can't verify signature."
+rpm -ivh kernel-3.4.110-2vl6.src.rpm || die "Can't install source package."
 
 cd /root/rpm/SOURCES/ || die "Can't chdir to /root/rpm/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.5-20151111.tar.gz ]
@@ -29,7 +29,7 @@ patch << "EOF" || die "Can't patch spec file."
 --- kernel34-vl.spec
 +++ kernel34-vl.spec
 @@ -34,7 +34,7 @@
- %define patchlevel 108
+ %define patchlevel 110
  %define kversion 3.%{sublevel}
  %define rpmversion 3.%{sublevel}.%{patchlevel}
 -%define release 2%{?_dist_release}
@@ -56,7 +56,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -725,6 +728,10 @@
+@@ -741,6 +744,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  # put Vine logo
-@@ -743,6 +750,9 @@
+@@ -759,6 +766,9 @@
  for i in *.config
  do 
  	mv $i .config 
