@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for kernel 4.4.
+This is TOMOYO Linux patch for linux-next.
 
-Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.4.tar.xz
+Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/snapshot/linux-next-next-20160108.tar.xz
 ---
  fs/exec.c                 |    2 -
  fs/open.c                 |    2 +
@@ -28,8 +28,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  security/Makefile         |    3 ++
  24 files changed, 150 insertions(+), 26 deletions(-)
 
---- linux-4.4.orig/fs/exec.c
-+++ linux-4.4/fs/exec.c
+--- linux-next.orig/fs/exec.c
++++ linux-next/fs/exec.c
 @@ -1467,7 +1467,7 @@ static int exec_binprm(struct linux_binp
  	old_vpid = task_pid_nr_ns(current, task_active_pid_ns(current->parent));
  	rcu_read_unlock();
@@ -39,9 +39,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	if (ret >= 0) {
  		audit_bprm(bprm);
  		trace_sched_process_exec(current, old_pid, bprm);
---- linux-4.4.orig/fs/open.c
-+++ linux-4.4/fs/open.c
-@@ -1117,6 +1117,8 @@ EXPORT_SYMBOL(sys_close);
+--- linux-next.orig/fs/open.c
++++ linux-next/fs/open.c
+@@ -1114,6 +1114,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -50,8 +50,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-4.4.orig/fs/proc/version.c
-+++ linux-4.4/fs/proc/version.c
+--- linux-next.orig/fs/proc/version.c
++++ linux-next/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -59,12 +59,12 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 4.4 2016/01/11\n");
++	printk(KERN_INFO "Hook version: 4.4-rc8-next-20160108 2016/01/11\n");
 +	return 0;
 +}
 +fs_initcall(ccs_show_version);
---- linux-4.4.orig/include/linux/init_task.h
-+++ linux-4.4/include/linux/init_task.h
+--- linux-next.orig/include/linux/init_task.h
++++ linux-next/include/linux/init_task.h
 @@ -183,6 +183,14 @@ extern struct task_group root_task_group
  # define INIT_KASAN(tsk)
  #endif
@@ -88,8 +88,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  
---- linux-4.4.orig/include/linux/sched.h
-+++ linux-4.4/include/linux/sched.h
+--- linux-next.orig/include/linux/sched.h
++++ linux-next/include/linux/sched.h
 @@ -6,6 +6,8 @@
  #include <linux/sched/prio.h>
  
@@ -99,7 +99,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  struct sched_param {
  	int sched_priority;
  };
-@@ -1813,6 +1815,10 @@ struct task_struct {
+@@ -1829,6 +1831,10 @@ struct task_struct {
  	unsigned long	task_state_change;
  #endif
  	int pagefault_disabled;
@@ -110,8 +110,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  /* CPU-specific state of this task */
  	struct thread_struct thread;
  /*
---- linux-4.4.orig/include/linux/security.h
-+++ linux-4.4/include/linux/security.h
+--- linux-next.orig/include/linux/security.h
++++ linux-next/include/linux/security.h
 @@ -53,6 +53,7 @@ struct msg_queue;
  struct xattr;
  struct xfrm_sec_ctx;
@@ -120,7 +120,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  /* If capable should audit the security request */
  #define SECURITY_CAP_NOAUDIT 0
-@@ -460,7 +461,10 @@ static inline int security_syslog(int ty
+@@ -461,7 +462,10 @@ static inline int security_syslog(int ty
  static inline int security_settime(const struct timespec *ts,
  				   const struct timezone *tz)
  {
@@ -132,7 +132,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  static inline int security_vm_enough_memory_mm(struct mm_struct *mm, long pages)
-@@ -529,18 +533,18 @@ static inline int security_sb_mount(cons
+@@ -530,18 +534,18 @@ static inline int security_sb_mount(cons
  				    const char *type, unsigned long flags,
  				    void *data)
  {
@@ -154,7 +154,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  static inline int security_sb_set_mnt_opts(struct super_block *sb,
-@@ -679,7 +683,7 @@ static inline int security_inode_setattr
+@@ -680,7 +684,7 @@ static inline int security_inode_setattr
  
  static inline int security_inode_getattr(const struct path *path)
  {
@@ -163,7 +163,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  static inline int security_inode_setxattr(struct dentry *dentry,
-@@ -755,7 +759,7 @@ static inline void security_file_free(st
+@@ -756,7 +760,7 @@ static inline void security_file_free(st
  static inline int security_file_ioctl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -172,7 +172,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  static inline int security_mmap_file(struct file *file, unsigned long prot,
-@@ -784,7 +788,7 @@ static inline int security_file_lock(str
+@@ -785,7 +789,7 @@ static inline int security_file_lock(str
  static inline int security_file_fcntl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -181,7 +181,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  static inline void security_file_set_fowner(struct file *file)
-@@ -807,7 +811,7 @@ static inline int security_file_receive(
+@@ -808,7 +812,7 @@ static inline int security_file_receive(
  static inline int security_file_open(struct file *file,
  				     const struct cred *cred)
  {
@@ -190,7 +190,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  static inline int security_task_create(unsigned long clone_flags)
-@@ -1169,7 +1173,7 @@ static inline int security_unix_may_send
+@@ -1174,7 +1178,7 @@ static inline int security_unix_may_send
  static inline int security_socket_create(int family, int type,
  					 int protocol, int kern)
  {
@@ -199,7 +199,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  static inline int security_socket_post_create(struct socket *sock,
-@@ -1184,19 +1188,19 @@ static inline int security_socket_bind(s
+@@ -1189,19 +1193,19 @@ static inline int security_socket_bind(s
  				       struct sockaddr *address,
  				       int addrlen)
  {
@@ -222,7 +222,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  static inline int security_socket_accept(struct socket *sock,
-@@ -1208,7 +1212,7 @@ static inline int security_socket_accept
+@@ -1213,7 +1217,7 @@ static inline int security_socket_accept
  static inline int security_socket_sendmsg(struct socket *sock,
  					  struct msghdr *msg, int size)
  {
@@ -231,7 +231,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  static inline int security_socket_recvmsg(struct socket *sock,
-@@ -1450,42 +1454,42 @@ int security_path_chroot(struct path *pa
+@@ -1455,42 +1459,42 @@ int security_path_chroot(struct path *pa
  #else	/* CONFIG_SECURITY_PATH */
  static inline int security_path_unlink(struct path *dir, struct dentry *dentry)
  {
@@ -281,7 +281,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  static inline int security_path_rename(struct path *old_dir,
-@@ -1494,22 +1498,32 @@ static inline int security_path_rename(s
+@@ -1499,22 +1503,32 @@ static inline int security_path_rename(s
  				       struct dentry *new_dentry,
  				       unsigned int flags)
  {
@@ -318,8 +318,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-4.4.orig/include/net/ip.h
-+++ linux-4.4/include/net/ip.h
+--- linux-next.orig/include/net/ip.h
++++ linux-next/include/net/ip.h
 @@ -223,6 +223,8 @@ void inet_get_local_port_range(struct ne
  #ifdef CONFIG_SYSCTL
  static inline int inet_is_local_reserved_port(struct net *net, int port)
@@ -338,8 +338,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	return 0;
  }
  #endif
---- linux-4.4.orig/kernel/fork.c
-+++ linux-4.4/kernel/fork.c
+--- linux-next.orig/kernel/fork.c
++++ linux-next/kernel/fork.c
 @@ -258,6 +258,7 @@ void __put_task_struct(struct task_struc
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
@@ -348,7 +348,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1429,6 +1430,9 @@ static struct task_struct *copy_process(
+@@ -1427,6 +1428,9 @@ static struct task_struct *copy_process(
  		goto bad_fork_cleanup_perf;
  	/* copy all the process information */
  	shm_init_task(p);
@@ -358,7 +358,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	retval = copy_semundo(clone_flags, p);
  	if (retval)
  		goto bad_fork_cleanup_audit;
-@@ -1644,6 +1648,7 @@ bad_fork_cleanup_semundo:
+@@ -1642,6 +1646,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -366,8 +366,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  bad_fork_cleanup_perf:
  	perf_event_free_task(p);
  bad_fork_cleanup_policy:
---- linux-4.4.orig/kernel/kexec.c
-+++ linux-4.4/kernel/kexec.c
+--- linux-next.orig/kernel/kexec.c
++++ linux-next/kernel/kexec.c
 @@ -17,7 +17,7 @@
  #include <linux/syscalls.h>
  #include <linux/vmalloc.h>
@@ -386,8 +386,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-4.4.orig/kernel/module.c
-+++ linux-4.4/kernel/module.c
+--- linux-next.orig/kernel/module.c
++++ linux-next/kernel/module.c
 @@ -61,6 +61,7 @@
  #include <linux/bsearch.h>
  #include <uapi/linux/module.h>
@@ -396,7 +396,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  #define CREATE_TRACE_POINTS
  #include <trace/events/module.h>
-@@ -956,6 +957,8 @@ SYSCALL_DEFINE2(delete_module, const cha
+@@ -932,6 +933,8 @@ SYSCALL_DEFINE2(delete_module, const cha
  
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -405,7 +405,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -3315,6 +3318,8 @@ static int may_init_module(void)
+@@ -3304,6 +3307,8 @@ static int may_init_module(void)
  {
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -414,9 +414,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	return 0;
  }
---- linux-4.4.orig/kernel/ptrace.c
-+++ linux-4.4/kernel/ptrace.c
-@@ -1052,6 +1052,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+--- linux-next.orig/kernel/ptrace.c
++++ linux-next/kernel/ptrace.c
+@@ -1081,6 +1081,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
@@ -428,7 +428,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -1198,6 +1203,11 @@ COMPAT_SYSCALL_DEFINE4(ptrace, compat_lo
+@@ -1227,6 +1232,11 @@ COMPAT_SYSCALL_DEFINE4(ptrace, compat_lo
  {
  	struct task_struct *child;
  	long ret;
@@ -440,8 +440,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-4.4.orig/kernel/reboot.c
-+++ linux-4.4/kernel/reboot.c
+--- linux-next.orig/kernel/reboot.c
++++ linux-next/kernel/reboot.c
 @@ -16,6 +16,7 @@
  #include <linux/syscalls.h>
  #include <linux/syscore_ops.h>
@@ -459,9 +459,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	/*
  	 * If pid namespaces are enabled and the current task is in a child
---- linux-4.4.orig/kernel/sched/core.c
-+++ linux-4.4/kernel/sched/core.c
-@@ -3522,6 +3522,8 @@ int can_nice(const struct task_struct *p
+--- linux-next.orig/kernel/sched/core.c
++++ linux-next/kernel/sched/core.c
+@@ -3624,6 +3624,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -470,8 +470,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-4.4.orig/kernel/signal.c
-+++ linux-4.4/kernel/signal.c
+--- linux-next.orig/kernel/signal.c
++++ linux-next/kernel/signal.c
 @@ -2847,6 +2847,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
@@ -517,8 +517,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-4.4.orig/kernel/sys.c
-+++ linux-4.4/kernel/sys.c
+--- linux-next.orig/kernel/sys.c
++++ linux-next/kernel/sys.c
 @@ -183,6 +183,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -548,17 +548,17 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-4.4.orig/kernel/time/ntp.c
-+++ linux-4.4/kernel/time/ntp.c
-@@ -16,6 +16,7 @@
- #include <linux/mm.h>
+--- linux-next.orig/kernel/time/ntp.c
++++ linux-next/kernel/time/ntp.c
+@@ -17,6 +17,7 @@
  #include <linux/module.h>
  #include <linux/rtc.h>
+ #include <linux/math64.h>
 +#include <linux/ccsecurity.h>
  
  #include "ntp_internal.h"
- 
-@@ -660,10 +661,15 @@ int ntp_validate_timex(struct timex *txc
+ #include "timekeeping_internal.h"
+@@ -666,10 +667,15 @@ int ntp_validate_timex(struct timex *txc
  		if (!(txc->modes & ADJ_OFFSET_READONLY) &&
  		    !capable(CAP_SYS_TIME))
  			return -EPERM;
@@ -574,17 +574,17 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  		/*
  		 * if the quartz is off by more than 10% then
  		 * something is VERY wrong!
-@@ -676,6 +682,8 @@ int ntp_validate_timex(struct timex *txc
+@@ -684,6 +690,8 @@ int ntp_validate_timex(struct timex *txc
+ 		/* In order to inject time, you gotta be super-user! */
+ 		if (!capable(CAP_SYS_TIME))
+ 			return -EPERM;
++		if (!ccs_capable(CCS_SYS_SETTIME))
++			return -EPERM;
  
- 	if ((txc->modes & ADJ_SETOFFSET) && (!capable(CAP_SYS_TIME)))
- 		return -EPERM;
-+	if ((txc->modes & ADJ_SETOFFSET) && !ccs_capable(CCS_SYS_SETTIME))
-+		return -EPERM;
- 
- 	/*
- 	 * Check for potential multiplication overflows that can
---- linux-4.4.orig/net/ipv4/raw.c
-+++ linux-4.4/net/ipv4/raw.c
+ 		if (!timeval_inject_offset_valid(&txc->time))
+ 			return -EINVAL;
+--- linux-next.orig/net/ipv4/raw.c
++++ linux-next/net/ipv4/raw.c
 @@ -737,6 +737,10 @@ static int raw_recvmsg(struct sock *sk,
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -596,9 +596,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-4.4.orig/net/ipv4/udp.c
-+++ linux-4.4/net/ipv4/udp.c
-@@ -1283,6 +1283,10 @@ try_again:
+--- linux-next.orig/net/ipv4/udp.c
++++ linux-next/net/ipv4/udp.c
+@@ -1356,6 +1356,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
  		goto out;
@@ -609,8 +609,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-4.4.orig/net/ipv6/raw.c
-+++ linux-4.4/net/ipv6/raw.c
+--- linux-next.orig/net/ipv6/raw.c
++++ linux-next/net/ipv6/raw.c
 @@ -478,6 +478,10 @@ static int rawv6_recvmsg(struct sock *sk
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -622,9 +622,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-4.4.orig/net/ipv6/udp.c
-+++ linux-4.4/net/ipv6/udp.c
-@@ -416,6 +416,10 @@ try_again:
+--- linux-next.orig/net/ipv6/udp.c
++++ linux-next/net/ipv6/udp.c
+@@ -451,6 +451,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
  		goto out;
@@ -635,8 +635,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-4.4.orig/net/socket.c
-+++ linux-4.4/net/socket.c
+--- linux-next.orig/net/socket.c
++++ linux-next/net/socket.c
 @@ -1476,6 +1476,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
@@ -648,11 +648,11 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
---- linux-4.4.orig/net/unix/af_unix.c
-+++ linux-4.4/net/unix/af_unix.c
-@@ -2126,6 +2126,10 @@ static int unix_dgram_recvmsg(struct soc
- 	wake_up_interruptible_sync_poll(&u->peer_wait,
- 					POLLOUT | POLLWRNORM | POLLWRBAND);
+--- linux-next.orig/net/unix/af_unix.c
++++ linux-next/net/unix/af_unix.c
+@@ -2134,6 +2134,10 @@ static int unix_dgram_recvmsg(struct soc
+ 						POLLOUT | POLLWRNORM |
+ 						POLLWRBAND);
  
 +	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
 +		err = -EAGAIN; /* Hope less harmful than -EPERM. */
@@ -661,8 +661,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-4.4.orig/security/Kconfig
-+++ linux-4.4/security/Kconfig
+--- linux-next.orig/security/Kconfig
++++ linux-next/security/Kconfig
 @@ -163,5 +163,7 @@ config DEFAULT_SECURITY
  	default "apparmor" if DEFAULT_SECURITY_APPARMOR
  	default "" if DEFAULT_SECURITY_DAC
@@ -671,8 +671,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
 +
  endmenu
  
---- linux-4.4.orig/security/Makefile
-+++ linux-4.4/security/Makefile
+--- linux-next.orig/security/Makefile
++++ linux-next/security/Makefile
 @@ -27,3 +27,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
