@@ -20,9 +20,9 @@ LANG=C rpm --checksig kernel-3.19.8-100.fc20.src.rpm | grep -F ': rsa sha1 (md5)
 rpm -ivh kernel-3.19.8-100.fc20.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.5-20151111.tar.gz ]
+if [ ! -r ccs-patch-1.8.5-20160111.tar.gz ]
 then
-    wget -O ccs-patch-1.8.5-20151111.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.5-20151111.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.5-20160111.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.5-20160111.tar.gz' || die "Can't download patch."
 fi
 
 cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
@@ -71,7 +71,7 @@ patch << "EOF" || die "Can't patch spec file."
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.5-20151111.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.5-20160111.tar.gz
 +patch -sp1 < patches/ccs-patch-3.19-fedora-20.diff
 +
  %endif
