@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.10.0-327.4.4.el7.src.rpm ]
+if [ ! -r kernel-3.10.0-327.4.5.el7.src.rpm ]
 then
-    wget http://vault.centos.org/centos/7/updates/Source/SPackages/kernel-3.10.0-327.4.4.el7.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/centos/7/updates/Source/SPackages/kernel-3.10.0-327.4.5.el7.src.rpm || die "Can't download source package."
 fi
-LANG=C rpm --checksig kernel-3.10.0-327.4.4.el7.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
-rpm -ivh kernel-3.10.0-327.4.4.el7.src.rpm || die "Can't install source package."
+LANG=C rpm --checksig kernel-3.10.0-327.4.5.el7.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
+rpm -ivh kernel-3.10.0-327.4.5.el7.src.rpm || die "Can't install source package."
 
 cd ~/rpmbuild/SOURCES/ || die "Can't chdir to ~/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.5-20160111.tar.gz ]
@@ -37,7 +37,7 @@ patch << "EOF" || die "Can't patch spec file."
  
  # For a kernel released for public testing, released_kernel should be 1.
  # For internal testing builds during development, it should be 0.
-@@ -280,7 +280,7 @@
+@@ -277,7 +277,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -46,7 +46,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -586,13 +586,13 @@
+@@ -574,13 +574,13 @@
  %package %{?1:%{1}-}devel\
  Summary: Development package for building kernel modules to match the %{?2:%{2} }kernel\
  Group: System Environment/Kernel\
@@ -64,9 +64,9 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -711,6 +711,10 @@
- ApplyOptionalPatch undorhirqstat.patch
- ApplyOptionalPatch otherfixes.patch
+@@ -692,6 +692,10 @@
+ ApplyOptionalPatch debrand-rh_taint.patch
+ ApplyOptionalPatch debrand-rh-i686-cpu.patch
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.5-20160111.tar.gz
@@ -75,7 +75,7 @@ patch << "EOF" || die "Can't patch spec file."
  # Any further pre-build tree manipulations happen here.
  
  chmod +x scripts/checkpatch.pl
-@@ -749,6 +753,17 @@
+@@ -730,6 +734,17 @@
  for i in *.config
  do
    mv $i .config
