@@ -10,40 +10,10 @@
 #include <linux/security.h>
 #include <linux/ccsecurity.h>
 
-int ccs_settime(const struct timespec *ts, const struct timezone *tz)
-{
-	return ccs_capable(CCS_SYS_SETTIME) ? 0 : -EPERM;
-}
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
-int ccs_sb_mount(const char *dev_name, const struct path *path,
-		 const char *type, unsigned long flags, void *data)
-{
-	return ccs_mount_permission(dev_name, path, type, flags, data);
-}
-#else
-int ccs_sb_mount(const char *dev_name, struct path *path, const char *type,
-		 unsigned long flags, void *data)
-{
-	return ccs_mount_permission(dev_name, path, type, flags, data);
-}
-#endif
 int ccs_sb_umount(struct vfsmount *mnt, int flags)
 {
 	return ccs_umount_permission(mnt, flags);
 }
-
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
-int ccs_sb_pivotroot(const struct path *old_path, const struct path *new_path)
-{
-	return ccs_pivot_root_permission(old_path, new_path);
-}
-#else
-int ccs_sb_pivotroot(struct path *old_path, struct path *new_path)
-{
-	return ccs_pivot_root_permission(old_path, new_path);
-}
-#endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)
 int ccs_inode_getattr(struct vfsmount *mnt, struct dentry *dentry)
@@ -99,6 +69,23 @@ int ccs_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
+
+int ccs_settime(const struct timespec64 *ts, const struct timezone *tz)
+{
+	return ccs_capable(CCS_SYS_SETTIME) ? 0 : -EPERM;
+}
+
+int ccs_sb_mount(const char *dev_name, const struct path *path,
+		 const char *type, unsigned long flags, void *data)
+{
+	return ccs_mount_permission(dev_name, path, type, flags, data);
+}
+
+int ccs_sb_pivotroot(const struct path *old_path, const struct path *new_path)
+{
+	return ccs_pivot_root_permission(old_path, new_path);
+}
+
 int ccs_path_unlink(const struct path *dir, struct dentry *dentry)
 {
 	return ccs_unlink_permission(dentry, dir->mnt);
@@ -157,7 +144,25 @@ int ccs_path_chroot(const struct path *path)
 {
 	return ccs_chroot_permission(path);
 }
+
 #else
+
+int ccs_settime(const struct timespec *ts, const struct timezone *tz)
+{
+	return ccs_capable(CCS_SYS_SETTIME) ? 0 : -EPERM;
+}
+
+int ccs_sb_mount(const char *dev_name, struct path *path, const char *type,
+		 unsigned long flags, void *data)
+{
+	return ccs_mount_permission(dev_name, path, type, flags, data);
+}
+
+int ccs_sb_pivotroot(struct path *old_path, struct path *new_path)
+{
+	return ccs_pivot_root_permission(old_path, new_path);
+}
+
 int ccs_path_unlink(struct path *dir, struct dentry *dentry)
 {
 	return ccs_unlink_permission(dentry, dir->mnt);
@@ -216,6 +221,7 @@ int ccs_path_chroot(struct path *path)
 {
 	return ccs_chroot_permission(path);
 }
+
 #endif
 
 #if !defined(CONFIG_SECURITY_PATH)
