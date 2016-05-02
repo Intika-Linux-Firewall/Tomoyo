@@ -14,12 +14,12 @@
 
 #ifdef CONFIG_CCSECURITY
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
+int ccs_settime(const struct timespec64 *ts, const struct timezone *tz);
+#else
 int ccs_settime(const struct timespec *ts, const struct timezone *tz);
-int ccs_sb_mount(const char *dev_name, const struct path *path,
-		 const char *type, unsigned long flags, void *data);
+#endif
 int ccs_sb_umount(struct vfsmount *mnt, int flags);
-int ccs_sb_pivotroot(const struct path *old_path, const struct path *new_path);
-
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0)
 int ccs_inode_getattr(struct vfsmount *mnt, struct dentry *dentry);
 #else
@@ -35,30 +35,62 @@ int ccs_socket_connect(struct socket *sock, struct sockaddr *address,
 		       int addrlen);
 int ccs_socket_listen(struct socket *sock, int backlog);
 int ccs_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size);
-int ccs_path_unlink(const struct path *dir, struct dentry *dentry);
-int ccs_path_mkdir(const struct path *dir, struct dentry *dentry,
-		   umode_t mode);
-int ccs_path_rmdir(const struct path *dir, struct dentry *dentry);
-int ccs_path_mknod(const struct path *dir, struct dentry *dentry, umode_t mode,
-		   unsigned int dev);
-int ccs_path_truncate(const struct path *path);
-int ccs_path_symlink(const struct path *dir, struct dentry *dentry,
-		     const char *old_name);
-int ccs_path_link(struct dentry *old_dentry, const struct path *new_dir,
-		  struct dentry *new_dentry);
-int ccs_path_rename(const struct path *old_dir, struct dentry *old_dentry,
-		    const struct path *new_dir, struct dentry *new_dentry);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
 int ccs_path_chmod(const struct path *path, umode_t mode);
 int ccs_path_chown(const struct path *path, kuid_t uid, kgid_t gid);
 int ccs_path_chroot(const struct path *path);
+int ccs_path_link(struct dentry *old_dentry, const struct path *new_dir,
+		  struct dentry *new_dentry);
+int ccs_path_mkdir(const struct path *dir, struct dentry *dentry,
+		   umode_t mode);
+int ccs_path_mknod(const struct path *dir, struct dentry *dentry, umode_t mode,
+		   unsigned int dev);
+int ccs_path_rename(const struct path *old_dir, struct dentry *old_dentry,
+		    const struct path *new_dir, struct dentry *new_dentry);
+int ccs_path_rmdir(const struct path *dir, struct dentry *dentry);
+int ccs_path_symlink(const struct path *dir, struct dentry *dentry,
+		     const char *old_name);
+int ccs_path_truncate(const struct path *path);
+int ccs_path_unlink(const struct path *dir, struct dentry *dentry);
+int ccs_sb_mount(const char *dev_name, const struct path *path,
+		 const char *type, unsigned long flags, void *data);
+int ccs_sb_pivotroot(const struct path *old_path, const struct path *new_path);
+#else
+int ccs_path_chmod(struct path *path, umode_t mode);
+int ccs_path_chown(struct path *path, kuid_t uid, kgid_t gid);
+int ccs_path_chroot(struct path *path);
+int ccs_path_link(struct dentry *old_dentry, struct path *new_dir,
+		  struct dentry *new_dentry);
+int ccs_path_mkdir(struct path *dir, struct dentry *dentry, umode_t mode);
+int ccs_path_mknod(struct path *dir, struct dentry *dentry, umode_t mode,
+		   unsigned int dev);
+int ccs_path_rename(struct path *old_dir, struct dentry *old_dentry,
+		    struct path *new_dir, struct dentry *new_dentry);
+int ccs_path_rmdir(struct path *dir, struct dentry *dentry);
+int ccs_path_symlink(struct path *dir, struct dentry *dentry,
+		     const char *old_name);
+int ccs_path_truncate(struct path *path);
+int ccs_path_unlink(struct path *dir, struct dentry *dentry);
+int ccs_sb_mount(const char *dev_name, struct path *path, const char *type,
+		 unsigned long flags, void *data);
+int ccs_sb_pivotroot(struct path *old_path, struct path *new_path);
+#endif
 
 #else
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
+static inline int ccs_settime(const struct timespec64 *ts,
+			      const struct timezone *tz)
+{
+	return 0;
+}
+#else
 static inline int ccs_settime(const struct timespec *ts,
 			      const struct timezone *tz)
 {
 	return 0;
 }
+#endif
 static inline int ccs_sb_mount(const char *dev_name, const struct path *path,
 			       const char *type, unsigned long flags,
 			       void *data)

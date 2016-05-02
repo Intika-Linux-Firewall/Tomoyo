@@ -39,15 +39,16 @@ int search_binary_handler(struct linux_binprm *bprm, struct pt_regs *regs);
 #include <linux/lsm2ccsecurity.h>
 #endif
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
+/* Obtain definition of kuid_t and kgid_t. */
+#include <linux/uidgid.h>
+#endif
+
 #ifdef CONFIG_CCSECURITY
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36) && LINUX_VERSION_CODE < KERNEL_VERSION(3, 2, 0)
 /* Obtain prototype of __d_path(). */
 #include <linux/dcache.h>
-#endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
-/* Obtain definition of kuid_t and kgid_t. */
-#include <linux/uidgid.h>
 #endif
 
 /* For exporting variables and functions. */
