@@ -10,11 +10,11 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.32-642.el6.src.rpm ]
+if [ ! -r kernel-2.6.32-642.1.1.el6.src.rpm ]
 then
-    wget http://vault.centos.org/6.8/os/Source/SPackages/kernel-2.6.32-642.el6.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/6.8/updates/Source/SPackages/kernel-2.6.32-642.1.1.el6.src.rpm || die "Can't download source package."
 fi
-LANG=C rpm --checksig kernel-2.6.32-642.el6.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
+LANG=C rpm --checksig kernel-2.6.32-642.1.1.el6.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
 rpm -ivh kernel-2.6.32-642.el6.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
