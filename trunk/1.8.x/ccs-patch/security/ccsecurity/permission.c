@@ -2301,13 +2301,8 @@ static int __ccs_open_permission(struct dentry *dentry, struct vfsmount *mnt,
 		return 0;
 #endif
 #ifndef CONFIG_CCSECURITY_FILE_READDIR
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
 	if (d_is_dir(dentry))
 		return 0;
-#else
-	if (dentry->d_inode && S_ISDIR(dentry->d_inode->i_mode))
-		return 0;
-#endif
 #endif
 	buf.name = NULL;
 	r.mode = CCS_CONFIG_DISABLED;
@@ -2517,13 +2512,8 @@ static int ccs_path2_perm(const u8 operation, struct dentry *dentry1,
 	switch (operation) {
 	case CCS_TYPE_RENAME:
 	case CCS_TYPE_LINK:
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
 		if (!d_is_dir(dentry1))
 			break;
-#else
-		if (!dentry1->d_inode || !S_ISDIR(dentry1->d_inode->i_mode))
-			break;
-#endif
 		/* fall through */
 	case CCS_TYPE_PIVOT_ROOT:
 		ccs_add_slash(&buf1);
@@ -4250,7 +4240,7 @@ void ccs_get_attributes(struct ccs_obj_info *obj)
 #endif
 			break;
 		}
-		inode = dentry->d_inode;
+		inode = d_backing_inode(dentry);
 		if (inode) {
 			struct ccs_mini_stat *stat = &obj->stat[i];
 			stat->uid  = inode->i_uid;
