@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.5.0+   2014/06/01
+ * Version: 2.5.0+   2016/08/17
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -397,7 +397,6 @@ enum ccs_policy_stat_type {
 enum ccs_pref_index {
 	CCS_PREF_MAX_AUDIT_LOG,
 	CCS_PREF_MAX_LEARNING_ENTRY,
-	CCS_PREF_ENFORCING_PENALTY,
 	CCS_MAX_PREF
 };
 
@@ -1003,7 +1002,6 @@ static const char * const ccs_condition_keyword[CCS_MAX_CONDITION_KEYWORD] = {
 static const char * const ccs_pref_keywords[CCS_MAX_PREF] = {
 	[CCS_PREF_MAX_AUDIT_LOG]      = "max_audit_log",
 	[CCS_PREF_MAX_LEARNING_ENTRY] = "max_learning_entry",
-	[CCS_PREF_ENFORCING_PENALTY]  = "enforcing_penalty",
 };
 
 /* Mapping table from "enum ccs_path_acl_index" to "enum ccs_mac_index". */
