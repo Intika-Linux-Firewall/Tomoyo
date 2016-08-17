@@ -1374,7 +1374,7 @@ static void ccs_read_generic_policy(void)
 }
 
 /**
- * ccs_add_transition_control_entry - Add "reset_domain"/"no_reset_domain"/"initialize_domain"/"no_initialize_domain"/"keep_domain"/ "no_keep_domain" entries.
+ * ccs_add_transition_control_entry - Add "reset_domain"/"no_reset_domain"/"initialize_domain"/"no_initialize_domain"/"keep_domain"/"no_keep_domain" entries.
  *
  * @ns:         Pointer to "const struct ccs_path_info".
  * @domainname: Domainname.
