@@ -1,8 +1,6 @@
 SUMMARY = "Userspace tools for TOMOYO Linux 2.5.x"
-DESCRIPTION = """
-This package contains userspace tools for administrating TOMOYO Linux 2.5.x.
-Please see http://tomoyo.osdn.jp/2.5/ for documentation.
-"""
+DESCRIPTION = "This package contains userspace tools for administrating TOMOYO Linux 2.5.x. \
+Please see http://tomoyo.osdn.jp/2.5/ for documentation."
 HOMEPAGE = "http://tomoyo.osdn.jp/"
 SECTION = "System Environment/Kernel"
 PV = "2.5.0"
@@ -22,9 +20,9 @@ FILES_${PN}-dbg += "${libdir}/tomoyo/.debug"
 DEPENDS = "linux-libc-headers ncurses"
 
 do_compile () {
-    oe_runmake CC=${CC}
+    oe_runmake 'CC=${CC}'
 }
 
 do_install() {
-    oe_runmake install INSTALLDIR=${D}
+    oe_runmake install 'INSTALLDIR=${D}'
 }
