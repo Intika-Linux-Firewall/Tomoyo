@@ -14,7 +14,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-3.19.8-100.fc20.src.rpm ]
 then
-    wget http://ftp.riken.jp/Linux/fedora/updates/20/SRPMS/kernel-3.19.8-100.fc20.src.rpm || die "Can't download source package."
+    wget https://archives.fedoraproject.org/pub/archive/fedora/linux/updates/20/SRPMS/kernel-3.19.8-100.fc20.src.rpm || die "Can't download source package."
 fi
 LANG=C rpm --checksig kernel-3.19.8-100.fc20.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
 rpm -ivh kernel-3.19.8-100.fc20.src.rpm || die "Can't install source package."
