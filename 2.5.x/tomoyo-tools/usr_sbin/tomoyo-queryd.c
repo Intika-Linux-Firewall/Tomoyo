@@ -235,9 +235,9 @@ int main(int argc, char *argv[])
 	printf("Usage: %s [remote_ip:remote_port]\n\n", argv[0]);
 	printf("This program is used for granting access requests manually."
 	       "\n");
-	printf("This program shows access requests that are about to rejected "
-	       "by the kernel's decision.\n");
-	printf("If you answer before the kernel's decision taken effect, your "
+	printf("This program shows access requests that are about to be "
+	       "rejected by the kernel's decision.\n");
+	printf("If you answer before the kernel's decision takes effect, your "
 	       "decision will take effect.\n");
 	printf("You can use this program to respond to accidental access "
 	       "requests triggered by non-routine tasks (such as restarting "
