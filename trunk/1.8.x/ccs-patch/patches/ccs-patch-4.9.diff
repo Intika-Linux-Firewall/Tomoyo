@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for linux-next.
 
-Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/snapshot/linux-next-next-20160516.tar.xz
+Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/snapshot/linux-next-next-20161003.tar.xz
 ---
  fs/exec.c                 |    2 -
  fs/open.c                 |    2 +
@@ -41,7 +41,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  		trace_sched_process_exec(current, old_pid, bprm);
 --- linux-next.orig/fs/open.c
 +++ linux-next/fs/open.c
-@@ -1128,6 +1128,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1140,6 +1140,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -59,7 +59,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 4.8-rc7-next-20160923 2016/09/23\n");
++	printk(KERN_INFO "Hook version: 4.8-rc8-next-20161003 2016/10/03\n");
 +	return 0;
 +}
 +fs_initcall(ccs_show_version);
@@ -99,7 +99,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  struct sched_param {
  	int sched_priority;
  };
-@@ -1945,6 +1947,10 @@ struct task_struct {
+@@ -1955,6 +1957,10 @@ struct task_struct {
  	/* A live task holds one reference. */
  	atomic_t stack_refcount;
  #endif
@@ -320,7 +320,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
 --- linux-next.orig/include/net/ip.h
 +++ linux-next/include/net/ip.h
-@@ -224,6 +224,8 @@ void inet_get_local_port_range(struct ne
+@@ -247,6 +247,8 @@ void inet_get_local_port_range(struct ne
  #ifdef CONFIG_SYSCTL
  static inline int inet_is_local_reserved_port(struct net *net, int port)
  {
@@ -329,7 +329,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	if (!net->ipv4.sysctl_local_reserved_ports)
  		return 0;
  	return test_bit(port, net->ipv4.sysctl_local_reserved_ports);
-@@ -237,6 +239,8 @@ static inline bool sysctl_dev_name_is_al
+@@ -260,6 +262,8 @@ static inline bool sysctl_dev_name_is_al
  #else
  static inline int inet_is_local_reserved_port(struct net *net, int port)
  {
@@ -461,7 +461,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	 * If pid namespaces are enabled and the current task is in a child
 --- linux-next.orig/kernel/sched/core.c
 +++ linux-next/kernel/sched/core.c
-@@ -3805,6 +3805,8 @@ int can_nice(const struct task_struct *p
+@@ -3811,6 +3811,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
