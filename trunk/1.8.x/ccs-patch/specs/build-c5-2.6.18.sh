@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.18-412.el5.src.rpm ]
+if [ ! -r kernel-2.6.18-416.el5.src.rpm ]
 then
-    wget http://vault.centos.org/5.11/updates/SRPMS/kernel-2.6.18-412.el5.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/5.11/updates/SRPMS/kernel-2.6.18-416.el5.src.rpm || die "Can't download source package."
 fi
-LANG=C rpm --checksig kernel-2.6.18-412.el5.src.rpm | grep -F ': (sha1) dsa sha1 md5 gpg OK' || die "Can't verify signature."
-rpm -ivh kernel-2.6.18-412.el5.src.rpm || die "Can't install source package."
+LANG=C rpm --checksig kernel-2.6.18-416.el5.src.rpm | grep -F ': (sha1) dsa sha1 md5 gpg OK' || die "Can't verify signature."
+rpm -ivh kernel-2.6.18-416.el5.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.5-20160808.tar.gz ]
@@ -28,7 +28,7 @@ cp -p /usr/src/redhat/SPECS/kernel.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- kernel.spec
 +++ kernel.spec
-@@ -71,7 +71,7 @@
+@@ -74,7 +74,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
  #
@@ -37,7 +37,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  %define sublevel 18
  %define stablerev 4
-@@ -285,6 +285,9 @@
+@@ -288,6 +288,9 @@
  # to versions below the minimum
  #
  
@@ -47,7 +47,7 @@ patch << "EOF" || die "Can't patch spec file."
  #
  # First the general kernel 2.6 required versions as per
  # Documentation/Changes
-@@ -315,7 +318,7 @@
+@@ -318,7 +321,7 @@
  #
  %define kernel_prereq  fileutils, module-init-tools, initscripts >= 8.11.1-1, mkinitrd >= 4.2.21-1
  
@@ -56,7 +56,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -687,6 +690,10 @@
+@@ -690,6 +693,10 @@
  %patch99999 -p1
  %endif
  
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  mkdir configs
-@@ -738,6 +745,9 @@
+@@ -741,6 +748,9 @@
  for i in *.config
  do
    mv $i .config
