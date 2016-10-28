@@ -1,9 +1,9 @@
 #!/bin/sh
 
 LIVECD_HOME=~/LiveCD/
-CD_LABEL="Ubuntu 12.04 i386 TOMOYO 1.8.4"
-ISOIMAGE_NAME=../ubuntu-12.04-desktop-i386-tomoyo-1.8.4.iso
-KERNEL_VERSION=3.2.0-83-generic-pae-ccs
+CD_LABEL="Ubuntu 12.04 i386 TOMOYO 1.8.5"
+ISOIMAGE_NAME=../ubuntu-12.04-desktop-i386-tomoyo-1.8.5.iso
+KERNEL_VERSION=3.2.0-113-generic-pae-ccs
 
 # set -v
 
