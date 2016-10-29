@@ -17,7 +17,7 @@ fi
 rpm --checksig kernel-2.6.33.3-85.fc13.src.rpm || die "Can't verify signature."
 rpm -ivh kernel-2.6.33.3-85.fc13.src.rpm || die "Can't install source package."
 
-cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
+cd ~/rpmbuild/SOURCES/ || die "Can't chdir to ~/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.5-20160808.tar.gz ]
 then
     wget -O ccs-patch-1.8.5-20160808.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.5-20160808.tar.gz' || die "Can't download patch."
@@ -28,7 +28,7 @@ then
     wget -O ccs-patch-2.6.33-fedora-13-20110614.diff 'http://osdn.jp/projects/tomoyo/svn/view/branches/ccs-patch-2.6.33-fedora-13.diff?revision=5185&root=tomoyo' || die "Can't download patch."
 fi
 
-cd /root/rpmbuild/SPECS/ || die "Can't chdir to /root/rpmbuild/SPECS/ ."
+cd ~/rpmbuild/SPECS/ || die "Can't chdir to ~/rpmbuild/SPECS/ ."
 cp -p kernel.spec ccs-kernel.spec || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- ccs-kernel.spec
@@ -97,18 +97,18 @@ EOF
 echo ""
 echo ""
 echo ""
-echo "Edit /root/rpmbuild/SPECS/ccs-kernel.spec if needed, and run"
-echo "rpmbuild -bb /root/rpmbuild/SPECS/ccs-kernel.spec"
+echo "Edit ~/rpmbuild/SPECS/ccs-kernel.spec if needed, and run"
+echo "rpmbuild -bb ~/rpmbuild/SPECS/ccs-kernel.spec"
 echo "to build kernel rpm packages."
 echo ""
 ARCH=`uname -m`
-echo "I'll start 'rpmbuild -bb --target $ARCH --with baseonly --without debug --without debuginfo /root/rpmbuild/SPECS/ccs-kernel.spec' in 30 seconds. Press Ctrl-C to stop."
+echo "I'll start 'rpmbuild -bb --target $ARCH --with baseonly --without debug --without debuginfo ~/rpmbuild/SPECS/ccs-kernel.spec' in 30 seconds. Press Ctrl-C to stop."
 sleep 30
 if /bin/false
 then
 patch << "EOF" || die "Can't patch spec file."
---- /root/rpmbuild/SPECS/ccs-kernel.spec
-+++ /root/rpmbuild/SPECS/ccs-kernel.spec
+--- ~/rpmbuild/SPECS/ccs-kernel.spec
++++ ~/rpmbuild/SPECS/ccs-kernel.spec
 @@ -221,7 +221,7 @@
  
  # kernel-PAE is only built on i686.
@@ -120,5 +120,5 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
 EOF
 fi
-exec rpmbuild -bb --target $ARCH --with baseonly --without debug --without debuginfo /root/rpmbuild/SPECS/ccs-kernel.spec
+exec rpmbuild -bb --target $ARCH --with baseonly --without debug --without debuginfo ~/rpmbuild/SPECS/ccs-kernel.spec
 exit 0
