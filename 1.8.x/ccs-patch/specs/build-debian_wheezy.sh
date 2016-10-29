@@ -21,8 +21,8 @@ apt-get install build-essential kernel-package || die "Can't install packages."
 sed -i -e 's/maintainer := .*/maintainer := Tetsuo Handa/' -e 's/email := .*/email := penguin-kernel@I-love.SAKURA.ne.jp/' -- /etc/kernel-pkg.conf || die "Can't edit /etc/kernel-pkg.conf ."
 
 # Download TOMOYO Linux patches.
-mkdir -p /root/rpmbuild/SOURCES/
-cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
+mkdir -p ~/rpmbuild/SOURCES/
+cd ~/rpmbuild/SOURCES/ || die "Can't chdir to ~/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.5-20160808.tar.gz ]
 then
     apt-get -y install wget
@@ -38,7 +38,7 @@ tar -jxf linux-source-3.2.tar.bz2
 
 # Apply patches and create kernel config.
 cd linux-source-3.2 || die "Can't chdir to linux-source-3.2/ ."
-tar -zxf /root/rpmbuild/SOURCES/ccs-patch-1.8.5-20160808.tar.gz || die "Can't extract patch."
+tar -zxf ~/rpmbuild/SOURCES/ccs-patch-1.8.5-20160808.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-3.2-debian-wheezy.diff || die "Can't apply patch."
 cat /boot/config-3.2.0-$ABI_VERSION-$ORIGINAL_FLAVOUR config.ccs > .config || die "Can't create config."
 sed -i -e 's/SUBLEVEL = .*/SUBLEVEL = 0/' Makefile || die "Can't edit Makefile"
