@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for CentOS 7.
 
-Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SPackages/kernel-3.10.0-327.36.3.el7.src.rpm
+Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SPackages/kernel-3.10.0-514.2.2.el7.src.rpm
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -28,9 +28,9 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  security/security.c       |  111 +++++++++++++++++++++++++++++++++++++++++-----
  24 files changed, 248 insertions(+), 37 deletions(-)
 
---- linux-3.10.0-327.36.3.el7.orig/fs/exec.c
-+++ linux-3.10.0-327.36.3.el7/fs/exec.c
-@@ -1573,7 +1573,7 @@ static int do_execve_common(struct filen
+--- linux-3.10.0-514.2.2.el7.orig/fs/exec.c
++++ linux-3.10.0-514.2.2.el7/fs/exec.c
+@@ -1580,7 +1580,7 @@ static int do_execve_common(struct filen
  	if (retval < 0)
  		goto out;
  
@@ -39,9 +39,9 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  	if (retval < 0)
  		goto out;
  
---- linux-3.10.0-327.36.3.el7.orig/fs/open.c
-+++ linux-3.10.0-327.36.3.el7/fs/open.c
-@@ -1115,6 +1115,8 @@ EXPORT_SYMBOL(sys_close);
+--- linux-3.10.0-514.2.2.el7.orig/fs/open.c
++++ linux-3.10.0-514.2.2.el7/fs/open.c
+@@ -1120,6 +1120,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -50,8 +50,8 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-3.10.0-327.36.3.el7.orig/fs/proc/version.c
-+++ linux-3.10.0-327.36.3.el7/fs/proc/version.c
+--- linux-3.10.0-514.2.2.el7.orig/fs/proc/version.c
++++ linux-3.10.0-514.2.2.el7/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -59,15 +59,15 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.10.0-327.36.3.el7 2016/10/26\n");
++	printk(KERN_INFO "Hook version: 3.10.0-514.2.2.el7 2016/12/23\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-3.10.0-327.36.3.el7.orig/include/linux/init_task.h
-+++ linux-3.10.0-327.36.3.el7/include/linux/init_task.h
-@@ -155,6 +155,14 @@ extern struct task_group root_task_group
- 
- #define INIT_TASK_COMM "swapper"
+--- linux-3.10.0-514.2.2.el7.orig/include/linux/init_task.h
++++ linux-3.10.0-514.2.2.el7/include/linux/init_task.h
+@@ -164,6 +164,14 @@ extern struct task_group root_task_group
+ # define INIT_RT_MUTEXES(tsk)
+ #endif
  
 +#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +#define INIT_CCSECURITY          \
@@ -80,16 +80,16 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  /*
   *  INIT_TASK is used to set up the first task table, touch at
   * your own risk!. Base=0, limit=0x1fffff (=2MB)
-@@ -224,6 +232,7 @@ extern struct task_group root_task_group
- 	INIT_TASK_RCU_PREEMPT(tsk)					\
+@@ -234,6 +242,7 @@ extern struct task_group root_task_group
  	INIT_CPUSET_SEQ							\
+ 	INIT_RT_MUTEXES(tsk)					\
  	INIT_VTIME(tsk)							\
 +	INIT_CCSECURITY                                                 \
  }
  
  
---- linux-3.10.0-327.36.3.el7.orig/include/linux/sched.h
-+++ linux-3.10.0-327.36.3.el7/include/linux/sched.h
+--- linux-3.10.0-514.2.2.el7.orig/include/linux/sched.h
++++ linux-3.10.0-514.2.2.el7/include/linux/sched.h
 @@ -4,6 +4,8 @@
  #include <uapi/linux/sched.h>
  #include <linux/rh_kabi.h>
@@ -99,9 +99,9 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  struct sched_param {
  	int sched_priority;
  };
-@@ -1565,6 +1567,10 @@ struct task_struct {
- 	} memcg_oom;
- #endif
+@@ -1736,6 +1738,10 @@ struct task_struct {
+ 	#endif
+ 	struct sched_statistics statistics;
  #endif /* __GENKSYMS__ */
 +#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
 +	struct ccs_domain_info *ccs_domain_info;
@@ -110,9 +110,9 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-3.10.0-327.36.3.el7.orig/include/linux/security.h
-+++ linux-3.10.0-327.36.3.el7/include/linux/security.h
-@@ -53,6 +53,7 @@ struct msg_queue;
+--- linux-3.10.0-514.2.2.el7.orig/include/linux/security.h
++++ linux-3.10.0-514.2.2.el7/include/linux/security.h
+@@ -54,6 +54,7 @@ struct msg_queue;
  struct xattr;
  struct xfrm_sec_ctx;
  struct mm_struct;
@@ -120,7 +120,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  /* Maximum number of letters for an LSM name string */
  #define SECURITY_NAME_MAX	10
-@@ -1962,7 +1963,10 @@ static inline int security_syslog(int ty
+@@ -1963,7 +1964,10 @@ static inline int security_syslog(int ty
  static inline int security_settime(const struct timespec *ts,
  				   const struct timezone *tz)
  {
@@ -132,7 +132,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  }
  
  static inline int security_vm_enough_memory_mm(struct mm_struct *mm, long pages)
-@@ -2031,18 +2035,18 @@ static inline int security_sb_mount(cons
+@@ -2032,18 +2036,18 @@ static inline int security_sb_mount(cons
  				    const char *type, unsigned long flags,
  				    void *data)
  {
@@ -154,7 +154,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  }
  
  static inline int security_sb_set_mnt_opts(struct super_block *sb,
-@@ -2181,7 +2185,7 @@ static inline int security_inode_setattr
+@@ -2182,7 +2186,7 @@ static inline int security_inode_setattr
  static inline int security_inode_getattr(struct vfsmount *mnt,
  					  struct dentry *dentry)
  {
@@ -163,7 +163,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  }
  
  static inline int security_inode_setxattr(struct dentry *dentry,
-@@ -2257,7 +2261,7 @@ static inline void security_file_free(st
+@@ -2258,7 +2262,7 @@ static inline void security_file_free(st
  static inline int security_file_ioctl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -172,7 +172,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  }
  
  static inline int security_mmap_file(struct file *file, unsigned long prot,
-@@ -2286,7 +2290,7 @@ static inline int security_file_lock(str
+@@ -2287,7 +2291,7 @@ static inline int security_file_lock(str
  static inline int security_file_fcntl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -181,7 +181,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  }
  
  static inline int security_file_set_fowner(struct file *file)
-@@ -2309,7 +2313,7 @@ static inline int security_file_receive(
+@@ -2310,7 +2314,7 @@ static inline int security_file_receive(
  static inline int security_file_open(struct file *file,
  				     const struct cred *cred)
  {
@@ -190,7 +190,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  }
  
  static inline int security_task_create(unsigned long clone_flags)
-@@ -2667,7 +2671,7 @@ static inline int security_unix_may_send
+@@ -2668,7 +2672,7 @@ static inline int security_unix_may_send
  static inline int security_socket_create(int family, int type,
  					 int protocol, int kern)
  {
@@ -199,7 +199,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  }
  
  static inline int security_socket_post_create(struct socket *sock,
-@@ -2682,19 +2686,19 @@ static inline int security_socket_bind(s
+@@ -2683,19 +2687,19 @@ static inline int security_socket_bind(s
  				       struct sockaddr *address,
  				       int addrlen)
  {
@@ -222,7 +222,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  }
  
  static inline int security_socket_accept(struct socket *sock,
-@@ -2706,7 +2710,7 @@ static inline int security_socket_accept
+@@ -2707,7 +2711,7 @@ static inline int security_socket_accept
  static inline int security_socket_sendmsg(struct socket *sock,
  					  struct msghdr *msg, int size)
  {
@@ -231,7 +231,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  }
  
  static inline int security_socket_recvmsg(struct socket *sock,
-@@ -2948,44 +2952,47 @@ int security_path_chmod(struct path *pat
+@@ -2949,44 +2953,47 @@ int security_path_chmod(struct path *pat
  int security_path_chown(struct path *path, kuid_t uid, kgid_t gid);
  int security_path_chroot(struct path *path);
  #else	/* CONFIG_SECURITY_PATH */
@@ -286,7 +286,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  }
  
  static inline int security_path_rename(struct path *old_dir,
-@@ -2994,22 +3001,32 @@ static inline int security_path_rename(s
+@@ -2995,22 +3002,32 @@ static inline int security_path_rename(s
  				       struct dentry *new_dentry,
  				       unsigned int flags)
  {
@@ -323,9 +323,9 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-3.10.0-327.36.3.el7.orig/include/net/ip.h
-+++ linux-3.10.0-327.36.3.el7/include/net/ip.h
-@@ -227,6 +227,8 @@ void inet_get_local_port_range(struct ne
+--- linux-3.10.0-514.2.2.el7.orig/include/net/ip.h
++++ linux-3.10.0-514.2.2.el7/include/net/ip.h
+@@ -228,6 +228,8 @@ void inet_get_local_port_range(struct ne
  extern unsigned long *sysctl_local_reserved_ports;
  static inline int inet_is_reserved_local_port(int port)
  {
@@ -334,9 +334,9 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  	return test_bit(port, sysctl_local_reserved_ports);
  }
  
---- linux-3.10.0-327.36.3.el7.orig/kernel/fork.c
-+++ linux-3.10.0-327.36.3.el7/kernel/fork.c
-@@ -242,6 +242,7 @@ void __put_task_struct(struct task_struc
+--- linux-3.10.0-514.2.2.el7.orig/kernel/fork.c
++++ linux-3.10.0-514.2.2.el7/kernel/fork.c
+@@ -270,6 +270,7 @@ void __put_task_struct(struct task_struc
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
  
@@ -344,7 +344,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1338,6 +1339,9 @@ static struct task_struct *copy_process(
+@@ -1422,6 +1423,9 @@ static struct task_struct *copy_process(
  	retval = audit_alloc(p);
  	if (retval)
  		goto bad_fork_cleanup_perf;
@@ -354,7 +354,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  	/* copy all the process information */
  	retval = copy_semundo(clone_flags, p);
  	if (retval)
-@@ -1536,6 +1540,7 @@ bad_fork_cleanup_semundo:
+@@ -1632,6 +1636,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -362,8 +362,8 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  bad_fork_cleanup_perf:
  	perf_event_free_task(p);
  bad_fork_cleanup_policy:
---- linux-3.10.0-327.36.3.el7.orig/kernel/kexec.c
-+++ linux-3.10.0-327.36.3.el7/kernel/kexec.c
+--- linux-3.10.0-514.2.2.el7.orig/kernel/kexec.c
++++ linux-3.10.0-514.2.2.el7/kernel/kexec.c
 @@ -1250,6 +1250,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
  	/* We only trust the superuser with rebooting the system. */
  	if (!capable(CAP_SYS_BOOT) || kexec_load_disabled)
@@ -373,8 +373,8 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  	if (get_securelevel() > 0)
  		return -EPERM;
---- linux-3.10.0-327.36.3.el7.orig/kernel/module.c
-+++ linux-3.10.0-327.36.3.el7/kernel/module.c
+--- linux-3.10.0-514.2.2.el7.orig/kernel/module.c
++++ linux-3.10.0-514.2.2.el7/kernel/module.c
 @@ -62,6 +62,7 @@
  #include <linux/bsearch.h>
  #include <uapi/linux/module.h>
@@ -383,7 +383,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  #define CREATE_TRACE_POINTS
  #include <trace/events/module.h>
-@@ -911,6 +912,8 @@ SYSCALL_DEFINE2(delete_module, const cha
+@@ -905,6 +906,8 @@ SYSCALL_DEFINE2(delete_module, const cha
  
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -392,7 +392,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -3221,6 +3224,8 @@ static int may_init_module(void)
+@@ -3261,6 +3264,8 @@ static int may_init_module(void)
  {
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -401,9 +401,9 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  	return 0;
  }
---- linux-3.10.0-327.36.3.el7.orig/kernel/ptrace.c
-+++ linux-3.10.0-327.36.3.el7/kernel/ptrace.c
-@@ -1045,6 +1045,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+--- linux-3.10.0-514.2.2.el7.orig/kernel/ptrace.c
++++ linux-3.10.0-514.2.2.el7/kernel/ptrace.c
+@@ -1038,6 +1038,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
@@ -415,7 +415,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -1192,6 +1197,11 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -1185,6 +1190,11 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
@@ -427,9 +427,9 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-3.10.0-327.36.3.el7.orig/kernel/sched/core.c
-+++ linux-3.10.0-327.36.3.el7/kernel/sched/core.c
-@@ -3979,6 +3979,8 @@ int can_nice(const struct task_struct *p
+--- linux-3.10.0-514.2.2.el7.orig/kernel/sched/core.c
++++ linux-3.10.0-514.2.2.el7/kernel/sched/core.c
+@@ -4175,6 +4175,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -438,9 +438,9 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-3.10.0-327.36.3.el7.orig/kernel/signal.c
-+++ linux-3.10.0-327.36.3.el7/kernel/signal.c
-@@ -2910,6 +2910,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+--- linux-3.10.0-514.2.2.el7.orig/kernel/signal.c
++++ linux-3.10.0-514.2.2.el7/kernel/signal.c
+@@ -2914,6 +2914,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
@@ -449,7 +449,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2978,6 +2980,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2982,6 +2984,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -458,7 +458,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2994,6 +2998,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
+@@ -2998,6 +3002,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -467,9 +467,9 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  	return do_tkill(0, pid, sig);
  }
-@@ -3010,6 +3016,8 @@ static int do_rt_sigqueueinfo(pid_t pid,
+@@ -3012,6 +3018,8 @@ static int do_rt_sigqueueinfo(pid_t pid,
  		return -EPERM;
- 	}
+ 
  	info->si_signo = sig;
 +	if (ccs_sigqueue_permission(pid, sig))
 +		return -EPERM;
@@ -478,16 +478,16 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  	return kill_proc_info(sig, info, pid);
 @@ -3060,6 +3068,8 @@ static int do_rt_tgsigqueueinfo(pid_t tg
  		return -EPERM;
- 	}
+ 
  	info->si_signo = sig;
 +	if (ccs_tgsigqueue_permission(tgid, pid, sig))
 +		return -EPERM;
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-3.10.0-327.36.3.el7.orig/kernel/sys.c
-+++ linux-3.10.0-327.36.3.el7/kernel/sys.c
-@@ -186,6 +186,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
+--- linux-3.10.0-514.2.2.el7.orig/kernel/sys.c
++++ linux-3.10.0-514.2.2.el7/kernel/sys.c
+@@ -192,6 +192,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
@@ -498,7 +498,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -478,6 +482,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
+@@ -484,6 +488,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  	                magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -507,7 +507,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  	/*
  	 * If pid namespaces are enabled and the current task is in a child
-@@ -1465,6 +1471,8 @@ SYSCALL_DEFINE2(sethostname, char __user
+@@ -1471,6 +1477,8 @@ SYSCALL_DEFINE2(sethostname, char __user
  
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -516,7 +516,7 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1515,6 +1523,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
+@@ -1521,6 +1529,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -525,8 +525,8 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-3.10.0-327.36.3.el7.orig/kernel/time/ntp.c
-+++ linux-3.10.0-327.36.3.el7/kernel/time/ntp.c
+--- linux-3.10.0-514.2.2.el7.orig/kernel/time/ntp.c
++++ linux-3.10.0-514.2.2.el7/kernel/time/ntp.c
 @@ -16,6 +16,7 @@
  #include <linux/mm.h>
  #include <linux/module.h>
@@ -560,8 +560,8 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  	return 0;
  }
---- linux-3.10.0-327.36.3.el7.orig/net/ipv4/raw.c
-+++ linux-3.10.0-327.36.3.el7/net/ipv4/raw.c
+--- linux-3.10.0-514.2.2.el7.orig/net/ipv4/raw.c
++++ linux-3.10.0-514.2.2.el7/net/ipv4/raw.c
 @@ -702,6 +702,10 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -573,9 +573,9 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-3.10.0-327.36.3.el7.orig/net/ipv4/udp.c
-+++ linux-3.10.0-327.36.3.el7/net/ipv4/udp.c
-@@ -1272,6 +1272,10 @@ try_again:
+--- linux-3.10.0-514.2.2.el7.orig/net/ipv4/udp.c
++++ linux-3.10.0-514.2.2.el7/net/ipv4/udp.c
+@@ -1268,6 +1268,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
  		goto out;
@@ -586,8 +586,8 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-3.10.0-327.36.3.el7.orig/net/ipv6/raw.c
-+++ linux-3.10.0-327.36.3.el7/net/ipv6/raw.c
+--- linux-3.10.0-514.2.2.el7.orig/net/ipv6/raw.c
++++ linux-3.10.0-514.2.2.el7/net/ipv6/raw.c
 @@ -468,6 +468,10 @@ static int rawv6_recvmsg(struct kiocb *i
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -599,9 +599,9 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-3.10.0-327.36.3.el7.orig/net/ipv6/udp.c
-+++ linux-3.10.0-327.36.3.el7/net/ipv6/udp.c
-@@ -404,6 +404,10 @@ try_again:
+--- linux-3.10.0-514.2.2.el7.orig/net/ipv6/udp.c
++++ linux-3.10.0-514.2.2.el7/net/ipv6/udp.c
+@@ -416,6 +416,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
  		goto out;
@@ -612,8 +612,8 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-3.10.0-327.36.3.el7.orig/net/socket.c
-+++ linux-3.10.0-327.36.3.el7/net/socket.c
+--- linux-3.10.0-514.2.2.el7.orig/net/socket.c
++++ linux-3.10.0-514.2.2.el7/net/socket.c
 @@ -1608,6 +1608,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
@@ -625,9 +625,9 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
---- linux-3.10.0-327.36.3.el7.orig/net/unix/af_unix.c
-+++ linux-3.10.0-327.36.3.el7/net/unix/af_unix.c
-@@ -2065,6 +2065,10 @@ static int unix_dgram_recvmsg(struct kio
+--- linux-3.10.0-514.2.2.el7.orig/net/unix/af_unix.c
++++ linux-3.10.0-514.2.2.el7/net/unix/af_unix.c
+@@ -2137,6 +2137,10 @@ static int unix_dgram_recvmsg(struct kio
  	wake_up_interruptible_sync_poll(&u->peer_wait,
  					POLLOUT | POLLWRNORM | POLLWRBAND);
  
@@ -638,8 +638,8 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-3.10.0-327.36.3.el7.orig/security/Kconfig
-+++ linux-3.10.0-327.36.3.el7/security/Kconfig
+--- linux-3.10.0-514.2.2.el7.orig/security/Kconfig
++++ linux-3.10.0-514.2.2.el7/security/Kconfig
 @@ -175,5 +175,7 @@ config DEFAULT_SECURITY
  	default "yama" if DEFAULT_SECURITY_YAMA
  	default "" if DEFAULT_SECURITY_DAC
@@ -648,8 +648,8 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
 +
  endmenu
  
---- linux-3.10.0-327.36.3.el7.orig/security/Makefile
-+++ linux-3.10.0-327.36.3.el7/security/Makefile
+--- linux-3.10.0-514.2.2.el7.orig/security/Makefile
++++ linux-3.10.0-514.2.2.el7/security/Makefile
 @@ -29,3 +29,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
@@ -657,8 +657,8 @@ Source code for this patch is http://vault.centos.org/centos/7/updates/Source/SP
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/built-in.o
---- linux-3.10.0-327.36.3.el7.orig/security/security.c
-+++ linux-3.10.0-327.36.3.el7/security/security.c
+--- linux-3.10.0-514.2.2.el7.orig/security/security.c
++++ linux-3.10.0-514.2.2.el7/security/security.c
 @@ -203,7 +203,10 @@ int security_syslog(int type)
  
  int security_settime(const struct timespec *ts, const struct timezone *tz)

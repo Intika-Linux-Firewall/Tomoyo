@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.18-416.el5.src.rpm ]
+if [ ! -r kernel-2.6.18-417.el5.src.rpm ]
 then
-    wget http://vault.centos.org/5.11/updates/SRPMS/kernel-2.6.18-416.el5.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/5.11/updates/SRPMS/kernel-2.6.18-417.el5.src.rpm || die "Can't download source package."
 fi
-LANG=C rpm --checksig kernel-2.6.18-416.el5.src.rpm | grep -F ': (sha1) dsa sha1 md5 gpg OK' || die "Can't verify signature."
-rpm -ivh kernel-2.6.18-416.el5.src.rpm || die "Can't install source package."
+LANG=C rpm --checksig kernel-2.6.18-417.el5.src.rpm | grep -F ': (sha1) dsa sha1 md5 gpg OK' || die "Can't verify signature."
+rpm -ivh kernel-2.6.18-417.el5.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.3-20161111.tar.gz ]
