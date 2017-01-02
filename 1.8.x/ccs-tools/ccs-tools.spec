@@ -2,7 +2,7 @@ Summary: Userspace tools for TOMOYO Linux 1.8.x
 
 Name: ccs-tools
 Version: 1.8.5
-Release: 1
+Release: 2
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
@@ -15,9 +15,9 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: ccs-tools < 1.8.5-1
+Conflicts: ccs-tools < 1.8.5-2
 
-Source0: http://osdn.dl.osdn.jp/tomoyo/49693/ccs-tools-1.8.5-20151111.tar.gz
+Source0: http://osdn.dl.osdn.jp/tomoyo/49693/ccs-tools-1.8.5-20170102.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
@@ -52,6 +52,10 @@ ldconfig || true
 /usr/share/man/man8/*
 
 %changelog
+* Mon Jan 02 2017 1.8.5-2
+- Let ccs-editpolicy create namespaces when creating domains.
+- Let ccs-editpolicy add profile number when copying profiles.
+
 * Wed Nov 11 2015 1.8.5-1
 - Tenth anniversary release.
 - Limit wildcard recursion depth (this change recommends ccs-patch
