@@ -2284,7 +2284,7 @@ static int ccs_update_domain(struct ccs_acl_info *new_entry, const int size,
 		/*
 		 * Domain transition preference is allowed for only 
 		 * "file execute"/"task auto_execute_handler"/
-		 * "task denied_auto_execute_handler" entries.
+		 * "task denied_execute_handler" entries.
 		 */
 		if (new_entry->cond->exec_transit &&
 		    !(new_entry->type == CCS_TYPE_PATH_ACL &&
@@ -3354,7 +3354,6 @@ static int ccs_write_ipc(struct ccs_acl_param *param)
 	ccs_put_number_union(&e.sig);
 	return error;
 }
-
 
 /**
  * ccs_same_reserved - Check for duplicated "struct ccs_reserved" entry.
