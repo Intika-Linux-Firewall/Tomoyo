@@ -2,7 +2,7 @@ Summary: Userspace tools for TOMOYO Linux 2.5.x
 
 Name: tomoyo-tools
 Version: 2.5.0
-Release: 8
+Release: 9
 License: GPL
 Group: System Environment/Kernel
 ExclusiveOS: Linux
@@ -15,9 +15,9 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 ##
 # BuildRequires: ncurses-devel
 Requires: ncurses
-Conflicts: tomoyo-tools < 2.5.0-8
+Conflicts: tomoyo-tools < 2.5.0-9
 
-Source0: http://osdn.dl.osdn.jp/tomoyo/53357/tomoyo-tools-2.5.0-20140601.tar.gz
+Source0: http://osdn.dl.osdn.jp/tomoyo/53357/tomoyo-tools-2.5.0-20170102.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 2.5.x.
@@ -52,6 +52,9 @@ ldconfig || true
 /usr/share/man/man8/*
 
 %changelog
+* Mon Jan 02 2017 2.5.0-9
+- Rebase to ccs-tools 1.8.5-2.
+
 * Sun Jun 01 2014 2.5.0-8
 - Let tomoyo-editpolicy print "acl_group $N" correctly when using offline mode.
 

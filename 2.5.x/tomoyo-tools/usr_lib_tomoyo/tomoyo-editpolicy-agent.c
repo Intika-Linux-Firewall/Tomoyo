@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.5.0   2011/09/29
+ * Version: 2.5.0+   2017/01/02
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -36,6 +36,7 @@
 #include <dirent.h>
 #include <sched.h>
 #include <sys/mount.h>
+#include <errno.h>
 
 static _Bool wait_data(const int fd)
 {
@@ -308,10 +309,12 @@ int main(int argc, char *argv[])
 	char *port;
 	if (access("/sys/kernel/security/tomoyo/", X_OK)) {
 		if (unshare(CLONE_NEWNS) ||
+		    mount(NULL, "/", NULL, MS_REC|MS_PRIVATE, NULL) ||
 		    mount("none", "/sys/kernel/security/", "securityfs", 0,
 			  NULL)) {
-			fprintf(stderr, "Please mount securityfs on "
-				"/sys/kernel/security/ .\n");
+			if (errno != EBUSY)
+				fprintf(stderr, "Please mount securityfs on "
+					"/sys/kernel/security/ .\n");
 		}
 	}
 	if (chdir("/sys/kernel/security/tomoyo/"))

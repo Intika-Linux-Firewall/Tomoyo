@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 2.5.0+   2015/04/13
+ * Version: 2.5.0+   2017/01/02
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -23,91 +23,58 @@
 #include "tomoyotools.h"
 #include "editpolicy.h"
 
-struct ccs_address_group_entry {
-	const struct ccs_path_info *group_name;
-	struct ccs_ip_address_entry *member_name;
-	int member_name_len;
-};
-
-struct ccs_number_group_entry {
-	const struct ccs_path_info *group_name;
-	struct ccs_number_entry *member_name;
-	int member_name_len;
-};
-
-/* Array of "address_group" entry. */
-static struct ccs_address_group_entry *ccs_address_group_list = NULL;
-/* Length of ccs_address_group_list array. */
-static int ccs_address_group_list_len = 0;
-/* Array of "number_group" entry. */
-static struct ccs_number_group_entry *ccs_number_group_list = NULL;
-/* Length of ccs_number_group_list array. */
-static int ccs_number_group_list_len = 0;
-
-static _Bool ccs_compare_address(const char *sarg, const char *darg);
-static _Bool ccs_compare_number(const char *sarg, const char *darg);
-static _Bool ccs_compare_path(const char *sarg, const char *darg);
-static int ccs_add_address_group_entry(const char *group_name,
-				       const char *member_name,
-				       const _Bool is_delete);
-static int ccs_add_number_group_entry(const char *group_name,
-				      const char *member_name,
-				      const _Bool is_delete);
-static struct ccs_address_group_entry *ccs_find_address_group
-(const char *group_name);
-static struct ccs_number_group_entry *ccs_find_number_group
-(const char *group_name);
+static struct address_group *find_address_group(const char *group_name);
+static struct number_group *find_number_group(const char *group_name);
+static _Bool compare_address(const char *sarg, const char *darg);
+static _Bool compare_number(const char *sarg, const char *darg);
+static _Bool compare_path(const char *sarg, const char *darg);
 
 /**
- * ccs_find_path_group_ns - Find "path_group" entry.
+ * find_address_group - Find an "address_group" by name.
  *
- * @ns:         Pointer to "const struct ccs_path_info".
- * @group_name: Name of path group.
+ * @group_name: Group name to find.
  *
- * Returns pointer to "struct ccs_path_group_entry" if found, NULL otherwise.
+ * Returns pointer to "struct address_group" if found,
+ * NULL otherwise.
  */
-struct ccs_path_group_entry *ccs_find_path_group_ns
-(const struct ccs_path_info *ns, const char *group_name)
+static struct address_group *find_address_group(const char *group_name)
 {
 	int i;
-	for (i = 0; i < ccs_path_group_list_len; i++) {
-		if (!ccs_pathcmp(ccs_path_group_list[i].ns, ns) &&
-		    !strcmp(group_name,
-			    ccs_path_group_list[i].group_name->name))
-			return &ccs_path_group_list[i];
-	}
+	for (i = 0; i < p.address_group_len; i++)
+		if (!strcmp(group_name, p.address_group[i].group_name->name))
+			return &p.address_group[i];
 	return NULL;
 }
 
 /**
- * ccs_add_address_group_policy - Add "address_group" entry.
+ * find_number_group - Find an "number_group" by name.
  *
- * @data:      Line to parse.
- * @is_delete: True if it is delete request, false otherwise.
+ * @group_name: Group name to find.
  *
- * Returns 0 on success, negative value otherwise.
+ * Returns pointer to "struct number_group" if found,
+ * NULL otherwise.
  */
-int ccs_add_address_group_policy(char *data, const _Bool is_delete)
+static struct number_group *find_number_group(const char *group_name)
 {
-	char *cp = strchr(data, ' ');
-	if (!cp)
-		return -EINVAL;
-	*cp++ = '\0';
-	return ccs_add_address_group_entry(data, cp, is_delete);
+	int i;
+	for (i = 0; i < p.number_group_len; i++)
+		if (!strcmp(group_name, p.number_group[i].group_name->name))
+			return &p.number_group[i];
+	return NULL;
 }
 
 /**
- * ccs_compare_path - Compare two pathnames.
+ * compare_path - Compare two pathnames.
  *
  * @sarg: First pathname. Maybe wildcard.
  * @darg: Second pathname.
  *
  * Returns true if @darg is included in @sarg, false otherwise.
  */
-static _Bool ccs_compare_path(const char *sarg, const char *darg)
+static _Bool compare_path(const char *sarg, const char *darg)
 {
 	int i;
-	struct ccs_path_group_entry *group;
+	struct path_group *group;
 	struct ccs_path_info s;
 	struct ccs_path_info d;
 	s.name = sarg;
@@ -122,7 +89,7 @@ static _Bool ccs_compare_path(const char *sarg, const char *darg)
 		/* Pathname component. */
 		return ccs_path_matches_pattern(&d, &s);
 	/* path_group component. */
-	group = ccs_find_path_group_ns(ccs_current_ns, s.name + 1);
+	group = find_path_group_ns(current_ns, s.name + 1);
 	if (!group)
 		return false;
 	for (i = 0; i < group->member_name_len; i++) {
@@ -137,19 +104,19 @@ static _Bool ccs_compare_path(const char *sarg, const char *darg)
 }
 
 /**
- * ccs_compare_address - Compare two IPv4/v6 addresses.
+ * compare_address - Compare two IPv4/v6 addresses.
  *
  * @sarg: First address.
  * @darg: Second address.
  *
  * Returns true if @darg is included in @sarg, false otherwise.
  */
-static _Bool ccs_compare_address(const char *sarg, const char *darg)
+static _Bool compare_address(const char *sarg, const char *darg)
 {
 	int i;
 	struct ccs_ip_address_entry sentry;
 	struct ccs_ip_address_entry dentry;
-	struct ccs_address_group_entry *group;
+	struct address_group *group;
 	if (ccs_parse_ip(darg, &dentry))
 		return false;
 	if (sarg[0] != '@') {
@@ -163,7 +130,7 @@ static _Bool ccs_compare_address(const char *sarg, const char *darg)
 		return true;
 	}
 	/* IP address group component. */
-	group = ccs_find_address_group(sarg + 1);
+	group = find_address_group(sarg + 1);
 	if (!group)
 		return false;
 	for (i = 0; i < group->member_name_len; i++) {
@@ -177,55 +144,53 @@ static _Bool ccs_compare_address(const char *sarg, const char *darg)
 }
 
 /**
- * ccs_tokenize - Tokenize a line.
+ * tokenize - Tokenize a line.
  *
  * @buffer: Line to tokenize.
  * @w:      A "char *" array with 5 elements.
- * @index:  One of values in "enum ccs_editpolicy_directives".
+ * @index:  One of values in "enum directive_type".
  *
  * Returns nothing.
  */
-static void ccs_tokenize(char *buffer, char *w[5],
-			 enum ccs_editpolicy_directives index)
+static void tokenize(char *buffer, char *w[5], enum directive_type index)
 {
 	u8 i;
 	u8 words;
 	switch (index) {
-	case CCS_DIRECTIVE_FILE_MKBLOCK:
-	case CCS_DIRECTIVE_FILE_MKCHAR:
-	case CCS_DIRECTIVE_FILE_MOUNT:
-	case CCS_DIRECTIVE_NETWORK_INET:
+	case DIRECTIVE_FILE_MKBLOCK:
+	case DIRECTIVE_FILE_MKCHAR:
+	case DIRECTIVE_FILE_MOUNT:
+	case DIRECTIVE_NETWORK_INET:
 		words = 4;
 		break;
-	case CCS_DIRECTIVE_NETWORK_UNIX:
+	case DIRECTIVE_NETWORK_UNIX:
 		words = 3;
 		break;
-	case CCS_DIRECTIVE_FILE_CREATE:
-	case CCS_DIRECTIVE_FILE_MKDIR:
-	case CCS_DIRECTIVE_FILE_MKFIFO:
-	case CCS_DIRECTIVE_FILE_MKSOCK:
-	case CCS_DIRECTIVE_FILE_IOCTL:
-	case CCS_DIRECTIVE_FILE_CHMOD:
-	case CCS_DIRECTIVE_FILE_CHOWN:
-	case CCS_DIRECTIVE_FILE_CHGRP:
-	case CCS_DIRECTIVE_FILE_LINK:
-	case CCS_DIRECTIVE_FILE_RENAME:
-	case CCS_DIRECTIVE_FILE_PIVOT_ROOT:
-	case CCS_DIRECTIVE_IPC_SIGNAL:
+	case DIRECTIVE_FILE_CREATE:
+	case DIRECTIVE_FILE_MKDIR:
+	case DIRECTIVE_FILE_MKFIFO:
+	case DIRECTIVE_FILE_MKSOCK:
+	case DIRECTIVE_FILE_IOCTL:
+	case DIRECTIVE_FILE_CHMOD:
+	case DIRECTIVE_FILE_CHOWN:
+	case DIRECTIVE_FILE_CHGRP:
+	case DIRECTIVE_FILE_LINK:
+	case DIRECTIVE_FILE_RENAME:
+	case DIRECTIVE_FILE_PIVOT_ROOT:
 		words = 2;
 		break;
-	case CCS_DIRECTIVE_FILE_EXECUTE:
-	case CCS_DIRECTIVE_FILE_READ:
-	case CCS_DIRECTIVE_FILE_WRITE:
-	case CCS_DIRECTIVE_FILE_UNLINK:
-	case CCS_DIRECTIVE_FILE_GETATTR:
-	case CCS_DIRECTIVE_FILE_RMDIR:
-	case CCS_DIRECTIVE_FILE_TRUNCATE:
-	case CCS_DIRECTIVE_FILE_APPEND:
-	case CCS_DIRECTIVE_FILE_UNMOUNT:
-	case CCS_DIRECTIVE_FILE_CHROOT:
-	case CCS_DIRECTIVE_FILE_SYMLINK:
-	case CCS_DIRECTIVE_MISC_ENV:
+	case DIRECTIVE_FILE_EXECUTE:
+	case DIRECTIVE_FILE_READ:
+	case DIRECTIVE_FILE_WRITE:
+	case DIRECTIVE_FILE_UNLINK:
+	case DIRECTIVE_FILE_GETATTR:
+	case DIRECTIVE_FILE_RMDIR:
+	case DIRECTIVE_FILE_TRUNCATE:
+	case DIRECTIVE_FILE_APPEND:
+	case DIRECTIVE_FILE_UNMOUNT:
+	case DIRECTIVE_FILE_CHROOT:
+	case DIRECTIVE_FILE_SYMLINK:
+	case DIRECTIVE_MISC_ENV:
 		words = 1;
 		break;
 	default:
@@ -239,25 +204,11 @@ static void ccs_tokenize(char *buffer, char *w[5],
 		w[i] = buffer;
 		if (!cp)
 			return;
-		if (index == CCS_DIRECTIVE_IPC_SIGNAL && i == 1 &&
-		    ccs_domain_def(buffer)) {
-			cp = strchr(buffer, ' ');
-			if (!cp)
-				return;
-			while (*cp) {
-				if (*cp++ != ' ' || *cp++ == '/')
-					continue;
-				cp -= 2;
-				break;
-			}
-			if (!*cp)
-				return;
-		}
 		*cp = '\0';
 		buffer = cp + 1;
 	}
 	w[4] = buffer;
-	if (index != CCS_DIRECTIVE_FILE_EXECUTE)
+	if (index != DIRECTIVE_FILE_EXECUTE)
 		return;
 	if (ccs_domain_def(buffer)) {
 		char *cp = strchr(buffer, ' ');
@@ -280,9 +231,8 @@ static void ccs_tokenize(char *buffer, char *w[5],
 		if (cp)
 			*cp = '\0';
 		if (ccs_correct_path(buffer) || !strcmp(buffer, "keep") ||
-		    !strcmp(buffer, "reset") ||
-		    !strcmp(buffer, "initialize") ||
-		    !strcmp(buffer, "child") || !strcmp(buffer, "parent")) {
+		    !strcmp(buffer, "reset") || !strcmp(buffer, "initialize")
+		    || !strcmp(buffer, "child") || !strcmp(buffer, "parent")) {
 			w[1] = buffer;
 			if (cp)
 				w[4] = cp + 1;
@@ -296,36 +246,19 @@ static void ccs_tokenize(char *buffer, char *w[5],
 }
 
 /**
- * ccs_add_number_group_policy - Add "number_group" entry.
- *
- * @data:      Line to parse.
- * @is_delete: True if it is delete request, false otherwise.
- *
- * Returns 0 on success, negative value otherwise.
- */
-int ccs_add_number_group_policy(char *data, const _Bool is_delete)
-{
-	char *cp = strchr(data, ' ');
-	if (!cp)
-		return -EINVAL;
-	*cp++ = '\0';
-	return ccs_add_number_group_entry(data, cp, is_delete);
-}
-
-/**
- * ccs_compare_number - Compare two numeric values.
+ * compare_number - Compare two numeric values.
  *
  * @sarg: First number.
  * @darg: Second number.
  *
  * Returns true if @darg is included in @sarg, false otherwise.
  */
-static _Bool ccs_compare_number(const char *sarg, const char *darg)
+static _Bool compare_number(const char *sarg, const char *darg)
 {
 	int i;
 	struct ccs_number_entry sentry;
 	struct ccs_number_entry dentry;
-	struct ccs_number_group_entry *group;
+	struct number_group *group;
 	if (ccs_parse_number(darg, &dentry))
 		return false;
 	if (sarg[0] != '@') {
@@ -337,7 +270,7 @@ static _Bool ccs_compare_number(const char *sarg, const char *darg)
 		return true;
 	}
 	/* Number group component. */
-	group = ccs_find_number_group(sarg + 1);
+	group = find_number_group(sarg + 1);
 	if (!group)
 		return false;
 	for (i = 0; i < group->member_name_len; i++) {
@@ -350,150 +283,122 @@ static _Bool ccs_compare_number(const char *sarg, const char *darg)
 }
 
 /**
- * ccs_editpolicy_optimize - Try to merge entries included in other entries.
+ * editpolicy_do_optimize - Try to merge entries included in other entries.
  *
- * @current: Index in the domain policy.
+ * @cp:           A line containing operand.
+ * @s_index:      Type of entry.
+ * @s_index2:     Type of entry.
+ * @is_acl_group: True if optimizing acl_group, false otherwise.
  *
  * Returns nothing.
  */
-void ccs_editpolicy_optimize(const int current)
+static void editpolicy_do_optimize(char *cp, const int current,
+				   enum directive_type s_index,
+				   enum directive_type s_index2,
+				   const bool is_acl_group)
 {
-	char *cp;
-	const bool is_exception_list =
-		ccs_current_screen == CCS_SCREEN_EXCEPTION_LIST;
-	enum ccs_editpolicy_directives s_index;
-	enum ccs_editpolicy_directives s_index2;
 	int index;
 	char *s[5];
 	char *d[5];
-	if (current < 0)
-		return;
-	s_index = ccs_gacl_list[current].directive;
-	if (s_index == CCS_DIRECTIVE_NONE)
-		return;
-	/* Allow acl_group lines to be optimized. */
-	if (is_exception_list &&
-	    (s_index < CCS_DIRECTIVE_ACL_GROUP_000 ||
-	     s_index > CCS_DIRECTIVE_ACL_GROUP_255))
-		return;
-	cp = strdup(ccs_gacl_list[current].operand);
-	if (!cp)
-		return;
-	s_index2 = s_index;
-	if (is_exception_list)
-		s_index = ccs_find_directive(true, cp);
-	ccs_tokenize(cp, s, s_index);
+	tokenize(cp, s, s_index);
 	ccs_get();
-	for (index = 0; index < ccs_list_item_count; index++) {
+	for (index = 0; index < p.generic_len; index++) {
 		char *line;
-		enum ccs_editpolicy_directives d_index =
-			ccs_gacl_list[index].directive;
-		enum ccs_editpolicy_directives d_index2;
+		enum directive_type d_index = p.generic[index].directive;
+		enum directive_type d_index2;
 		if (index == current)
 			/* Skip source. */
 			continue;
-		if (ccs_gacl_list[index].selected)
+		if (p.generic[index].selected)
 			/* Dest already selected. */
 			continue;
 		else if (s_index == s_index2 && s_index != d_index)
 			/* Source and dest have different directive. */
 			continue;
-		else if (is_exception_list && s_index2 != d_index)
+		else if (is_acl_group && s_index2 != d_index)
 			/* Source and dest have different directive. */
 			continue;
 		/* Source and dest have same directive. */
-		line = ccs_shprintf("%s", ccs_gacl_list[index].operand);
+		line = ccs_shprintf("%s", p.generic[index].operand);
 		d_index2 = d_index;
-		if (is_exception_list)
-			d_index = ccs_find_directive(true, line);
+		if (is_acl_group)
+			d_index = find_directive(true, line);
 		if (s_index != d_index || s_index2 != d_index2)
 			/* Source and dest have different directive. */
 			continue;
-		ccs_tokenize(line, d, d_index);
+		tokenize(line, d, d_index);
 		/* Compare condition part. */
 		if (s[4][0] && strcmp(s[4], d[4]))
 			continue;
-		if (!s[4][0] && (!strncmp(d[4], "grant_log=", 10)
+		if (!s[4][0] && (!strncmp(d[4], "auto_domain_transition=", 23)
+				 || strstr(d[4], " auto_domain_transition=") ||
+				 !strncmp(d[4], "grant_log=", 10)
 				 || strstr(d[4], " grant_log=")))
 			continue;
 		/* Compare non condition word. */
 		switch (d_index) {
 			struct ccs_path_info sarg;
 			struct ccs_path_info darg;
-			char c;
-			int len;
-		case CCS_DIRECTIVE_FILE_EXECUTE:
-			if (!ccs_compare_path(s[0], d[0]))
+		case DIRECTIVE_FILE_EXECUTE:
+			if (!compare_path(s[0], d[0]))
 				continue;
 			if (strcmp(s[1], d[1]))
 				continue;
 			break;
-		case CCS_DIRECTIVE_FILE_MKBLOCK:
-		case CCS_DIRECTIVE_FILE_MKCHAR:
-			if (!ccs_compare_number(s[3], d[3]) ||
-			    !ccs_compare_number(s[2], d[2]))
+		case DIRECTIVE_FILE_MKBLOCK:
+		case DIRECTIVE_FILE_MKCHAR:
+			if (!compare_number(s[3], d[3]) ||
+			    !compare_number(s[2], d[2]))
 				continue;
 			/* fall through */
-		case CCS_DIRECTIVE_FILE_CREATE:
-		case CCS_DIRECTIVE_FILE_MKDIR:
-		case CCS_DIRECTIVE_FILE_MKFIFO:
-		case CCS_DIRECTIVE_FILE_MKSOCK:
-		case CCS_DIRECTIVE_FILE_IOCTL:
-		case CCS_DIRECTIVE_FILE_CHMOD:
-		case CCS_DIRECTIVE_FILE_CHOWN:
-		case CCS_DIRECTIVE_FILE_CHGRP:
-			if (!ccs_compare_number(s[1], d[1]))
+		case DIRECTIVE_FILE_CREATE:
+		case DIRECTIVE_FILE_MKDIR:
+		case DIRECTIVE_FILE_MKFIFO:
+		case DIRECTIVE_FILE_MKSOCK:
+		case DIRECTIVE_FILE_IOCTL:
+		case DIRECTIVE_FILE_CHMOD:
+		case DIRECTIVE_FILE_CHOWN:
+		case DIRECTIVE_FILE_CHGRP:
+			if (!compare_number(s[1], d[1]))
 				continue;
 			/* fall through */
-		case CCS_DIRECTIVE_FILE_READ:
-		case CCS_DIRECTIVE_FILE_WRITE:
-		case CCS_DIRECTIVE_FILE_UNLINK:
-		case CCS_DIRECTIVE_FILE_GETATTR:
-		case CCS_DIRECTIVE_FILE_RMDIR:
-		case CCS_DIRECTIVE_FILE_TRUNCATE:
-		case CCS_DIRECTIVE_FILE_APPEND:
-		case CCS_DIRECTIVE_FILE_UNMOUNT:
-		case CCS_DIRECTIVE_FILE_CHROOT:
-		case CCS_DIRECTIVE_FILE_SYMLINK:
-			if (!ccs_compare_path(s[0], d[0]))
+		case DIRECTIVE_FILE_READ:
+		case DIRECTIVE_FILE_WRITE:
+		case DIRECTIVE_FILE_UNLINK:
+		case DIRECTIVE_FILE_GETATTR:
+		case DIRECTIVE_FILE_RMDIR:
+		case DIRECTIVE_FILE_TRUNCATE:
+		case DIRECTIVE_FILE_APPEND:
+		case DIRECTIVE_FILE_UNMOUNT:
+		case DIRECTIVE_FILE_CHROOT:
+		case DIRECTIVE_FILE_SYMLINK:
+			if (!compare_path(s[0], d[0]))
 				continue;
 			break;
-		case CCS_DIRECTIVE_FILE_MOUNT:
-			if (!ccs_compare_number(s[3], d[3]) ||
-			    !ccs_compare_path(s[2], d[2]))
+		case DIRECTIVE_FILE_MOUNT:
+			if (!compare_number(s[3], d[3]) ||
+			    !compare_path(s[2], d[2]))
 				continue;
 			/* fall through */
-		case CCS_DIRECTIVE_FILE_LINK:
-		case CCS_DIRECTIVE_FILE_RENAME:
-		case CCS_DIRECTIVE_FILE_PIVOT_ROOT:
-			if (!ccs_compare_path(s[1], d[1]) ||
-			    !ccs_compare_path(s[0], d[0]))
+		case DIRECTIVE_FILE_LINK:
+		case DIRECTIVE_FILE_RENAME:
+		case DIRECTIVE_FILE_PIVOT_ROOT:
+			if (!compare_path(s[1], d[1]) ||
+			    !compare_path(s[0], d[0]))
 				continue;
 			break;
-		case CCS_DIRECTIVE_IPC_SIGNAL:
-			/* Signal number component. */
-			if (strcmp(s[0], d[0]))
-				continue;
-			/* Domainname component. */
-			len = strlen(s[1]);
-			if (strncmp(s[1], d[1], len))
-				continue;
-			c = d[1][len];
-			if (c && c != ' ')
-				continue;
-			break;
-		case CCS_DIRECTIVE_NETWORK_INET:
+		case DIRECTIVE_NETWORK_INET:
 			if (strcmp(s[0], d[0]) || strcmp(s[1], d[1]) ||
-			    !ccs_compare_address(s[2], d[2]) ||
-			    !ccs_compare_number(s[3], d[3]))
+			    !compare_address(s[2], d[2]) ||
+			    !compare_number(s[3], d[3]))
 				continue;
 			break;
-		case CCS_DIRECTIVE_NETWORK_UNIX:
+		case DIRECTIVE_NETWORK_UNIX:
 			if (strcmp(s[0], d[0]) || strcmp(s[1], d[1]) ||
-			    !ccs_compare_path(s[2], d[2]))
+			    !compare_path(s[2], d[2]))
 				continue;
 			break;
-		case CCS_DIRECTIVE_MISC_ENV:
+		case DIRECTIVE_MISC_ENV:
 			/* An environemnt variable name component. */
 			sarg.name = s[0];
 			ccs_fill_path_info(&sarg);
@@ -510,185 +415,55 @@ void ccs_editpolicy_optimize(const int current)
 		default:
 			continue;
 		}
-		ccs_gacl_list[index].selected = 1;
+		p.generic[index].selected = 1;
 	}
 	ccs_put();
-	free(cp);
 }
 
 /**
- * ccs_add_address_group_entry - Add "address_group" entry.
- *
- * @group_name:  Name of address group.
- * @member_name: Address string.
- * @is_delete:   True if it is delete request, false otherwise.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_add_address_group_entry(const char *group_name,
-				       const char *member_name,
-				       const _Bool is_delete)
-{
-	const struct ccs_path_info *saved_group_name;
-	int i;
-	int j;
-	struct ccs_ip_address_entry entry;
-	struct ccs_address_group_entry *group = NULL;
-	if (ccs_parse_ip(member_name, &entry))
-		return -EINVAL;
-	if (!ccs_correct_word(group_name))
-		return -EINVAL;
-	saved_group_name = ccs_savename(group_name);
-	for (i = 0; i < ccs_address_group_list_len; i++) {
-		group = &ccs_address_group_list[i];
-		if (saved_group_name != group->group_name)
-			continue;
-		for (j = 0; j < group->member_name_len; j++) {
-			if (memcmp(&group->member_name[j], &entry,
-				   sizeof(entry)))
-				continue;
-			if (!is_delete)
-				return 0;
-			while (j < group->member_name_len - 1)
-				group->member_name[j]
-					= group->member_name[j + 1];
-			group->member_name_len--;
-			return 0;
-		}
-		break;
-	}
-	if (is_delete)
-		return -ENOENT;
-	if (i == ccs_address_group_list_len) {
-		ccs_address_group_list =
-			ccs_realloc(ccs_address_group_list,
-				    (ccs_address_group_list_len + 1) *
-				    sizeof(struct ccs_address_group_entry));
-		group = &ccs_address_group_list[ccs_address_group_list_len++];
-		memset(group, 0, sizeof(struct ccs_address_group_entry));
-		group->group_name = saved_group_name;
-	}
-	group->member_name =
-		ccs_realloc(group->member_name, (group->member_name_len + 1) *
-			    sizeof(const struct ccs_ip_address_entry));
-	group->member_name[group->member_name_len++] = entry;
-	return 0;
-}
-
-/**
- * ccs_find_address_group - Find an "address_group" by name.
- *
- * @group_name: Group name to find.
- *
- * Returns pointer to "struct ccs_address_group_entry" if found,
- * NULL otherwise.
- */
-static struct ccs_address_group_entry *ccs_find_address_group
-(const char *group_name)
-{
-	int i;
-	for (i = 0; i < ccs_address_group_list_len; i++) {
-		if (!strcmp(group_name,
-			    ccs_address_group_list[i].group_name->name))
-			return &ccs_address_group_list[i];
-	}
-	return NULL;
-}
-
-/**
- * ccs_add_number_group_entry - Add "number_group" entry.
- *
- * @group_name:  Name of number group.
- * @member_name: Number string.
- * @is_delete:   True if it is delete request, false otherwise.
- *
- * Returns 0 on success, negative value otherwise.
- */
-static int ccs_add_number_group_entry(const char *group_name,
-				      const char *member_name,
-				      const _Bool is_delete)
-{
-	const struct ccs_path_info *saved_group_name;
-	int i;
-	int j;
-	struct ccs_number_entry entry;
-	struct ccs_number_group_entry *group = NULL;
-	if (ccs_parse_number(member_name, &entry))
-		return -EINVAL;
-	if (!ccs_correct_word(group_name))
-		return -EINVAL;
-	saved_group_name = ccs_savename(group_name);
-	for (i = 0; i < ccs_number_group_list_len; i++) {
-		group = &ccs_number_group_list[i];
-		if (saved_group_name != group->group_name)
-			continue;
-		for (j = 0; j < group->member_name_len; j++) {
-			if (memcmp(&group->member_name[j], &entry,
-				   sizeof(entry)))
-				continue;
-			if (!is_delete)
-				return 0;
-			while (j < group->member_name_len - 1)
-				group->member_name[j]
-					= group->member_name[j + 1];
-			group->member_name_len--;
-			return 0;
-		}
-		break;
-	}
-	if (is_delete)
-		return -ENOENT;
-	if (i == ccs_number_group_list_len) {
-		ccs_number_group_list =
-			ccs_realloc(ccs_number_group_list,
-				    (ccs_number_group_list_len + 1) *
-				    sizeof(struct ccs_number_group_entry));
-		group = &ccs_number_group_list[ccs_number_group_list_len++];
-		memset(group, 0, sizeof(struct ccs_number_group_entry));
-		group->group_name = saved_group_name;
-	}
-	group->member_name =
-		ccs_realloc(group->member_name, (group->member_name_len + 1) *
-			    sizeof(const struct ccs_number_entry));
-	group->member_name[group->member_name_len++] = entry;
-	return 0;
-}
-
-/**
- * ccs_find_number_group - Find an "number_group" by name.
- *
- * @group_name: Group name to find.
- *
- * Returns pointer to "struct ccs_number_group_entry" if found,
- * NULL otherwise.
- */
-static struct ccs_number_group_entry *ccs_find_number_group
-(const char *group_name)
-{
-	int i;
-	for (i = 0; i < ccs_number_group_list_len; i++) {
-		if (!strcmp(group_name,
-			    ccs_number_group_list[i].group_name->name))
-			return &ccs_number_group_list[i];
-	}
-	return NULL;
-}
-
-/**
- * ccs_editpolicy_clear_groups - Clear path_group/number_group/address_group for reloading policy.
+ * editpolicy_optimize - Try to merge entries included in other entries.
  *
  * Returns nothing.
  */
-void ccs_editpolicy_clear_groups(void)
+void editpolicy_optimize(void)
 {
-	while (ccs_path_group_list_len)
-		free(ccs_path_group_list[--ccs_path_group_list_len].
-		     member_name);
-	/*
-	while (ccs_address_group_list_len)
-		free(ccs_address_group_list[--ccs_address_group_list_len].
-		     member_name);
-	*/
-	ccs_address_group_list_len = 0;
-	ccs_number_group_list_len = 0;
+	char *cp;
+	const bool is_acl_group = active == SCREEN_EXCEPTION_LIST;
+	const int current = editpolicy_get_current();
+	enum directive_type s_index;
+	enum directive_type s_index2;
+	if (current < 0)
+		return;
+	s_index = p.generic[current].directive;
+	if (s_index == DIRECTIVE_NONE)
+		return;
+	/* Allow acl_group lines to be optimized. */
+	if (is_acl_group && (s_index < DIRECTIVE_ACL_GROUP_000 ||
+			     s_index > DIRECTIVE_ACL_GROUP_255))
+		return;
+	if (s_index == DIRECTIVE_USE_GROUP) {
+		unsigned int group = atoi(p.generic[current].operand);
+		int i;
+		if (group >= 256)
+			return;
+		for (i = 0; i < p.acl_group_len[group]; i++) {
+			cp = strdup(p.acl_group[group][i]);
+			if (!cp)
+				return;
+			s_index = find_directive(true, cp);
+			if (s_index != DIRECTIVE_NONE)
+				editpolicy_do_optimize(cp, -1, s_index,
+						       s_index, false);
+			free(cp);
+		}
+		return;
+	}
+	cp = strdup(p.generic[current].operand);
+	if (!cp)
+		return;
+	s_index2 = s_index;
+	if (is_acl_group)
+		s_index = find_directive(true, cp);
+	editpolicy_do_optimize(cp, current, s_index, s_index2, is_acl_group);
+	free(cp);
 }

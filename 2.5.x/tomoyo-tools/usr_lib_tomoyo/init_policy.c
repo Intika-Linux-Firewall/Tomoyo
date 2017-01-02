@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.5.0+   2014/01/05
+ * Version: 2.5.0+   2017/01/02
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -1262,8 +1262,6 @@ static const char editpolicy_data[] =
 "keyword_alias acl_group 255                 = acl_group 255\n"
 "keyword_alias address_group                 = address_group\n"
 "keyword_alias aggregator                    = aggregator\n"
-"keyword_alias capability                    = capability\n"
-"keyword_alias deny_autobind                 = deny_autobind\n"
 "keyword_alias file append                   = file append\n"
 "keyword_alias file chgrp                    = file chgrp\n"
 "keyword_alias file chmod                    = file chmod\n"
@@ -1290,7 +1288,6 @@ static const char editpolicy_data[] =
 "keyword_alias file unmount                  = file unmount\n"
 "keyword_alias file write                    = file write\n"
 "keyword_alias initialize_domain             = initialize_domain\n"
-"keyword_alias ipc signal                    = ipc signal\n"
 "keyword_alias keep_domain                   = keep_domain\n"
 "keyword_alias misc env                      = misc env\n"
 "keyword_alias network inet                  = network inet\n"
@@ -1302,9 +1299,6 @@ static const char editpolicy_data[] =
 "keyword_alias path_group                    = path_group\n"
 "keyword_alias quota_exceeded                = quota_exceeded\n"
 "keyword_alias reset_domain                  = reset_domain\n"
-"keyword_alias task auto_domain_transition   = task auto_domain_transition\n"
-"keyword_alias task auto_execute_handler     = task auto_execute_handler\n"
-"keyword_alias task denied_execute_handler   = task denied_execute_handler\n"
 "keyword_alias task manual_domain_transition = task manual_domain_transition\n"
 "keyword_alias transition_failed             = transition_failed\n"
 "keyword_alias use_group                     = use_group\n"

@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.5.0+   2012/08/05
+ * Version: 2.5.0+   2017/01/02
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -99,9 +99,6 @@ static void ccs_check_condition(char *condition)
 		CCS_MODE_OTHERS_READ,     /* S_IROTH */
 		CCS_MODE_OTHERS_WRITE,    /* S_IWOTH */
 		CCS_MODE_OTHERS_EXECUTE,  /* S_IXOTH */
-		CCS_TASK_TYPE,            /* ((u8) task->ccs_flags) &
-					     CCS_TASK_IS_EXECUTE_HANDLER */
-		CCS_TASK_EXECUTE_HANDLER, /* CCS_TASK_IS_EXECUTE_HANDLER */
 		CCS_EXEC_REALPATH,
 		CCS_SYMLINK_TARGET,
 		CCS_PATH1_UID,
@@ -168,8 +165,6 @@ static void ccs_check_condition(char *condition)
 		[CCS_MODE_OTHERS_READ]     = "others_read",
 		[CCS_MODE_OTHERS_WRITE]    = "others_write",
 		[CCS_MODE_OTHERS_EXECUTE]  = "others_execute",
-		[CCS_TASK_TYPE]            = "task.type",
-		[CCS_TASK_EXECUTE_HANDLER] = "execute_handler",
 		[CCS_EXEC_REALPATH]        = "exec.realpath",
 		[CCS_SYMLINK_TARGET]       = "symlink.target",
 		[CCS_PATH1_UID]            = "path1.uid",
@@ -376,23 +371,6 @@ static _Bool ccs_check_path_transition(char *arg)
 	return ccs_check_transition(arg);
 }
 
-static _Bool ccs_check_capability(char *arg)
-{
-	static const char * const list[] = {
-		"use_route", "use_packet", "SYS_REBOOT", "SYS_VHANGUP",
-		"SYS_TIME", "SYS_NICE", "SYS_SETHOSTNAME", "use_kernel_module",
-		"SYS_KEXEC_LOAD", "SYS_PTRACE", NULL
-	};
-	int i;
-	char *cp = strchr(arg, ' ');
-	if (cp)
-		*cp++ = '\0';
-	for (i = 0; list[i]; i++)
-		if (!strcmp(arg, list[i]))
-			return ccs_prune_word(arg, cp);
-	return false;
-}
-
 static _Bool ccs_check_u8(char *arg)
 {
 	char *cp = strchr(arg, ' ');
@@ -400,17 +378,6 @@ static _Bool ccs_check_u8(char *arg)
 	if (cp)
 		*cp++ = '\0';
 	if (sscanf(arg, "%u", &value) != 1 || value >= 256)
-		return false;
-	return ccs_prune_word(arg, cp);
-}
-
-static _Bool ccs_check_u16(char *arg)
-{
-	char *cp = strchr(arg, ' ');
-	unsigned int value;
-	if (cp)
-		*cp++ = '\0';
-	if (sscanf(arg, "%u", &value) != 1 || value >= 65536)
 		return false;
 	return ccs_prune_word(arg, cp);
 }
@@ -430,24 +397,6 @@ found:
 	return ccs_prune_word(arg, cp);
 }
 
-static _Bool ccs_check_port(char *arg)
-{
-	char *cp = strchr(arg, ' ');
-	unsigned int min_value;
-	unsigned int max_value;
-	if (cp)
-		*cp++ = '\0';
-	switch (sscanf(arg, "%u-%u", &min_value, &max_value)) {
-	case 2:
-	case 1:
-		break;
-	default:
-		return false;
-	}
-	return ccs_prune_word(arg, cp);
-}
-
-
 static _Bool ccs_check_network(char *arg)
 {
 	static const struct {
@@ -459,7 +408,6 @@ static _Bool ccs_check_network(char *arg)
 		{ "connect", 2 },
 		{ "accept", 2 },
 		{ "send", 4 },
-		{ "recv", 4 },
 	};
 	_Bool inet;
 	u8 mask;
@@ -627,14 +575,9 @@ static _Bool ccs_check_domain_policy2(char *policy)
 		_Bool (*arg1) (char *arg);
 		_Bool (*arg2) (char *arg);
 	} list[] = {
-		{ "capability ", ccs_check_capability },
 		{ "file ", ccs_check_file },
-		{ "ipc signal ", ccs_check_u16, ccs_check_domain },
 		{ "misc env ", ccs_check_path },
 		{ "network ", ccs_check_network },
-		{ "task auto_domain_transition ", ccs_check_domain },
-		{ "task auto_execute_handler ", ccs_check_path_transition },
-		{ "task denied_execute_handler ", ccs_check_path_transition },
 		{ "task manual_domain_transition ", ccs_check_domain },
 		{ }
 	};
@@ -691,7 +634,6 @@ static void ccs_check_exception_policy(char *policy)
 		{ "acl_group ", ccs_check_u8, ccs_check_domain_policy2 },
 		{ "address_group ", ccs_check_path, ccs_check_ip_address },
 		{ "aggregator ", ccs_check_path, ccs_check_path },
-		{ "deny_autobind ", ccs_check_port },
 		{ "initialize_domain ", ccs_check_path_domain },
 		{ "keep_domain ", ccs_check_path_domain },
 		{ "no_initialize_domain ", ccs_check_path_domain },

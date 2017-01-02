@@ -19,8 +19,8 @@ CFLAGS_PIC  := $(filter-out -fPIE,$(CFLAGS))
 LDFLAGS_PIC := $(filter-out -pie,$(filter-out -fPIE,$(LDFLAGS)))
 
 libtomoyotools.so: tomoyotools.c tomoyotools.h
-	$(CC) $(CPPFLAGS) $(CFLAGS_PIC) $(LDFLAGS_PIC) -fPIC tomoyotools.c -shared -Wl,-soname,libtomoyotools.so.3 -o libtomoyotools.so.3.0.2
-	ln -sf libtomoyotools.so.3.0.2 libtomoyotools.so
+	$(CC) $(CPPFLAGS) $(CFLAGS_PIC) $(LDFLAGS_PIC) -fPIC tomoyotools.c -shared -Wl,-soname,libtomoyotools.so.3 -o libtomoyotools.so.3.0.3
+	ln -sf libtomoyotools.so.3.0.3 libtomoyotools.so
 
 .c:
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $< -ltomoyotools -L. 
@@ -33,8 +33,8 @@ tomoyo-queryd: tomoyotools.h tomoyo-queryd.c readline.h /usr/include/curses.h li
 
 install: all
 	mkdir -p -m 0755 $(INSTALLDIR)$(USRLIBDIR)
-	$(INSTALL) -m 0755 libtomoyotools.so.3.0.2 $(INSTALLDIR)$(USRLIBDIR)
-	ln -sf libtomoyotools.so.3.0.2 $(INSTALLDIR)$(USRLIBDIR)/libtomoyotools.so.3
+	$(INSTALL) -m 0755 libtomoyotools.so.3.0.3 $(INSTALLDIR)$(USRLIBDIR)
+	ln -sf libtomoyotools.so.3.0.3 $(INSTALLDIR)$(USRLIBDIR)/libtomoyotools.so.3
 ifeq ($(INSTALLDIR),)
 	ldconfig || true
 endif
