@@ -3204,6 +3204,7 @@ static void copy_to_history(void)
 {
 	const int current = editpolicy_get_current();
 	const char *line;
+	unsigned int profile;
 	if (current == EOF)
 		return;
 	ccs_get();
@@ -3228,6 +3229,14 @@ static void copy_to_history(void)
 	case SCREEN_STAT_LIST:
 		line = NULL;
 		break;
+	case SCREEN_PROFILE_LIST:
+		profile = p.generic[current].directive;
+		if (profile < 256) {
+			line = ccs_shprintf("%u-%s", profile,
+					    p.generic[current].operand);
+			break;
+		}
+		/* Fall through. */
 	default:
 		line = ccs_shprintf("%s", p.generic[current].operand);
 	}

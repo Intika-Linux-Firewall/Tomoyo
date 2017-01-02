@@ -2503,6 +2503,9 @@ static struct ccs_domain2_info *ccs_assign_domain2(const char *domainname)
 	if (strlen(domainname) >= CCS_EXEC_TMPSIZE - 10 ||
 	    !ccs_correct_domain(domainname))
 		return NULL;
+	/* Create namespace if requested namespace does not exist. */
+	if (!ccs_assign_namespace(domainname))
+		return NULL;
 	e.domainname = ccs_get_name(domainname);
 	entry = ccs_commit_ok(&e, sizeof(e));
 	INIT_LIST_HEAD(&entry->acl_info_list);
