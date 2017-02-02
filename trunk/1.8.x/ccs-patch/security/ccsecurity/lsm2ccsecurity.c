@@ -268,6 +268,16 @@ static struct security_hook_list ccsecurity_hooks[] = {
 
 static void ccs_add_hooks(void)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0)
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(ccsecurity_hooks); i++) {
+		ccsecurity_hooks[i].lsm = "ccsecurity";
+		list_add_tail_rcu(&ccsecurity_hooks[i].list,
+				  ccsecurity_hooks[i].head);
+	}
+#else
 	security_add_hooks(ccsecurity_hooks, ARRAY_SIZE(ccsecurity_hooks));
+#endif
 }
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0) && defined(CONFIG_SECURITY) */
