@@ -3240,3 +3240,11 @@ Fix 2015/11/10
       we cannot allow infinite recursion.
 
 Version 1.8.5   2015/11/11   Tenth anniversary release.
+
+Fix 2017/02/02
+
+    @ Use for_each_thread() for GC operation.
+
+      while_each_thread() without tasklist_lock is not safe.
+      Use for_each_process_thread() if it is available, hold
+      tasklist_lock otherwise.
