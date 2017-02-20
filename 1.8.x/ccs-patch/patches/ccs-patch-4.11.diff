@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for linux-next.
 
-Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/snapshot/linux-next-next-20170202.tar.xz
+Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/snapshot/linux-next-next-20170220.tar.xz
 ---
  fs/exec.c                 |    2 -
  fs/open.c                 |    2 +
@@ -41,7 +41,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  		trace_sched_process_exec(current, old_pid, bprm);
 --- linux-next.orig/fs/open.c
 +++ linux-next/fs/open.c
-@@ -1145,6 +1145,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1143,6 +1143,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -59,7 +59,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 4.10-rc6-next-20170202 2017/02/02\n");
++	printk(KERN_INFO "Hook version: 4.10-rc8-next-20170220 2017/02/20\n");
 +	return 0;
 +}
 +fs_initcall(ccs_show_version);
@@ -99,7 +99,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  struct sched_param {
  	int sched_priority;
  };
-@@ -1980,6 +1982,10 @@ struct task_struct {
+@@ -1970,6 +1972,10 @@ struct task_struct {
  	/* A live task holds one reference. */
  	atomic_t stack_refcount;
  #endif
@@ -348,7 +348,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	if (!profile_handoff_task(tsk))
  		free_task(tsk);
  }
-@@ -1657,6 +1658,9 @@ static __latent_entropy struct task_stru
+@@ -1654,6 +1655,9 @@ static __latent_entropy struct task_stru
  		goto bad_fork_cleanup_perf;
  	/* copy all the process information */
  	shm_init_task(p);
@@ -358,7 +358,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	retval = copy_semundo(clone_flags, p);
  	if (retval)
  		goto bad_fork_cleanup_audit;
-@@ -1876,6 +1880,7 @@ bad_fork_cleanup_semundo:
+@@ -1880,6 +1884,7 @@ bad_fork_cleanup_semundo:
  	exit_sem(p);
  bad_fork_cleanup_audit:
  	audit_free(p);
@@ -388,15 +388,15 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	 * Verify we have a legal set of flags
 --- linux-next.orig/kernel/module.c
 +++ linux-next/kernel/module.c
-@@ -64,6 +64,7 @@
- #include <linux/dynamic_debug.h>
+@@ -65,6 +65,7 @@
+ #include <linux/audit.h>
  #include <uapi/linux/module.h>
  #include "module-internal.h"
 +#include <linux/ccsecurity.h>
  
  #define CREATE_TRACE_POINTS
  #include <trace/events/module.h>
-@@ -941,6 +942,8 @@ SYSCALL_DEFINE2(delete_module, const cha
+@@ -942,6 +943,8 @@ SYSCALL_DEFINE2(delete_module, const cha
  
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -405,7 +405,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -3485,6 +3488,8 @@ static int may_init_module(void)
+@@ -3483,6 +3486,8 @@ static int may_init_module(void)
  {
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -461,7 +461,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	 * If pid namespaces are enabled and the current task is in a child
 --- linux-next.orig/kernel/sched/core.c
 +++ linux-next/kernel/sched/core.c
-@@ -3881,6 +3881,8 @@ int can_nice(const struct task_struct *p
+@@ -3834,6 +3834,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -519,7 +519,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  }
 --- linux-next.orig/kernel/sys.c
 +++ linux-next/kernel/sys.c
-@@ -180,6 +180,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
+@@ -183,6 +183,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
@@ -530,7 +530,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -1219,6 +1223,8 @@ SYSCALL_DEFINE2(sethostname, char __user
+@@ -1222,6 +1226,8 @@ SYSCALL_DEFINE2(sethostname, char __user
  
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -539,7 +539,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1269,6 +1275,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
+@@ -1272,6 +1278,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -585,7 +585,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  			struct timespec ts;
 --- linux-next.orig/net/ipv4/raw.c
 +++ linux-next/net/ipv4/raw.c
-@@ -746,6 +746,10 @@ static int raw_recvmsg(struct sock *sk,
+@@ -750,6 +750,10 @@ static int raw_recvmsg(struct sock *sk,
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -598,7 +598,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	if (len < copied) {
 --- linux-next.orig/net/ipv4/udp.c
 +++ linux-next/net/ipv4/udp.c
-@@ -1424,6 +1424,8 @@ try_again:
+@@ -1425,6 +1425,8 @@ try_again:
  	skb = __skb_recv_udp(sk, flags, noblock, &peeked, &off, &err);
  	if (!skb)
  		return err;
@@ -646,7 +646,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  					  &len, 2) < 0) {
 --- linux-next.orig/net/unix/af_unix.c
 +++ linux-next/net/unix/af_unix.c
-@@ -2142,6 +2142,10 @@ static int unix_dgram_recvmsg(struct soc
+@@ -2143,6 +2143,10 @@ static int unix_dgram_recvmsg(struct soc
  						POLLOUT | POLLWRNORM |
  						POLLWRBAND);
  
@@ -657,7 +657,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
-@@ -2192,6 +2196,7 @@ static int unix_dgram_recvmsg(struct soc
+@@ -2193,6 +2197,7 @@ static int unix_dgram_recvmsg(struct soc
  
  out_free:
  	skb_free_datagram(sk, skb);
