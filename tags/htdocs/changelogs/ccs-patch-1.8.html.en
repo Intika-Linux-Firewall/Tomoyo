@@ -32,6 +32,14 @@
 <h4>ChangeLog for ccs-patch 1.8.5</h4>
 
 <pre>
+Fix 2017/02/02
+
+    @ Use for_each_thread() for GC operation.
+
+      while_each_thread() without tasklist_lock is not safe.
+      Use for_each_process_thread() if it is available, hold
+      tasklist_lock otherwise.
+
 Fix 2015/11/10
 
     @ Limit wildcard recursion depth.
