@@ -94,35 +94,35 @@ LoadModule tomoyo_module /usr/lib/httpd/modules/mod_tomoyo.so
 
 <h3><a name="13.3">13.3. Configuration</a></h3>
 
-<p>The mod_tomoyo module performs domain transition based on the pathname of a requested file by specifying the mapping table of pathnames and domain names using the CCS_TransitionMap directive. This can be placed in the Apache configuration files like this (assuming that IP addresses for www.tomoyo00.com etc. are specified in "/etc/hosts"):</p>
+<p>The mod_tomoyo module performs domain transition based on the pathname of a requested file by specifying the mapping table of pathnames and domain names using the TOMOYO_TransitionMap directive. This can be placed in the Apache configuration files like this (assuming that IP addresses for www.tomoyo00.com etc. are specified in "/etc/hosts"):</p>
 
 <pre>
 &lt;VirtualHost *:80&gt;
     DocumentRoot /var/www/html-00
     ServerName www.tomoyo00.com
-    CCS_TransitionMap /etc/tomoyo/httpd-tomoyo00.conf
+    TOMOYO_TransitionMap /etc/tomoyo/httpd-tomoyo00.conf
 &lt;/VirtualHost&gt;
 
 &lt;VirtualHost *:80&gt;
     DocumentRoot /var/www/html-01
     ServerName www.tomoyo01.com
-    CCS_TransitionMap /etc/tomoyo/httpd-tomoyo01.conf
+    TOMOYO_TransitionMap /etc/tomoyo/httpd-tomoyo01.conf
 &lt;/VirtualHost&gt;
 
 &lt;VirtualHost *:80&gt;
     DocumentRoot /var/www/html-02
     ServerName www.tomoyo02.com
-    CCS_TransitionMap /etc/tomoyo/httpd-tomoyo02.conf
+    TOMOYO_TransitionMap /etc/tomoyo/httpd-tomoyo02.conf
 &lt;/VirtualHost&gt;
 
 &lt;VirtualHost *:80&gt;
     DocumentRoot /var/www/html-03
     ServerName www.tomoyo03.com
-    CCS_TransitionMap /etc/tomoyo/httpd-tomoyo03.conf
+    TOMOYO_TransitionMap /etc/tomoyo/httpd-tomoyo03.conf
 &lt;/VirtualHost&gt;
 </pre>
 
-<p>In the file specified by the CCS_TransitionMap directive, the pathname of a requested file needs to be mapped to a domain name. For example, in "/etc/tomoyo/httpd-tomoyo00.com" the following might be specified:</p>
+<p>In the file specified by the TOMOYO_TransitionMap directive, the pathname of a requested file needs to be mapped to a domain name. For example, in "/etc/tomoyo/httpd-tomoyo00.com" the following might be specified:</p>
 
 <pre>
 /var/www/cgi-bin/\*         &lt;kernel&gt; //apache /www.tomoyo00.com /cgi-programs
@@ -154,7 +154,7 @@ mod_tomoyo: Unable to open /sys/kernel/security/tomoyo/self_domain for writing. 
 [Thu Jul 01 16:31:10 2010] [error] [client 127.0.0.1] (13)Permission denied: mod_tomoyo: Unable to open /sys/kernel/security/tomoyo/self_domain for writing.
 </pre>
 
-<p>Other error messages may appear if there are problems in the mapping file specified by the CCS_TransitionMap directive.</p>
+<p>Other error messages may appear if there are problems in the mapping file specified by the TOMOYO_TransitionMap directive.</p>
 
 <p>To confirm that domain transitions are performed, create a simple CGI program:</p>
 
