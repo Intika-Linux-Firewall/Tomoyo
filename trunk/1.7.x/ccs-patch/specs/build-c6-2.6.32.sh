@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.32-642.15.1.el6.src.rpm ]
+if [ ! -r kernel-2.6.32-696.el6.src.rpm ]
 then
-    wget http://vault.centos.org/6.8/updates/Source/SPackages/kernel-2.6.32-642.15.1.el6.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/6.9/os/Source/SPackages/kernel-2.6.32-696.el6.src.rpm || die "Can't download source package."
 fi
-LANG=C rpm --checksig kernel-2.6.32-642.15.1.el6.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
-rpm -ivh kernel-2.6.32-642.15.1.el6.src.rpm || die "Can't install source package."
+LANG=C rpm --checksig kernel-2.6.32-696.el6.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
+rpm -ivh kernel-2.6.32-696.el6.src.rpm || die "Can't install source package."
 
 cd /root/rpmbuild/SOURCES/ || die "Can't chdir to /root/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.3-20161111.tar.gz ]
@@ -28,16 +28,16 @@ cp -p kernel.spec ccs-kernel.spec || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- ccs-kernel.spec
 +++ ccs-kernel.spec
-@@ -15,7 +15,7 @@
+@@ -14,7 +14,7 @@
  # that the kernel isn't the stock distribution kernel, for example,
  # by setting the define to ".local" or ".bz123456"
  #
 -# % define buildid .local
 +%define buildid _tomoyo_1.7.3p5
  
- %define distro_build 642.15.1
+ %define distro_build 696
  %define signmodules 1
-@@ -437,7 +437,7 @@
+@@ -436,7 +436,7 @@
  # Packages that need to be installed before the kernel is, because the %post
  # scripts use them.
  #
@@ -46,7 +46,7 @@ patch << "EOF" || die "Can't patch spec file."
  %if %{with_dracut}
  %define initrd_prereq  dracut-kernel >= 004-408.el6
  %else
-@@ -473,7 +473,7 @@
+@@ -472,7 +472,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -55,7 +55,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -771,7 +771,7 @@
+@@ -770,7 +770,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -64,7 +64,7 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -937,6 +937,10 @@
+@@ -936,6 +936,10 @@
  
  ApplyOptionalPatch linux-kernel-test.patch
  
@@ -75,7 +75,7 @@ patch << "EOF" || die "Can't patch spec file."
  # Any further pre-build tree manipulations happen here.
  
  chmod +x scripts/checkpatch.pl
-@@ -961,6 +965,8 @@
+@@ -960,6 +964,8 @@
  for i in *.config
  do
    mv $i .config
