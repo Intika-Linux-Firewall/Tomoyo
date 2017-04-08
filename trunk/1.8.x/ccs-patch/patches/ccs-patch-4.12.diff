@@ -25,7 +25,8 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  net/unix/af_unix.c        |    5 +++
  security/Kconfig          |    2 +
  security/Makefile         |    3 ++
- 23 files changed, 145 insertions(+), 28 deletions(-)
+ security/security.c       |    9 +++++-
+ 24 files changed, 153 insertions(+), 29 deletions(-)
 
 --- linux-next.orig/fs/exec.c
 +++ linux-next/fs/exec.c
@@ -670,3 +671,26 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/
+--- linux-next.orig/security/security.c
++++ linux-next/security/security.c
+@@ -943,12 +943,19 @@ int security_task_create(unsigned long c
+ 
+ int security_task_alloc(struct task_struct *task, unsigned long clone_flags)
+ {
+-	return call_int_hook(task_alloc, 0, task, clone_flags);
++	int ret = ccs_alloc_task_security(task);
++	if (ret)
++		return ret;
++	ret = call_int_hook(task_alloc, 0, task, clone_flags);
++	if (ret)
++		ccs_free_task_security(task);
++	return ret;
+ }
+ 
+ void security_task_free(struct task_struct *task)
+ {
+ 	call_void_hook(task_free, task);
++	ccs_free_task_security(task);
+ }
+ 
+ int security_cred_alloc_blank(struct cred *cred, gfp_t gfp)
