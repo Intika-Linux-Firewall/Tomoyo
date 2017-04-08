@@ -2449,9 +2449,6 @@ static void ccs_check_profile(void)
 		panic("STOP!");
 	}
 	ccs_read_unlock(idx);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0) && defined(CONFIG_SECURITY)
-	ccsecurity_exports.add_hooks();
-#endif
 	printk(KERN_INFO "Mandatory Access Control activated.\n");
 }
 
