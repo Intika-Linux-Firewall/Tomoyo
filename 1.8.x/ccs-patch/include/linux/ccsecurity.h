@@ -54,9 +54,6 @@ int search_binary_handler(struct linux_binprm *bprm, struct pt_regs *regs);
 /* For exporting variables and functions. */
 struct ccsecurity_exports {
 	void (*load_policy) (const char *filename);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0) && defined(CONFIG_SECURITY)
-	void (*add_hooks) (void);
-#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0)
 	char * (*d_absolute_path) (const struct path *, char *, int);
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)

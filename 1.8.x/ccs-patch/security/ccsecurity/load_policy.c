@@ -318,9 +318,6 @@ const struct ccsecurity_exports ccsecurity_exports = {
 #ifndef CONFIG_CCSECURITY_OMIT_USERSPACE_LOADER
 	.load_policy = ccs_load_policy,
 #endif
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0) && defined(CONFIG_SECURITY)
-	.add_hooks = ccs_add_hooks,
-#endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 2, 0)
 	.d_absolute_path = d_absolute_path,
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
