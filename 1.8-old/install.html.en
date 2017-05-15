@@ -33,18 +33,18 @@
 <h3>Obtain Linux kernel source and patch with TOMOYO Linux</h3>
 
 <p>Download kernel source from <a href="https://www.kernel.org/pub/linux/kernel/v2.4/">linux-2.4</a> or <a href="https://www.kernel.org/pub/linux/kernel/v2.6/">linux-2.6</a>.<br>
-Linux kernel 2.4.30 and later are supported from the linux-2.4 tree.<br>
-Linux kernel 2.6.11.12 and later are supported from the linux-2.6 tree.</p>
+Linux kernel 2.4.37.11 is supported from the linux-2.4 tree.<br>
+Linux kernel 2.6.27.62 and later are supported from the linux-2.6 tree.</p>
 
 <p>Extract the kernel source and go to the extracted directory.<br>
 In the operations below, "2.$PATCHLEVEL.$SUBLEVEL.diff" should for example be replaced with "2.6.38.diff" if using Linux kernel 2.6.38.8 :</p>
 
 <table border="1">
 <tr><td>
-[user@tomoyo ~]$ wget -O ccs-patch-1.8.5-20170417.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.5-20170417.tar.gz'<br>
-[user@tomoyo ~]$ wget -O ccs-patch-1.8.5-20170417.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.5-20170417.tar.gz.asc'<br>
-[user@tomoyo ~]$ gpg ccs-patch-1.8.5-20170417.tar.gz.asc<br>
-[user@tomoyo ~]$ tar -zxf ccs-patch-1.8.5-20170417.tar.gz<br>
+[user@tomoyo ~]$ wget -O ccs-patch-1.8.5-20170515.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.5-20170515.tar.gz'<br>
+[user@tomoyo ~]$ wget -O ccs-patch-1.8.5-20170515.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.5-20170515.tar.gz.asc'<br>
+[user@tomoyo ~]$ gpg ccs-patch-1.8.5-20170515.tar.gz.asc<br>
+[user@tomoyo ~]$ tar -zxf ccs-patch-1.8.5-20170515.tar.gz<br>
 [user@tomoyo ~]$ patch -sp1 &lt; patches/ccs-patch-2.$PATCHLEVEL.$SUBLEVEL.diff<br>
 </td></tr>
 </table>
