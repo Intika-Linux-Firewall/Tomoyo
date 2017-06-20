@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for kernel 3.10.105.
+This is TOMOYO Linux patch for kernel 3.10.106.
 
-Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.10.105.tar.xz
+Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.10.106.tar.xz
 ---
  fs/exec.c                 |    2 
  fs/open.c                 |    2 
@@ -28,9 +28,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  security/security.c       |  107 ++++++++++++++++++++++++++++++++++++++++------
  24 files changed, 235 insertions(+), 37 deletions(-)
 
---- linux-3.10.105.orig/fs/exec.c
-+++ linux-3.10.105/fs/exec.c
-@@ -1560,7 +1560,7 @@ static int do_execve_common(const char *
+--- linux-3.10.106.orig/fs/exec.c
++++ linux-3.10.106/fs/exec.c
+@@ -1566,7 +1566,7 @@ static int do_execve_common(const char *
  	if (retval < 0)
  		goto out;
  
@@ -39,8 +39,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  	if (retval < 0)
  		goto out;
  
---- linux-3.10.105.orig/fs/open.c
-+++ linux-3.10.105/fs/open.c
+--- linux-3.10.106.orig/fs/open.c
++++ linux-3.10.106/fs/open.c
 @@ -1021,6 +1021,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
@@ -50,8 +50,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-3.10.105.orig/fs/proc/version.c
-+++ linux-3.10.105/fs/proc/version.c
+--- linux-3.10.106.orig/fs/proc/version.c
++++ linux-3.10.106/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -59,12 +59,12 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 3.10.105 2017/02/10\n");
++	printk(KERN_INFO "Hook version: 3.10.106 2017/06/20\n");
 +	return 0;
 +}
 +module_init(ccs_show_version);
---- linux-3.10.105.orig/include/linux/init_task.h
-+++ linux-3.10.105/include/linux/init_task.h
+--- linux-3.10.106.orig/include/linux/init_task.h
++++ linux-3.10.106/include/linux/init_task.h
 @@ -155,6 +155,14 @@ extern struct task_group root_task_group
  
  #define INIT_TASK_COMM "swapper"
@@ -88,8 +88,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  }
  
  
---- linux-3.10.105.orig/include/linux/sched.h
-+++ linux-3.10.105/include/linux/sched.h
+--- linux-3.10.106.orig/include/linux/sched.h
++++ linux-3.10.106/include/linux/sched.h
 @@ -4,6 +4,8 @@
  #include <uapi/linux/sched.h>
  
@@ -110,8 +110,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  };
  
  /* Future-safe accessor for struct task_struct's cpus_allowed. */
---- linux-3.10.105.orig/include/linux/security.h
-+++ linux-3.10.105/include/linux/security.h
+--- linux-3.10.106.orig/include/linux/security.h
++++ linux-3.10.106/include/linux/security.h
 @@ -52,6 +52,7 @@ struct msg_queue;
  struct xattr;
  struct xfrm_sec_ctx;
@@ -313,8 +313,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-3.10.105.orig/include/net/ip.h
-+++ linux-3.10.105/include/net/ip.h
+--- linux-3.10.106.orig/include/net/ip.h
++++ linux-3.10.106/include/net/ip.h
 @@ -207,6 +207,8 @@ extern void inet_get_local_port_range(in
  extern unsigned long *sysctl_local_reserved_ports;
  static inline int inet_is_reserved_local_port(int port)
@@ -324,8 +324,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  	return test_bit(port, sysctl_local_reserved_ports);
  }
  
---- linux-3.10.105.orig/kernel/fork.c
-+++ linux-3.10.105/kernel/fork.c
+--- linux-3.10.106.orig/kernel/fork.c
++++ linux-3.10.106/kernel/fork.c
 @@ -242,6 +242,7 @@ void __put_task_struct(struct task_struc
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
@@ -352,8 +352,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  bad_fork_cleanup_perf:
  	perf_event_free_task(p);
  bad_fork_cleanup_policy:
---- linux-3.10.105.orig/kernel/kexec.c
-+++ linux-3.10.105/kernel/kexec.c
+--- linux-3.10.106.orig/kernel/kexec.c
++++ linux-3.10.106/kernel/kexec.c
 @@ -37,6 +37,7 @@
  #include <asm/uaccess.h>
  #include <asm/io.h>
@@ -371,8 +371,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-3.10.105.orig/kernel/module.c
-+++ linux-3.10.105/kernel/module.c
+--- linux-3.10.106.orig/kernel/module.c
++++ linux-3.10.106/kernel/module.c
 @@ -63,6 +63,7 @@
  #include <linux/fips.h>
  #include <uapi/linux/module.h>
@@ -399,9 +399,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	return 0;
  }
---- linux-3.10.105.orig/kernel/ptrace.c
-+++ linux-3.10.105/kernel/ptrace.c
-@@ -1041,6 +1041,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+--- linux-3.10.106.orig/kernel/ptrace.c
++++ linux-3.10.106/kernel/ptrace.c
+@@ -1047,6 +1047,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
@@ -413,7 +413,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -1188,6 +1193,11 @@ asmlinkage long compat_sys_ptrace(compat
+@@ -1194,6 +1199,11 @@ asmlinkage long compat_sys_ptrace(compat
  {
  	struct task_struct *child;
  	long ret;
@@ -425,9 +425,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-3.10.105.orig/kernel/sched/core.c
-+++ linux-3.10.105/kernel/sched/core.c
-@@ -3772,6 +3772,8 @@ int can_nice(const struct task_struct *p
+--- linux-3.10.106.orig/kernel/sched/core.c
++++ linux-3.10.106/kernel/sched/core.c
+@@ -3770,6 +3770,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -436,8 +436,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-3.10.105.orig/kernel/signal.c
-+++ linux-3.10.105/kernel/signal.c
+--- linux-3.10.106.orig/kernel/signal.c
++++ linux-3.10.106/kernel/signal.c
 @@ -2910,6 +2910,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
@@ -483,8 +483,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-3.10.105.orig/kernel/sys.c
-+++ linux-3.10.105/kernel/sys.c
+--- linux-3.10.106.orig/kernel/sys.c
++++ linux-3.10.106/kernel/sys.c
 @@ -186,6 +186,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -523,8 +523,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-3.10.105.orig/kernel/time/ntp.c
-+++ linux-3.10.105/kernel/time/ntp.c
+--- linux-3.10.106.orig/kernel/time/ntp.c
++++ linux-3.10.106/kernel/time/ntp.c
 @@ -16,6 +16,7 @@
  #include <linux/mm.h>
  #include <linux/module.h>
@@ -558,8 +558,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	/*
  	 * Check for potential multiplication overflows that can
---- linux-3.10.105.orig/net/ipv4/raw.c
-+++ linux-3.10.105/net/ipv4/raw.c
+--- linux-3.10.106.orig/net/ipv4/raw.c
++++ linux-3.10.106/net/ipv4/raw.c
 @@ -700,6 +700,10 @@ static int raw_recvmsg(struct kiocb *ioc
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -571,8 +571,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-3.10.105.orig/net/ipv4/udp.c
-+++ linux-3.10.105/net/ipv4/udp.c
+--- linux-3.10.106.orig/net/ipv4/udp.c
++++ linux-3.10.106/net/ipv4/udp.c
 @@ -1219,6 +1219,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
@@ -584,8 +584,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-3.10.105.orig/net/ipv6/raw.c
-+++ linux-3.10.105/net/ipv6/raw.c
+--- linux-3.10.106.orig/net/ipv6/raw.c
++++ linux-3.10.106/net/ipv6/raw.c
 @@ -468,6 +468,10 @@ static int rawv6_recvmsg(struct kiocb *i
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -597,8 +597,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-3.10.105.orig/net/ipv6/udp.c
-+++ linux-3.10.105/net/ipv6/udp.c
+--- linux-3.10.106.orig/net/ipv6/udp.c
++++ linux-3.10.106/net/ipv6/udp.c
 @@ -385,6 +385,10 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
@@ -610,8 +610,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  
  	ulen = skb->len - sizeof(struct udphdr);
  	copied = len;
---- linux-3.10.105.orig/net/socket.c
-+++ linux-3.10.105/net/socket.c
+--- linux-3.10.106.orig/net/socket.c
++++ linux-3.10.106/net/socket.c
 @@ -1611,6 +1611,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
@@ -623,8 +623,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
---- linux-3.10.105.orig/net/unix/af_unix.c
-+++ linux-3.10.105/net/unix/af_unix.c
+--- linux-3.10.106.orig/net/unix/af_unix.c
++++ linux-3.10.106/net/unix/af_unix.c
 @@ -1975,6 +1975,10 @@ static int unix_dgram_recvmsg(struct kio
  	wake_up_interruptible_sync_poll(&u->peer_wait,
  					POLLOUT | POLLWRNORM | POLLWRBAND);
@@ -636,8 +636,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
---- linux-3.10.105.orig/security/Kconfig
-+++ linux-3.10.105/security/Kconfig
+--- linux-3.10.106.orig/security/Kconfig
++++ linux-3.10.106/security/Kconfig
 @@ -167,5 +167,7 @@ config DEFAULT_SECURITY
  	default "yama" if DEFAULT_SECURITY_YAMA
  	default "" if DEFAULT_SECURITY_DAC
@@ -646,8 +646,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
 +
  endmenu
  
---- linux-3.10.105.orig/security/Makefile
-+++ linux-3.10.105/security/Makefile
+--- linux-3.10.106.orig/security/Makefile
++++ linux-3.10.106/security/Makefile
 @@ -28,3 +28,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
@@ -655,8 +655,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v3.x/linux
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/built-in.o
---- linux-3.10.105.orig/security/security.c
-+++ linux-3.10.105/security/security.c
+--- linux-3.10.106.orig/security/security.c
++++ linux-3.10.106/security/security.c
 @@ -202,7 +202,10 @@ int security_syslog(int type)
  
  int security_settime(const struct timespec *ts, const struct timezone *tz)
