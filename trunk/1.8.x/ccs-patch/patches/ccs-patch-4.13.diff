@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for linux-next.
 
-Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/snapshot/linux-next-next-20170623.tar.xz
+Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/snapshot/linux-next-next-20170630.tar.xz
 ---
  fs/exec.c                 |    2 -
  fs/open.c                 |    2 +
@@ -30,7 +30,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
 
 --- linux-next.orig/fs/exec.c
 +++ linux-next/fs/exec.c
-@@ -1644,7 +1644,7 @@ static int exec_binprm(struct linux_binp
+@@ -1664,7 +1664,7 @@ static int exec_binprm(struct linux_binp
  	old_vpid = task_pid_nr_ns(current, task_active_pid_ns(current->parent));
  	rcu_read_unlock();
  
@@ -41,7 +41,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  		trace_sched_process_exec(current, old_pid, bprm);
 --- linux-next.orig/fs/open.c
 +++ linux-next/fs/open.c
-@@ -1170,6 +1170,8 @@ EXPORT_SYMBOL(sys_close);
+@@ -1171,6 +1171,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -59,7 +59,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 4.12-rc6-next-20170623 2017/06/24\n");
++	printk(KERN_INFO "Hook version: 4.12-rc7-next-20170630 2017/07/02\n");
 +	return 0;
 +}
 +fs_initcall(ccs_show_version);
@@ -375,7 +375,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	 * Verify we have a legal set of flags
 --- linux-next.orig/kernel/module.c
 +++ linux-next/kernel/module.c
-@@ -68,6 +68,7 @@
+@@ -66,6 +66,7 @@
  #include <linux/audit.h>
  #include <uapi/linux/module.h>
  #include "module-internal.h"
@@ -383,7 +383,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  #define CREATE_TRACE_POINTS
  #include <trace/events/module.h>
-@@ -962,6 +963,8 @@ SYSCALL_DEFINE2(delete_module, const cha
+@@ -960,6 +961,8 @@ SYSCALL_DEFINE2(delete_module, const cha
  
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -392,7 +392,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -3514,6 +3517,8 @@ static int may_init_module(void)
+@@ -3522,6 +3525,8 @@ static int may_init_module(void)
  {
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -448,7 +448,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	 * If pid namespaces are enabled and the current task is in a child
 --- linux-next.orig/kernel/sched/core.c
 +++ linux-next/kernel/sched/core.c
-@@ -3932,6 +3932,8 @@ int can_nice(const struct task_struct *p
+@@ -3818,6 +3818,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -459,7 +459,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	 * Setpriority might change our priority at the same moment.
 --- linux-next.orig/kernel/signal.c
 +++ linux-next/kernel/signal.c
-@@ -2869,6 +2869,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
+@@ -2877,6 +2877,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
@@ -468,7 +468,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	info.si_signo = sig;
  	info.si_errno = 0;
-@@ -2937,6 +2939,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -2945,6 +2947,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -477,7 +477,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -2953,6 +2957,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
+@@ -2961,6 +2965,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -486,7 +486,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	return do_tkill(0, pid, sig);
  }
-@@ -2967,6 +2973,8 @@ static int do_rt_sigqueueinfo(pid_t pid,
+@@ -2975,6 +2981,8 @@ static int do_rt_sigqueueinfo(pid_t pid,
  		return -EPERM;
  
  	info->si_signo = sig;
@@ -495,7 +495,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, info, pid);
-@@ -3015,6 +3023,8 @@ static int do_rt_tgsigqueueinfo(pid_t tg
+@@ -3023,6 +3031,8 @@ static int do_rt_tgsigqueueinfo(pid_t tg
  		return -EPERM;
  
  	info->si_signo = sig;
@@ -585,7 +585,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	if (len < copied) {
 --- linux-next.orig/net/ipv4/udp.c
 +++ linux-next/net/ipv4/udp.c
-@@ -1628,6 +1628,8 @@ try_again:
+@@ -1575,6 +1575,8 @@ try_again:
  	skb = __skb_recv_udp(sk, flags, noblock, &peeked, &off, &err);
  	if (!skb)
  		return err;
@@ -616,7 +616,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
 +	if (ccs_socket_post_recvmsg_permission(sk, skb, flags))
 +		return -EAGAIN; /* Hope less harmful than -EPERM. */
  
- 	ulen = skb->len;
+ 	ulen = udp_skb_len(skb);
  	copied = len;
 --- linux-next.orig/net/socket.c
 +++ linux-next/net/socket.c
@@ -654,7 +654,7 @@ Source code for this patch is https://git.kernel.org/cgit/linux/kernel/git/next/
  	return err;
 --- linux-next.orig/security/Kconfig
 +++ linux-next/security/Kconfig
-@@ -244,5 +244,7 @@ config DEFAULT_SECURITY
+@@ -251,5 +251,7 @@ config DEFAULT_SECURITY
  	default "apparmor" if DEFAULT_SECURITY_APPARMOR
  	default "" if DEFAULT_SECURITY_DAC
  
