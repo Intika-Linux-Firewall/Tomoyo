@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for kernel 4.12.5.
+This is TOMOYO Linux patch for kernel 4.12.8.
 
-Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.12.5.tar.xz
+Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.12.8.tar.xz
 ---
  fs/exec.c                 |    2 -
  fs/open.c                 |    2 +
@@ -28,8 +28,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  security/security.c       |    9 +++++-
  24 files changed, 153 insertions(+), 29 deletions(-)
 
---- linux-4.12.5.orig/fs/exec.c
-+++ linux-4.12.5/fs/exec.c
+--- linux-4.12.8.orig/fs/exec.c
++++ linux-4.12.8/fs/exec.c
 @@ -1665,7 +1665,7 @@ static int exec_binprm(struct linux_binp
  	old_vpid = task_pid_nr_ns(current, task_active_pid_ns(current->parent));
  	rcu_read_unlock();
@@ -39,8 +39,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	if (ret >= 0) {
  		audit_bprm(bprm);
  		trace_sched_process_exec(current, old_pid, bprm);
---- linux-4.12.5.orig/fs/open.c
-+++ linux-4.12.5/fs/open.c
+--- linux-4.12.8.orig/fs/open.c
++++ linux-4.12.8/fs/open.c
 @@ -1167,6 +1167,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
@@ -50,8 +50,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-4.12.5.orig/fs/proc/version.c
-+++ linux-4.12.5/fs/proc/version.c
+--- linux-4.12.8.orig/fs/proc/version.c
++++ linux-4.12.8/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -59,12 +59,12 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 4.12.5 2017/08/07\n");
++	printk(KERN_INFO "Hook version: 4.12.8 2017/08/18\n");
 +	return 0;
 +}
 +fs_initcall(ccs_show_version);
---- linux-4.12.5.orig/include/linux/init_task.h
-+++ linux-4.12.5/include/linux/init_task.h
+--- linux-4.12.8.orig/include/linux/init_task.h
++++ linux-4.12.8/include/linux/init_task.h
 @@ -225,6 +225,14 @@ extern struct cred init_cred;
  #define INIT_TASK_SECURITY
  #endif
@@ -88,8 +88,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  
---- linux-4.12.5.orig/include/linux/sched.h
-+++ linux-4.12.5/include/linux/sched.h
+--- linux-4.12.8.orig/include/linux/sched.h
++++ linux-4.12.8/include/linux/sched.h
 @@ -32,6 +32,7 @@ struct audit_context;
  struct backing_dev_info;
  struct bio_list;
@@ -109,8 +109,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	/* CPU-specific state of this task: */
  	struct thread_struct		thread;
  
---- linux-4.12.5.orig/include/linux/security.h
-+++ linux-4.12.5/include/linux/security.h
+--- linux-4.12.8.orig/include/linux/security.h
++++ linux-4.12.8/include/linux/security.h
 @@ -55,6 +55,7 @@ struct msg_queue;
  struct xattr;
  struct xfrm_sec_ctx;
@@ -333,8 +333,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-4.12.5.orig/include/net/ip.h
-+++ linux-4.12.5/include/net/ip.h
+--- linux-4.12.8.orig/include/net/ip.h
++++ linux-4.12.8/include/net/ip.h
 @@ -255,6 +255,8 @@ void inet_get_local_port_range(struct ne
  #ifdef CONFIG_SYSCTL
  static inline int inet_is_local_reserved_port(struct net *net, int port)
@@ -353,8 +353,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	return 0;
  }
  
---- linux-4.12.5.orig/kernel/kexec.c
-+++ linux-4.12.5/kernel/kexec.c
+--- linux-4.12.8.orig/kernel/kexec.c
++++ linux-4.12.8/kernel/kexec.c
 @@ -17,7 +17,7 @@
  #include <linux/syscalls.h>
  #include <linux/vmalloc.h>
@@ -373,8 +373,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-4.12.5.orig/kernel/module.c
-+++ linux-4.12.5/kernel/module.c
+--- linux-4.12.8.orig/kernel/module.c
++++ linux-4.12.8/kernel/module.c
 @@ -68,6 +68,7 @@
  #include <linux/audit.h>
  #include <uapi/linux/module.h>
@@ -401,8 +401,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	return 0;
  }
---- linux-4.12.5.orig/kernel/ptrace.c
-+++ linux-4.12.5/kernel/ptrace.c
+--- linux-4.12.8.orig/kernel/ptrace.c
++++ linux-4.12.8/kernel/ptrace.c
 @@ -1125,6 +1125,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
@@ -427,8 +427,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-4.12.5.orig/kernel/reboot.c
-+++ linux-4.12.5/kernel/reboot.c
+--- linux-4.12.8.orig/kernel/reboot.c
++++ linux-4.12.8/kernel/reboot.c
 @@ -16,6 +16,7 @@
  #include <linux/syscalls.h>
  #include <linux/syscore_ops.h>
@@ -446,8 +446,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	/*
  	 * If pid namespaces are enabled and the current task is in a child
---- linux-4.12.5.orig/kernel/sched/core.c
-+++ linux-4.12.5/kernel/sched/core.c
+--- linux-4.12.8.orig/kernel/sched/core.c
++++ linux-4.12.8/kernel/sched/core.c
 @@ -3926,6 +3926,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
@@ -457,8 +457,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-4.12.5.orig/kernel/signal.c
-+++ linux-4.12.5/kernel/signal.c
+--- linux-4.12.8.orig/kernel/signal.c
++++ linux-4.12.8/kernel/signal.c
 @@ -2873,6 +2873,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
@@ -504,8 +504,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-4.12.5.orig/kernel/sys.c
-+++ linux-4.12.5/kernel/sys.c
+--- linux-4.12.8.orig/kernel/sys.c
++++ linux-4.12.8/kernel/sys.c
 @@ -190,6 +190,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -535,8 +535,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-4.12.5.orig/kernel/time/ntp.c
-+++ linux-4.12.5/kernel/time/ntp.c
+--- linux-4.12.8.orig/kernel/time/ntp.c
++++ linux-4.12.8/kernel/time/ntp.c
 @@ -17,6 +17,7 @@
  #include <linux/module.h>
  #include <linux/rtc.h>
@@ -570,8 +570,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  		if (txc->modes & ADJ_NANO) {
  			struct timespec ts;
---- linux-4.12.5.orig/net/ipv4/raw.c
-+++ linux-4.12.5/net/ipv4/raw.c
+--- linux-4.12.8.orig/net/ipv4/raw.c
++++ linux-4.12.8/net/ipv4/raw.c
 @@ -755,6 +755,10 @@ static int raw_recvmsg(struct sock *sk,
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -583,8 +583,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-4.12.5.orig/net/ipv4/udp.c
-+++ linux-4.12.5/net/ipv4/udp.c
+--- linux-4.12.8.orig/net/ipv4/udp.c
++++ linux-4.12.8/net/ipv4/udp.c
 @@ -1425,6 +1425,8 @@ try_again:
  	skb = __skb_recv_udp(sk, flags, noblock, &peeked, &off, &err);
  	if (!skb)
@@ -594,8 +594,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	ulen = skb->len;
  	copied = len;
---- linux-4.12.5.orig/net/ipv6/raw.c
-+++ linux-4.12.5/net/ipv6/raw.c
+--- linux-4.12.8.orig/net/ipv6/raw.c
++++ linux-4.12.8/net/ipv6/raw.c
 @@ -480,6 +480,10 @@ static int rawv6_recvmsg(struct sock *sk
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -607,9 +607,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-4.12.5.orig/net/ipv6/udp.c
-+++ linux-4.12.5/net/ipv6/udp.c
-@@ -361,6 +361,8 @@ try_again:
+--- linux-4.12.8.orig/net/ipv6/udp.c
++++ linux-4.12.8/net/ipv6/udp.c
+@@ -357,6 +357,8 @@ try_again:
  	skb = __skb_recv_udp(sk, flags, noblock, &peeked, &off, &err);
  	if (!skb)
  		return err;
@@ -618,8 +618,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	ulen = skb->len;
  	copied = len;
---- linux-4.12.5.orig/net/socket.c
-+++ linux-4.12.5/net/socket.c
+--- linux-4.12.8.orig/net/socket.c
++++ linux-4.12.8/net/socket.c
 @@ -1521,6 +1521,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
@@ -631,8 +631,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
---- linux-4.12.5.orig/net/unix/af_unix.c
-+++ linux-4.12.5/net/unix/af_unix.c
+--- linux-4.12.8.orig/net/unix/af_unix.c
++++ linux-4.12.8/net/unix/af_unix.c
 @@ -2152,6 +2152,10 @@ static int unix_dgram_recvmsg(struct soc
  						POLLOUT | POLLWRNORM |
  						POLLWRBAND);
@@ -652,8 +652,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	mutex_unlock(&u->iolock);
  out:
  	return err;
---- linux-4.12.5.orig/security/Kconfig
-+++ linux-4.12.5/security/Kconfig
+--- linux-4.12.8.orig/security/Kconfig
++++ linux-4.12.8/security/Kconfig
 @@ -235,5 +235,7 @@ config DEFAULT_SECURITY
  	default "apparmor" if DEFAULT_SECURITY_APPARMOR
  	default "" if DEFAULT_SECURITY_DAC
@@ -662,8 +662,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
 +
  endmenu
  
---- linux-4.12.5.orig/security/Makefile
-+++ linux-4.12.5/security/Makefile
+--- linux-4.12.8.orig/security/Makefile
++++ linux-4.12.8/security/Makefile
 @@ -29,3 +29,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
@@ -671,8 +671,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/
---- linux-4.12.5.orig/security/security.c
-+++ linux-4.12.5/security/security.c
+--- linux-4.12.8.orig/security/security.c
++++ linux-4.12.8/security/security.c
 @@ -943,12 +943,19 @@ int security_task_create(unsigned long c
  
  int security_task_alloc(struct task_struct *task, unsigned long clone_flags)
