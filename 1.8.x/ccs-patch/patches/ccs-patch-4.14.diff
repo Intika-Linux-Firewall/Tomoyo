@@ -1,6 +1,6 @@
 This is TOMOYO Linux patch for linux-next.
 
-Source code for this patch is https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/snapshot/linux-next-next-20170825.tar.gz
+Source code for this patch is https://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.git/snapshot/linux-next-next-20170904.tar.gz
 ---
  fs/exec.c                 |    2 -
  fs/open.c                 |    2 +
@@ -59,7 +59,7 @@ Source code for this patch is https://git.kernel.org/pub/scm/linux/kernel/git/ne
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 4.13-rc6-next-20170825 2017/08/25\n");
++	printk(KERN_INFO "Hook version: 4.13-next-20170904 2017/09/04\n");
 +	return 0;
 +}
 +fs_initcall(ccs_show_version);
@@ -119,7 +119,7 @@ Source code for this patch is https://git.kernel.org/pub/scm/linux/kernel/git/ne
  
  /* If capable should audit the security request */
  #define SECURITY_CAP_NOAUDIT 0
-@@ -504,7 +505,10 @@ static inline int security_syslog(int ty
+@@ -506,7 +507,10 @@ static inline int security_syslog(int ty
  static inline int security_settime64(const struct timespec64 *ts,
  				     const struct timezone *tz)
  {
@@ -131,7 +131,7 @@ Source code for this patch is https://git.kernel.org/pub/scm/linux/kernel/git/ne
  }
  
  static inline int security_settime(const struct timespec *ts,
-@@ -576,18 +580,18 @@ static inline int security_sb_mount(cons
+@@ -578,18 +582,18 @@ static inline int security_sb_mount(cons
  				    const char *type, unsigned long flags,
  				    void *data)
  {
@@ -153,7 +153,7 @@ Source code for this patch is https://git.kernel.org/pub/scm/linux/kernel/git/ne
  }
  
  static inline int security_sb_set_mnt_opts(struct super_block *sb,
-@@ -736,7 +740,7 @@ static inline int security_inode_setattr
+@@ -738,7 +742,7 @@ static inline int security_inode_setattr
  
  static inline int security_inode_getattr(const struct path *path)
  {
@@ -162,7 +162,7 @@ Source code for this patch is https://git.kernel.org/pub/scm/linux/kernel/git/ne
  }
  
  static inline int security_inode_setxattr(struct dentry *dentry,
-@@ -822,7 +826,7 @@ static inline void security_file_free(st
+@@ -824,7 +828,7 @@ static inline void security_file_free(st
  static inline int security_file_ioctl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -171,7 +171,7 @@ Source code for this patch is https://git.kernel.org/pub/scm/linux/kernel/git/ne
  }
  
  static inline int security_mmap_file(struct file *file, unsigned long prot,
-@@ -851,7 +855,7 @@ static inline int security_file_lock(str
+@@ -853,7 +857,7 @@ static inline int security_file_lock(str
  static inline int security_file_fcntl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -180,7 +180,7 @@ Source code for this patch is https://git.kernel.org/pub/scm/linux/kernel/git/ne
  }
  
  static inline void security_file_set_fowner(struct file *file)
-@@ -874,17 +878,19 @@ static inline int security_file_receive(
+@@ -876,17 +880,19 @@ static inline int security_file_receive(
  static inline int security_file_open(struct file *file,
  				     const struct cred *cred)
  {
@@ -203,7 +203,7 @@ Source code for this patch is https://git.kernel.org/pub/scm/linux/kernel/git/ne
  
  static inline int security_cred_alloc_blank(struct cred *cred, gfp_t gfp)
  {
-@@ -1245,7 +1251,7 @@ static inline int security_unix_may_send
+@@ -1247,7 +1253,7 @@ static inline int security_unix_may_send
  static inline int security_socket_create(int family, int type,
  					 int protocol, int kern)
  {
@@ -212,7 +212,7 @@ Source code for this patch is https://git.kernel.org/pub/scm/linux/kernel/git/ne
  }
  
  static inline int security_socket_post_create(struct socket *sock,
-@@ -1260,19 +1266,19 @@ static inline int security_socket_bind(s
+@@ -1262,19 +1268,19 @@ static inline int security_socket_bind(s
  				       struct sockaddr *address,
  				       int addrlen)
  {
@@ -235,7 +235,7 @@ Source code for this patch is https://git.kernel.org/pub/scm/linux/kernel/git/ne
  }
  
  static inline int security_socket_accept(struct socket *sock,
-@@ -1284,7 +1290,7 @@ static inline int security_socket_accept
+@@ -1286,7 +1292,7 @@ static inline int security_socket_accept
  static inline int security_socket_sendmsg(struct socket *sock,
  					  struct msghdr *msg, int size)
  {
@@ -244,7 +244,7 @@ Source code for this patch is https://git.kernel.org/pub/scm/linux/kernel/git/ne
  }
  
  static inline int security_socket_recvmsg(struct socket *sock,
-@@ -1552,42 +1558,42 @@ int security_path_chroot(const struct pa
+@@ -1554,42 +1560,42 @@ int security_path_chroot(const struct pa
  #else	/* CONFIG_SECURITY_PATH */
  static inline int security_path_unlink(const struct path *dir, struct dentry *dentry)
  {
@@ -294,7 +294,7 @@ Source code for this patch is https://git.kernel.org/pub/scm/linux/kernel/git/ne
  }
  
  static inline int security_path_rename(const struct path *old_dir,
-@@ -1596,22 +1602,32 @@ static inline int security_path_rename(c
+@@ -1598,22 +1604,32 @@ static inline int security_path_rename(c
  				       struct dentry *new_dentry,
  				       unsigned int flags)
  {
