@@ -2,15 +2,15 @@
 # based on http://people.centos.org/arrfab/CentOS6/SRPMS/livecd-tools-0.3.6-1.el6.src.rpm
 # and http://people.centos.org/arrfab/CentOS6/LiveCD-DVD/centos6-liveCD-desktop.cfg
 #
-# Usage: livecd-creator -f "CentOS-6.8-i386-TOMOYO-LiveCD" --cache=/var/cache/livecd -c this_file
+# Usage: livecd-creator -f "CentOS-6.9-i386-TOMOYO-LiveCD" --cache=/var/cache/livecd -c this_file
 lang en_US.UTF-8
 keyboard us
 timezone US/Eastern
 auth --useshadow --enablemd5
 selinux --enforcing
 firewall --enabled --service=mdns
-repo --name=base    --baseurl=http://ftp.riken.jp/Linux/centos/6.8/os/i386/
-repo --name=updates --baseurl=http://ftp.riken.jp/Linux/centos/6.8/updates/i386/
+repo --name=base    --baseurl=http://ftp.riken.jp/Linux/centos/6.9/os/i386/
+repo --name=updates --baseurl=http://ftp.riken.jp/Linux/centos/6.9/updates/i386/
 repo --name=ccs     --baseurl=http://tomoyo.osdn.jp/repos-1.8/CentOS6/
 repo --name=adobe   --baseurl=http://linuxdownload.adobe.com/linux/i386/
 
@@ -1231,7 +1231,8 @@ cd tomoyo/
 mv /etc/hosts /etc/hosts.tmp
 #export http_proxy=http://proxy:port/
 echo '202.221.179.11 osdn.jp' > /etc/hosts
-echo '202.221.179.25 svn.osdn.jp' >> /etc/hosts
+echo '202.221.179.17 ja.osdn.net' >> /etc/hosts
+echo '202.221.179.28 svn.osdn.net' >> /etc/hosts
 wget -O centos6-live.html.en 'http://osdn.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos6-live.html.en?revision=HEAD&root=tomoyo'
 wget -O centos6-live.html.ja 'http://osdn.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos6-live.html.ja?revision=HEAD&root=tomoyo'
 wget -O - 'http://osdn.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/media.centos6.tar.gz?root=tomoyo&view=tar' | tar -zxf -
