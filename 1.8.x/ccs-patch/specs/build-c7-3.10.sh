@@ -10,17 +10,17 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.10.0-514.26.2.el7.src.rpm ]
+if [ ! -r kernel-3.10.0-693.2.2.el7.src.rpm ]
 then
-    wget http://vault.centos.org/centos/7/updates/Source/SPackages/kernel-3.10.0-514.26.2.el7.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/centos/7/updates/Source/SPackages/kernel-3.10.0-693.2.2.el7.src.rpm || die "Can't download source package."
 fi
-LANG=C rpm --checksig kernel-3.10.0-514.26.2.el7.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
-rpm -ivh kernel-3.10.0-514.26.2.el7.src.rpm || die "Can't install source package."
+LANG=C rpm --checksig kernel-3.10.0-693.2.2.el7.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
+rpm -ivh kernel-3.10.0-693.2.2.el7.src.rpm || die "Can't install source package."
 
 cd ~/rpmbuild/SOURCES/ || die "Can't chdir to ~/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.5-20170716.tar.gz ]
+if [ ! -r ccs-patch-1.8.5-20170917.tar.gz ]
 then
-    wget -O ccs-patch-1.8.5-20170716.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.5-20170716.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.5-20170917.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.5-20170917.tar.gz' || die "Can't download patch."
 fi
 
 cd ~/rpmbuild/SPECS/ || die "Can't chdir to ~/rpmbuild/SPECS/ ."
@@ -28,16 +28,16 @@ cp -p kernel.spec ccs-kernel.spec || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
 --- ccs-kernel.spec
 +++ ccs-kernel.spec
-@@ -5,7 +5,7 @@
+@@ -3,7 +3,7 @@
  
- %define dist .el7
+ Summary: The Linux kernel
  
 -# % define buildid .local
 +%define buildid _tomoyo_1.8.5p1
  
  # For a kernel released for public testing, released_kernel should be 1.
  # For internal testing builds during development, it should be 0.
-@@ -291,7 +291,7 @@
+@@ -296,7 +296,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -46,7 +46,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -592,13 +592,13 @@
+@@ -603,13 +603,13 @@
  %package %{?1:%{1}-}devel\
  Summary: Development package for building kernel modules to match the %{?2:%{2} }kernel\
  Group: System Environment/Kernel\
@@ -64,18 +64,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -710,6 +710,10 @@
+@@ -721,6 +721,10 @@
  ApplyOptionalPatch debrand-rh_taint.patch
  ApplyOptionalPatch debrand-rh-i686-cpu.patch
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.5-20170716.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.5-20170917.tar.gz
 +patch -sp1 < patches/ccs-patch-3.10-centos-7.diff
 +
  # Any further pre-build tree manipulations happen here.
  
  chmod +x scripts/checkpatch.pl
-@@ -748,6 +752,17 @@
+@@ -759,6 +763,17 @@
  for i in *.config
  do
    mv $i .config
