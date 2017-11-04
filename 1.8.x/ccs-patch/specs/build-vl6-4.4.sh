@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# This is a kernel build script for VineLinux 6's 3.4 kernel.
+# This is a kernel build script for VineLinux 6's 4.4 kernel.
 #
 
 die () {
@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.4.110-4vl6.src.rpm ]
+if [ ! -r kernel-4.4.92-1vl6.src.rpm ]
 then
-    wget http://updates.vinelinux.org/Vine-6.5/updates/SRPMS/kernel-3.4.110-4vl6.src.rpm || die "Can't download source package."
+    wget http://updates.vinelinux.org/Vine-6.5/updates/SRPMS/kernel-4.4.92-1vl6.src.rpm || die "Can't download source package."
 fi
-LANG=C rpm --checksig kernel-3.4.110-4vl6.src.rpm | grep -F ': (sha1) dsa sha1 md5 gpg OK' || die "Can't verify signature."
-rpm -ivh kernel-3.4.110-4vl6.src.rpm || die "Can't install source package."
+LANG=C rpm --checksig kernel-4.4.92-1vl6.src.rpm | grep -F ': (sha1) dsa sha1 md5 gpg OK' || die "Can't verify signature."
+rpm -ivh kernel-4.4.92-1vl6.src.rpm || die "Can't install source package."
 
 cd ~/rpm/SOURCES/ || die "Can't chdir to ~/rpm/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.5-20170917.tar.gz ]
@@ -24,16 +24,16 @@ then
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
-cp -p ~/rpm/SPECS/kernel34-vl.spec . || die "Can't copy spec file."
+cp -p ~/rpm/SPECS/kernel44-vl.spec . || die "Can't copy spec file."
 patch << "EOF" || die "Can't patch spec file."
---- kernel34-vl.spec
-+++ kernel34-vl.spec
+--- kernel44-vl.spec
++++ kernel44-vl.spec
 @@ -34,7 +34,7 @@
- %define patchlevel 110
- %define kversion 3.%{sublevel}
- %define rpmversion 3.%{sublevel}.%{patchlevel}
--%define release 4%{?_dist_release}
-+%define release 4%{?_dist_release}_tomoyo_1.8.5p1
+ %define patchlevel 92
+ %define kversion 4.%{sublevel}
+ %define rpmversion 4.%{sublevel}.%{patchlevel}
+-%define release 1%{?_dist_release}
++%define release 1%{?_dist_release}_tomoyo_1.8.5p1
  
  %define make_target bzImage
  %define hdrarch %_target_cpu
@@ -56,18 +56,18 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -771,6 +774,10 @@
+@@ -666,6 +669,10 @@
  
  # END OF PATCH APPLICATIONS
  
 +# TOMOYO Linux
 +tar -zxf %_sourcedir/ccs-patch-1.8.5-20170917.tar.gz
-+patch -sp1 < patches/ccs-patch-3.4-vine-linux-6.diff
++patch -sp1 < patches/ccs-patch-4.4-vine-linux-6.diff
 +
  cp %{SOURCE10} Documentation/
  
  # put Vine logo
-@@ -789,6 +796,9 @@
+@@ -684,6 +691,9 @@
  for i in *.config
  do 
  	mv $i .config 
@@ -78,7 +78,7 @@ patch << "EOF" || die "Can't patch spec file."
  	make ARCH=$Arch oldnoconfig
  	echo "# $Arch" > configs/$i
 EOF
-mv kernel34-vl.spec ccs-kernel.spec || die "Can't rename spec file."
+mv kernel44-vl.spec ccs-kernel.spec || die "Can't rename spec file."
 echo ""
 echo ""
 echo ""
