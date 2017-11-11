@@ -18,9 +18,9 @@ LANG=C rpm --checksig kernel-2.6.18-419.el5.src.rpm | grep -F ': (sha1) dsa sha1
 rpm -ivh kernel-2.6.18-419.el5.src.rpm || die "Can't install source package."
 
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.3-20161111.tar.gz ]
+if [ ! -r ccs-patch-1.7.3-20171111.tar.gz ]
 then
-    wget -O ccs-patch-1.7.3-20161111.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.3-20161111.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.7.3-20171111.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.3-20171111.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
@@ -61,7 +61,7 @@ patch << "EOF" || die "Can't patch spec file."
  %endif
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.7.3-20161111.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.7.3-20171111.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.18-centos-5.diff
 +
  cp %{SOURCE10} Documentation/
