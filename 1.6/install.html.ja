@@ -76,12 +76,12 @@ cd linux-2.6.31.14<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz'<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz'<br>
 # 署名を確認する。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz.asc'<br>
-gpg ccs-patch-1.6.9-20161111.tar.gz.asc<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20171111.tar.gz.asc<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.6.9-20161111.tar.gz<br>
+tar -zxf ccs-patch-1.6.9-20171111.tar.gz<br>
 # カーネルパッチを適用する。<br>
 patch -sp1 &lt; patches/ccs-patch-2.6.31.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
@@ -104,12 +104,12 @@ cd linux-2.4.37.11<br>
 # ソースから world writable 属性を取り除く。<br>
 find -print0 | xargs -0 chmod go-w --<br>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz'<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz'<br>
 # 署名を確認する。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz.asc'<br>
-gpg ccs-patch-1.6.9-20161111.tar.gz.asc<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20171111.tar.gz.asc<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.6.9-20161111.tar.gz<br>
+tar -zxf ccs-patch-1.6.9-20171111.tar.gz<br>
 # カーネルパッチを適用する。<br>
 patch -sp1 &lt; patches/ccs-patch-2.4.37.diff<br>
 # TOMOYO Linux 用のオプションを選択する。<br>
@@ -122,12 +122,12 @@ make -s modules modules_install install
 <a name="CentOS3">CentOS 3</a>
 </td><td>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz'<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz'<br>
 # 署名を確認する。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz.asc'<br>
-gpg ccs-patch-1.6.9-20161111.tar.gz.asc<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20171111.tar.gz.asc<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.6.9-20161111.tar.gz<br>
+tar -zxf ccs-patch-1.6.9-20171111.tar.gz<br>
 # ビルドスクリプトを実行する。<br>
 sh specs/build-c3-2.4.21.sh<br>
 # パッケージを作成する。<br>
@@ -136,12 +136,12 @@ rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 <a name="CentOS4">CentOS 4</a>
 </td><td>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz'<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz'<br>
 # 署名を確認する。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz.asc'<br>
-gpg ccs-patch-1.6.9-20161111.tar.gz.asc<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20171111.tar.gz.asc<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.6.9-20161111.tar.gz<br>
+tar -zxf ccs-patch-1.6.9-20171111.tar.gz<br>
 # ビルドスクリプトを実行する。<br>
 sh specs/build-c4-2.6.9.sh<br>
 # パッケージを作成する。<br>
@@ -150,12 +150,12 @@ rpmbuild -bb --target i586 /tmp/ccs-kernel.spec
 <a name="CentOS5">CentOS 5</a>
 </td><td>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz'<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz'<br>
 # 署名を確認する。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz.asc'<br>
-gpg ccs-patch-1.6.9-20161111.tar.gz.asc<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20171111.tar.gz.asc<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.6.9-20161111.tar.gz<br>
+tar -zxf ccs-patch-1.6.9-20171111.tar.gz<br>
 # ビルドスクリプトを実行する。<br>
 sh specs/build-c5-2.6.18.sh<br>
 # パッケージを作成する。<br>
@@ -164,24 +164,24 @@ rpmbuild -bb --target i686 --without kabichk /tmp/ccs-kernel.spec
 <a name="Lenny">Debian Lenny</a>
 </td><td>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz'<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz'<br>
 # 署名を確認する。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz.asc'<br>
-gpg ccs-patch-1.6.9-20161111.tar.gz.asc<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20171111.tar.gz.asc<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.6.9-20161111.tar.gz<br>
+tar -zxf ccs-patch-1.6.9-20171111.tar.gz<br>
 # ビルドスクリプトを実行する。<br>
 sh specs/build-debian_lenny.sh<br>
 </td></tr><tr><td>
 <a name="Asianux2">Asianux 2</a>
 </td><td>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz'<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz'<br>
 # 署名を確認する。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz.asc'<br>
-gpg ccs-patch-1.6.9-20161111.tar.gz.asc<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20171111.tar.gz.asc<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.6.9-20161111.tar.gz<br>
+tar -zxf ccs-patch-1.6.9-20171111.tar.gz<br>
 # ビルドスクリプトを実行する。<br>
 sh specs/build-ax2-2.6.9.sh<br>
 # パッケージを作成する。<br>
@@ -190,12 +190,12 @@ rpmbuild -bb --target i686 /tmp/ccs-kernel.spec
 <a name="Asianux3">Asianux 3</a>
 </td><td>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz'<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz'<br>
 # 署名を確認する。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz.asc'<br>
-gpg ccs-patch-1.6.9-20161111.tar.gz.asc<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20171111.tar.gz.asc<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.6.9-20161111.tar.gz<br>
+tar -zxf ccs-patch-1.6.9-20171111.tar.gz<br>
 # ビルドスクリプトを実行する。<br>
 sh specs/build-ax3-2.6.18.sh<br>
 # パッケージを作成する。<br>
@@ -204,24 +204,24 @@ rpmbuild -bb --target i686 --without kabichk /tmp/ccs-kernel.spec
 <a name="Ubuntu8.04">Ubuntu 8.04</a>
 </td><td>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz'<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz'<br>
 # 署名を確認する。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz.asc'<br>
-gpg ccs-patch-1.6.9-20161111.tar.gz.asc<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20171111.tar.gz.asc<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.6.9-20161111.tar.gz<br>
+tar -zxf ccs-patch-1.6.9-20171111.tar.gz<br>
 # ビルドスクリプトを実行する。<br>
 sh specs/build-ubuntu_8.04.sh<br>
 </td></tr><tr><td>
 <a name="VineLinux5">VineLinux 5</a>
 </td><td>
 # TOMOYO Linux カーネルパッチをダウンロードする。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz'<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz'<br>
 # 署名を確認する。<br>
-wget -O ccs-patch-1.6.9-20161111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20161111.tar.gz.asc'<br>
-gpg ccs-patch-1.6.9-20161111.tar.gz.asc<br>
+wget -O ccs-patch-1.6.9-20171111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/30297/ccs-patch-1.6.9-20171111.tar.gz.asc'<br>
+gpg ccs-patch-1.6.9-20171111.tar.gz.asc<br>
 # 展開する。<br>
-tar -zxf ccs-patch-1.6.9-20161111.tar.gz<br>
+tar -zxf ccs-patch-1.6.9-20171111.tar.gz<br>
 # ビルドスクリプトを実行する。<br>
 sh specs/build-vl5-2.6.27.sh<br>
 # パッケージを作成する。<br>
