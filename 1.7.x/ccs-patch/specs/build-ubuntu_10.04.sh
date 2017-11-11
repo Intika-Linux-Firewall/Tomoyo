@@ -30,9 +30,9 @@ done
 # Download TOMOYO Linux patches.
 mkdir -p ~/rpmbuild/SOURCES/
 cd ~/rpmbuild/SOURCES/ || die "Can't chdir to ~/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.7.3-20161111.tar.gz ]
+if [ ! -r ccs-patch-1.7.3-20171111.tar.gz ]
 then
-    wget -O ccs-patch-1.7.3-20161111.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.3-20161111.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.7.3-20171111.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.3-20171111.tar.gz' || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -45,7 +45,7 @@ apt-get install linux-headers-${VERSION} || die "Can't install packages."
 # Apply patches and create kernel config.
 cd linux-2.6.32/ || die "Can't chdir to linux-2.6.32/ ."
 update_maintainer
-tar -zxf ~/rpmbuild/SOURCES/ccs-patch-1.7.3-20161111.tar.gz || die "Can't extract patch."
+tar -zxf ~/rpmbuild/SOURCES/ccs-patch-1.7.3-20171111.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-2.6.32-ubuntu-10.04.diff || die "Can't apply patch."
 rm -fR patches/ specs/ || die "Can't delete patch."
 for i in `find debian.master/ -type f -name '*generic-pae*'`; do cp -p $i `echo $i | sed -e 's/generic-pae/ccs/g'`; done
