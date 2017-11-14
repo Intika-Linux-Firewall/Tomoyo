@@ -85,11 +85,11 @@ kumaneko@ubuntu:~$ mkdir yocto
 kumaneko@ubuntu:~$ cd yocto/
 kumaneko@ubuntu:~/yocto$ git clone git://git.yoctoproject.org/poky.git
 Cloning into 'poky'...
-remote: Counting objects: 335667, done.
-remote: Compressing objects: 100% (81383/81383), done.
-remote: Total 335667 (delta 248493), reused 335382 (delta 248209)
-Receiving objects: 100% (335667/335667), 126.50 MiB | 249.00 KiB/s, done.
-Resolving deltas: 100% (248493/248493), done.
+remote: Counting objects: 383840, done.
+remote: Compressing objects: 100% (92015/92015), done.
+remote: Total 383840 (delta 285644), reused 383342 (delta 285146)
+Receiving objects: 100% (383840/383840), 137.64 MiB | 233.00 KiB/s, done.
+Resolving deltas: 100% (285644/285644), done.
 Checking connectivity... done.
 kumaneko@ubuntu:~/yocto$ cd poky/
 </pre>
@@ -112,17 +112,22 @@ Switched to a new branch 'krogoth'
 
 <h3><a name="step3">ステップ３： Raspberry Pi 用のレシピを入手する</a></h3>
 
-<p>poky のレポジトリのあるディレクトリに、 Raspberry Pi 用のレシピを追加します。</p>
+<p>poky のレポジトリのあるディレクトリに、 Raspberry Pi 用のレシピを追加します。上記で選択したブランチをチェックアウトするのを忘れないでください。</p>
 
 <pre class="command">
 kumaneko@ubuntu:~/yocto/poky$ git clone git://git.yoctoproject.org/meta-raspberrypi
 Cloning into 'meta-raspberrypi'...
-remote: Counting objects: 2847, done.
-remote: Compressing objects: 100% (1543/1543), done.
-remote: Total 2847 (delta 1335), reused 2604 (delta 1092)
-Receiving objects: 100% (2847/2847), 833.91 KiB | 268.00 KiB/s, done.
-Resolving deltas: 100% (1335/1335), done.
+remote: Counting objects: 4435, done.
+remote: Compressing objects: 100% (1949/1949), done.
+remote: Total 4435 (delta 2251), reused 4338 (delta 2190)
+Receiving objects: 100% (4435/4435), 1.12 MiB | 235.00 KiB/s, done.
+Resolving deltas: 100% (2251/2251), done.
 Checking connectivity... done.
+kumaneko@ubuntu:~/yocto/poky$ cd meta-raspberrypi/
+kumaneko@ubuntu:~/yocto/poky/meta-raspberrypi$ git checkout -b krogoth origin/krogoth
+Branch krogoth set up to track remote branch krogoth from origin.
+Switched to a new branch 'krogoth'
+kumaneko@ubuntu:~/yocto/poky/meta-raspberrypi$ cd ../
 </pre>
 
 <h3><a name="step4">ステップ４： TOMOYO Linux 用のレシピを作成する</a></h3>
@@ -160,7 +165,7 @@ do_configure_append() {
     yes '' | oe_runmake oldconfig
   fi
 }
-kumaneko@ubuntu:~/yocto/poky$ wget -q -O meta-tomoyo/recipes-tomoyo/tomoyo-tools_2.5.0.bb https://raw.githubusercontent.com/openembedded/meta-openembedded/master/meta-oe/recipes-support/tomoyo-tools/tomoyo-tools_2.5.0.bb
+kumaneko@ubuntu:~/yocto/poky$ vi meta-tomoyo/recipes-tomoyo/tomoyo-tools_2.5.0.bb
 kumaneko@ubuntu:~/yocto/poky$ cat meta-tomoyo/recipes-tomoyo/tomoyo-tools_2.5.0.bb
 SUMMARY = "TOMOYO Linux tools"
 DESCRIPTION = "TOMOYO Linux is a Mandatory Access Control (MAC) implementation \
@@ -195,17 +200,17 @@ do_install() {
 kumaneko@ubuntu:~/yocto/poky$ ls -lrtR meta-tomoyo/
 meta-tomoyo/:
 total 8
-drwxrwxr-x 2 kumaneko kumaneko 4096 Sep 18 13:17 conf
-drwxrwxr-x 2 kumaneko kumaneko 4096 Sep 18 13:18 recipes-tomoyo
+drwxrwxr-x 2 kumaneko kumaneko 4096 Nov 12 11:26 conf
+drwxrwxr-x 2 kumaneko kumaneko 4096 Nov 12 11:29 recipes-tomoyo
 
 meta-tomoyo/conf:
 total 4
--rw-rw-r-- 1 kumaneko kumaneko 109 Sep 18 13:17 layer.conf
+-rw-rw-r-- 1 kumaneko kumaneko 109 Nov 12 11:26 layer.conf
 
 meta-tomoyo/recipes-tomoyo:
 total 8
--rw-rw-r-- 1 kumaneko kumaneko 818 Sep 18 13:17 linux%.bbappend
--rw-rw-r-- 1 kumaneko kumaneko 930 Sep 18 13:18 tomoyo-tools_2.5.0.bb
+-rw-rw-r-- 1 kumaneko kumaneko 818 Nov 12 11:26 linux%.bbappend
+-rw-rw-r-- 1 kumaneko kumaneko 916 Nov 12 11:28 tomoyo-tools_2.5.0.bb
 </pre>
 
 <h3><a name="step5">ステップ５：ターゲットの設定を行う</a></h3>
@@ -215,14 +220,13 @@ total 8
 <pre class="command">
 kumaneko@ubuntu:~/yocto/poky$ source oe-init-build-env
 You had no conf/local.conf file. This configuration file has therefore been
-created for you with some default values. You may wish to edit it to use a
-different MACHINE (target hardware) or enable parallel build options to take
-advantage of multiple cores for example. See the file for more information as
-common configuration options are commented.
+created for you with some default values. You may wish to edit it to, for
+example, select a different MACHINE (target hardware). See conf/local.conf
+for more information as common configuration options are commented.
 
-You had no conf/bblayers.conf file. The configuration file has been created for
-you with some default values. To add additional metadata layers into your
-configuration please add entries to this file.
+You had no conf/bblayers.conf file. This configuration file has therefore been
+created for you with some default values. To add additional metadata layers
+into your configuration please add entries to conf/bblayers.conf.
 
 The Yocto Project has extensive documentation about OE including a reference
 manual which can be found at:
@@ -240,7 +244,6 @@ Common targets are:
     core-image-minimal
     core-image-sato
     meta-toolchain
-    adt-installer
     meta-ide-support
 
 You can also run generated qemu images with a command like 'runqemu qemux86'
@@ -287,343 +290,344 @@ kumaneko@ubuntu:~/yocto/poky/build$ diff -u conf/local.conf.orig conf/local.conf
 
 <pre class="command">
 kumaneko@ubuntu:~/yocto/poky/build$ bitbake rpi-basic-image
-Parsing recipes: 100% |######################################################################################################################################################################################################| Time: 00:00:40
-Parsing of 920 .bb files complete (0 cached, 920 parsed). 1351 targets, 58 skipped, 0 masked, 0 errors.
+Parsing recipes: 100% |######################################################################################################################################################################################################| Time: 00:00:31
+Parsing of 892 .bb files complete (0 cached, 892 parsed). 1322 targets, 67 skipped, 0 masked, 0 errors.
 NOTE: Resolving any missing task queue dependencies
 
 Build Configuration:
-BB_VERSION        = "1.28.0"
+BB_VERSION        = "1.30.0"
 BUILD_SYS         = "x86_64-linux"
-NATIVELSBSTRING   = "Ubuntu-14.04"
+NATIVELSBSTRING   = "universal"
 TARGET_SYS        = "arm-poky-linux-gnueabi"
 MACHINE           = "raspberrypi2"
 DISTRO            = "poky"
-DISTRO_VERSION    = "2.0.2"
-TUNE_FEATURES     = "arm armv7a vfp thumb neon callconvention-hard vfpv4 cortexa7"
-TARGET_FPU        = "vfp-vfpv4-neon"
+DISTRO_VERSION    = "2.1.3"
+TUNE_FEATURES     = "arm armv7ve vfp thumb neon vfpv4 callconvention-hard cortexa7"
+TARGET_FPU        = "hard"
 meta
-meta-yocto
-meta-yocto-bsp    = "jethro:37eb21b2b1d5977a028a448e52551607fae99bf7"
-meta-raspberrypi  = "master:4c02c7ce07121c2f5367204445f93199d828bb10"
-meta-tomoyo       = "jethro:37eb21b2b1d5977a028a448e52551607fae99bf7"
+meta-poky
+meta-yocto-bsp    = "krogoth:1083d90888589b9f0d50a1d480f7c774d8b4bda3"
+meta-raspberrypi  = "krogoth:a5f9b07a820d50ae5fb62e07306cd4e72d8638a9"
+meta-tomoyo       = "krogoth:1083d90888589b9f0d50a1d480f7c774d8b4bda3"
 
 NOTE: Preparing RunQueue
 NOTE: Executing SetScene Tasks
 NOTE: Executing RunQueue Tasks
-NOTE: Tasks Summary: Attempted 2013 tasks of which 10 didn't need to be rerun and all succeeded.
+NOTE: Tasks Summary: Attempted 2189 tasks of which 966 didn't need to be rerun and all succeeded.
 kumaneko@ubuntu:~/yocto/poky/build$ ls -lrtR tmp/deploy/images/
 tmp/deploy/images/:
 total 4
-drwxr-xr-x 3 kumaneko kumaneko 4096 Sep 18 14:50 raspberrypi2
+drwxrwxr-x 3 kumaneko kumaneko 4096 Nov 12 20:17 raspberrypi2
 
 tmp/deploy/images/raspberrypi2:
-total 247220
--rw-r--r-- 2 kumaneko kumaneko   9113600 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi2-20160918043730.bin
--rw-rw-r-- 2 kumaneko kumaneko  16411321 Sep 18 14:47 modules-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi2-20160918043730.tgz
--rw-r--r-- 2 kumaneko kumaneko     10849 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2708-rpi-b-20160918043730.dtb
--rw-r--r-- 2 kumaneko kumaneko     11128 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2708-rpi-b-plus-20160918043730.dtb
--rw-r--r-- 2 kumaneko kumaneko     12116 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2709-rpi-2-b-20160918043730.dtb
--rw-r--r-- 2 kumaneko kumaneko     12870 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2710-rpi-3-b-20160918043730.dtb
--rw-r--r-- 2 kumaneko kumaneko       779 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-amp-overlay-20160918043730.dtb
--rw-r--r-- 2 kumaneko kumaneko       655 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-dac-overlay-20160918043730.dtb
--rw-r--r-- 2 kumaneko kumaneko      1378 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-dacplus-overlay-20160918043730.dtb
--rw-r--r-- 2 kumaneko kumaneko       783 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-digi-overlay-20160918043730.dtb
--rw-r--r-- 2 kumaneko kumaneko      2313 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-i2c-rtc-overlay-20160918043730.dtb
--rw-r--r-- 2 kumaneko kumaneko       775 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-iqaudio-dac-overlay-20160918043730.dtb
--rw-r--r-- 2 kumaneko kumaneko      1051 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-iqaudio-dacplus-overlay-20160918043730.dtb
--rw-r--r-- 2 kumaneko kumaneko      1428 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-lirc-rpi-overlay-20160918043730.dtb
--rw-r--r-- 2 kumaneko kumaneko      1576 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-pitft22-overlay-20160918043730.dtb
--rw-r--r-- 2 kumaneko kumaneko      2658 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-pitft28-resistive-overlay-20160918043730.dtb
--rw-r--r-- 2 kumaneko kumaneko      1003 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-pps-gpio-overlay-20160918043730.dtb
--rw-r--r-- 2 kumaneko kumaneko       484 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-rpi-ft5406-overlay-20160918043730.dtb
--rw-r--r-- 2 kumaneko kumaneko      1124 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-w1-gpio-overlay-20160918043730.dtb
--rw-r--r-- 2 kumaneko kumaneko      1291 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-w1-gpio-pullup-overlay-20160918043730.dtb
--rw-r--r-- 2 kumaneko kumaneko      1097 Sep 18 14:47 Image-1-4.1.21+git0+ff45bc0e89-r0-pi3-miniuart-bt-overlay-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        67 Sep 18 14:47 modules-raspberrypi2.tgz -&gt; modules-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi2-20160918043730.tgz
-lrwxrwxrwx 1 kumaneko kumaneko        75 Sep 18 14:47 Image-w1-gpio-pullup-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-w1-gpio-pullup-overlay-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        68 Sep 18 14:47 Image-w1-gpio-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-w1-gpio-overlay-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        71 Sep 18 14:47 Image-rpi-ft5406-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-rpi-ft5406-overlay-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        65 Sep 18 14:47 Image-raspberrypi2.bin -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi2-20160918043730.bin
-lrwxrwxrwx 1 kumaneko kumaneko        69 Sep 18 14:47 Image-pps-gpio-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-pps-gpio-overlay-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        78 Sep 18 14:47 Image-pitft28-resistive-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-pitft28-resistive-overlay-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        68 Sep 18 14:47 Image-pitft22-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-pitft22-overlay-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        76 Sep 18 14:47 Image-pi3-miniuart-bt-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-pi3-miniuart-bt-overlay-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        69 Sep 18 14:47 Image-lirc-rpi-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-lirc-rpi-overlay-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        76 Sep 18 14:47 Image-iqaudio-dacplus-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-iqaudio-dacplus-overlay-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        72 Sep 18 14:47 Image-iqaudio-dac-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-iqaudio-dac-overlay-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        68 Sep 18 14:47 Image-i2c-rtc-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-i2c-rtc-overlay-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        75 Sep 18 14:47 Image-hifiberry-digi-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-digi-overlay-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        78 Sep 18 14:47 Image-hifiberry-dacplus-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-dacplus-overlay-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        74 Sep 18 14:47 Image-hifiberry-dac-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-dac-overlay-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        74 Sep 18 14:47 Image-hifiberry-amp-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-amp-overlay-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        68 Sep 18 14:47 Image-bcm2710-rpi-3-b.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2710-rpi-3-b-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        68 Sep 18 14:47 Image-bcm2709-rpi-2-b.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2709-rpi-2-b-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        71 Sep 18 14:47 Image-bcm2708-rpi-b-plus.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2708-rpi-b-plus-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        66 Sep 18 14:47 Image-bcm2708-rpi-b.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2708-rpi-b-20160918043730.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        65 Sep 18 14:47 Image -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi2-20160918043730.bin
-drwxr-xr-x 2 kumaneko kumaneko      4096 Sep 18 14:47 bcm2835-bootfiles
--rw-r--r-- 2 kumaneko kumaneko       294 Sep 18 14:49 README_-_DO_NOT_DELETE_FILES_IN_THIS_DIRECTORY.txt
--rw-r--r-- 1 kumaneko kumaneko     90315 Sep 18 14:50 rpi-basic-image-raspberrypi2-20160918043730.rootfs.manifest
--rw-r--r-- 1 kumaneko kumaneko  21155409 Sep 18 14:50 rpi-basic-image-raspberrypi2-20160918043730.rootfs.tar.bz2
--rw-r--r-- 1 kumaneko kumaneko  92274688 Sep 18 14:50 rpi-basic-image-raspberrypi2-20160918043730.rootfs.ext3
-lrwxrwxrwx 1 kumaneko kumaneko        58 Sep 18 14:50 rpi-basic-image-raspberrypi2.tar.bz2 -&gt; rpi-basic-image-raspberrypi2-20160918043730.rootfs.tar.bz2
-lrwxrwxrwx 1 kumaneko kumaneko        59 Sep 18 14:50 rpi-basic-image-raspberrypi2.manifest -&gt; rpi-basic-image-raspberrypi2-20160918043730.rootfs.manifest
-lrwxrwxrwx 1 kumaneko kumaneko        55 Sep 18 14:50 rpi-basic-image-raspberrypi2.ext3 -&gt; rpi-basic-image-raspberrypi2-20160918043730.rootfs.ext3
--rw-r--r-- 1 kumaneko kumaneko 138412032 Sep 18 14:50 rpi-basic-image-raspberrypi2-20160918043730.rootfs.rpi-sdimg
-lrwxrwxrwx 1 kumaneko kumaneko        60 Sep 18 14:50 rpi-basic-image-raspberrypi2.rpi-sdimg -&gt; rpi-basic-image-raspberrypi2-20160918043730.rootfs.rpi-sdimg
+total 244944
+-rw-r--r-- 2 kumaneko kumaneko   9105408 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi2-20171112041658.bin
+-rw-rw-r-- 2 kumaneko kumaneko  16377331 Nov 12 14:46 modules-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi2-20171112041658.tgz
+-rw-r--r-- 2 kumaneko kumaneko     10849 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2708-rpi-b-20171112041658.dtb
+-rw-r--r-- 2 kumaneko kumaneko     11128 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2708-rpi-b-plus-20171112041658.dtb
+-rw-r--r-- 2 kumaneko kumaneko     12116 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2709-rpi-2-b-20171112041658.dtb
+-rw-r--r-- 2 kumaneko kumaneko     12870 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2710-rpi-3-b-20171112041658.dtb
+-rw-r--r-- 2 kumaneko kumaneko       779 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-amp-overlay-20171112041658.dtb
+-rw-r--r-- 2 kumaneko kumaneko       655 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-dac-overlay-20171112041658.dtb
+-rw-r--r-- 2 kumaneko kumaneko      1378 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-dacplus-overlay-20171112041658.dtb
+-rw-r--r-- 2 kumaneko kumaneko       783 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-digi-overlay-20171112041658.dtb
+-rw-r--r-- 2 kumaneko kumaneko      2313 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-i2c-rtc-overlay-20171112041658.dtb
+-rw-r--r-- 2 kumaneko kumaneko       775 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-iqaudio-dac-overlay-20171112041658.dtb
+-rw-r--r-- 2 kumaneko kumaneko      1051 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-iqaudio-dacplus-overlay-20171112041658.dtb
+-rw-r--r-- 2 kumaneko kumaneko      1428 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-lirc-rpi-overlay-20171112041658.dtb
+-rw-r--r-- 2 kumaneko kumaneko      1576 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-pitft22-overlay-20171112041658.dtb
+-rw-r--r-- 2 kumaneko kumaneko      2658 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-pitft28-resistive-overlay-20171112041658.dtb
+-rw-r--r-- 2 kumaneko kumaneko      1003 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-pps-gpio-overlay-20171112041658.dtb
+-rw-r--r-- 2 kumaneko kumaneko       484 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-rpi-ft5406-overlay-20171112041658.dtb
+-rw-r--r-- 2 kumaneko kumaneko      1124 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-w1-gpio-overlay-20171112041658.dtb
+-rw-r--r-- 2 kumaneko kumaneko      1291 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-w1-gpio-pullup-overlay-20171112041658.dtb
+-rw-r--r-- 2 kumaneko kumaneko      1097 Nov 12 14:46 Image-1-4.1.21+git0+ff45bc0e89-r0-pi3-miniuart-bt-overlay-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        75 Nov 12 14:46 Image-hifiberry-digi-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-digi-overlay-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        67 Nov 12 14:46 modules-raspberrypi2.tgz -&gt; modules-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi2-20171112041658.tgz
+lrwxrwxrwx 1 kumaneko kumaneko        75 Nov 12 14:46 Image-w1-gpio-pullup-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-w1-gpio-pullup-overlay-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        68 Nov 12 14:46 Image-w1-gpio-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-w1-gpio-overlay-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        71 Nov 12 14:46 Image-rpi-ft5406-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-rpi-ft5406-overlay-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        65 Nov 12 14:46 Image-raspberrypi2.bin -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi2-20171112041658.bin
+lrwxrwxrwx 1 kumaneko kumaneko        69 Nov 12 14:46 Image-pps-gpio-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-pps-gpio-overlay-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        78 Nov 12 14:46 Image-pitft28-resistive-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-pitft28-resistive-overlay-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        68 Nov 12 14:46 Image-pitft22-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-pitft22-overlay-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        76 Nov 12 14:46 Image-pi3-miniuart-bt-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-pi3-miniuart-bt-overlay-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        69 Nov 12 14:46 Image-lirc-rpi-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-lirc-rpi-overlay-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        76 Nov 12 14:46 Image-iqaudio-dacplus-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-iqaudio-dacplus-overlay-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        72 Nov 12 14:46 Image-iqaudio-dac-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-iqaudio-dac-overlay-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        68 Nov 12 14:46 Image-i2c-rtc-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-i2c-rtc-overlay-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        78 Nov 12 14:46 Image-hifiberry-dacplus-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-dacplus-overlay-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        74 Nov 12 14:46 Image-hifiberry-dac-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-dac-overlay-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        74 Nov 12 14:46 Image-hifiberry-amp-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-amp-overlay-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        68 Nov 12 14:46 Image-bcm2710-rpi-3-b.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2710-rpi-3-b-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        68 Nov 12 14:46 Image-bcm2709-rpi-2-b.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2709-rpi-2-b-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        66 Nov 12 14:46 Image-bcm2708-rpi-b.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2708-rpi-b-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        71 Nov 12 14:46 Image-bcm2708-rpi-b-plus.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2708-rpi-b-plus-20171112041658.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        65 Nov 12 14:46 Image -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi2-20171112041658.bin
+drwxr-xr-x 2 kumaneko kumaneko      4096 Nov 12 20:14 bcm2835-bootfiles
+-rw-r--r-- 2 kumaneko kumaneko       294 Nov 12 20:14 README_-_DO_NOT_DELETE_FILES_IN_THIS_DIRECTORY.txt
+lrwxrwxrwx 1 kumaneko kumaneko        59 Nov 12 20:17 rpi-basic-image-raspberrypi2.manifest -&gt; rpi-basic-image-raspberrypi2-20171112041658.rootfs.manifest
+-rw-r--r-- 1 kumaneko kumaneko     90322 Nov 12 20:17 rpi-basic-image-raspberrypi2-20171112041658.rootfs.manifest
+-rw-r--r-- 1 kumaneko kumaneko  21336060 Nov 12 20:17 rpi-basic-image-raspberrypi2-20171112041658.rootfs.tar.bz2
+-rw-r--r-- 1 kumaneko kumaneko  92274688 Nov 12 20:17 rpi-basic-image-raspberrypi2-20171112041658.rootfs.ext3
+lrwxrwxrwx 1 kumaneko kumaneko        55 Nov 12 20:17 rpi-basic-image-raspberrypi2.ext3 -&gt; rpi-basic-image-raspberrypi2-20171112041658.rootfs.ext3
+lrwxrwxrwx 1 kumaneko kumaneko        58 Nov 12 20:17 rpi-basic-image-raspberrypi2.tar.bz2 -&gt; rpi-basic-image-raspberrypi2-20171112041658.rootfs.tar.bz2
+-rw-r--r-- 1 kumaneko kumaneko 138412032 Nov 12 20:17 rpi-basic-image-raspberrypi2-20171112041658.rootfs.rpi-sdimg
+lrwxrwxrwx 1 kumaneko kumaneko        60 Nov 12 20:17 rpi-basic-image-raspberrypi2.rpi-sdimg -&gt; rpi-basic-image-raspberrypi2-20171112041658.rootfs.rpi-sdimg
 
 tmp/deploy/images/raspberrypi2/bcm2835-bootfiles:
 total 11984
--rw-r--r-- 2 kumaneko kumaneko   36159 Sep 18 14:21 config.txt
--rw-r--r-- 2 kumaneko kumaneko 2746552 Sep 18 14:21 start.elf
--rw-r--r-- 2 kumaneko kumaneko  617432 Sep 18 14:21 start_cd.elf
--rw-r--r-- 2 kumaneko kumaneko 4926264 Sep 18 14:21 start_db.elf
--rw-r--r-- 2 kumaneko kumaneko 3877720 Sep 18 14:21 start_x.elf
--rw-r--r-- 2 kumaneko kumaneko    6482 Sep 18 14:21 fixup.dat
--rw-r--r-- 2 kumaneko kumaneko    9717 Sep 18 14:21 fixup_db.dat
--rw-r--r-- 2 kumaneko kumaneko    2504 Sep 18 14:21 fixup_cd.dat
--rw-r--r-- 2 kumaneko kumaneko    9717 Sep 18 14:21 fixup_x.dat
--rw-r--r-- 2 kumaneko kumaneko   17932 Sep 18 14:21 bootcode.bin
--rw-rw-r-- 2 kumaneko kumaneko       0 Sep 18 14:21 bcm2835-bootfiles-20160622.stamp
--rw-rw-r-- 2 kumaneko kumaneko      96 Sep 18 14:47 cmdline.txt
+-rw-r--r-- 2 kumaneko kumaneko   36159 Nov 12 13:39 config.txt
+-rw-rw-r-- 2 kumaneko kumaneko      96 Nov 12 14:46 cmdline.txt
+-rw-r--r-- 2 kumaneko kumaneko 2746552 Nov 12 20:14 start.elf
+-rw-r--r-- 2 kumaneko kumaneko  617432 Nov 12 20:14 start_cd.elf
+-rw-r--r-- 2 kumaneko kumaneko 4926264 Nov 12 20:14 start_db.elf
+-rw-r--r-- 2 kumaneko kumaneko 3877720 Nov 12 20:14 start_x.elf
+-rw-r--r-- 2 kumaneko kumaneko    6482 Nov 12 20:14 fixup.dat
+-rw-r--r-- 2 kumaneko kumaneko    9717 Nov 12 20:14 fixup_x.dat
+-rw-r--r-- 2 kumaneko kumaneko    9717 Nov 12 20:14 fixup_db.dat
+-rw-r--r-- 2 kumaneko kumaneko    2504 Nov 12 20:14 fixup_cd.dat
+-rw-r--r-- 2 kumaneko kumaneko   17932 Nov 12 20:14 bootcode.bin
+-rw-rw-r-- 2 kumaneko kumaneko       0 Nov 12 20:14 bcm2835-bootfiles-20160622.stamp
 kumaneko@ubuntu:~/yocto/poky/build$ tar -vvtf tmp/deploy/images/raspberrypi2/rpi-basic-image-raspberrypi2.tar.bz2 | grep tomoyo
--rwxr-xr-x root/root     22900 2016-09-18 14:27 ./usr/lib/libtomoyotools.so.3.0.2
-lrwxrwxrwx root/root         0 2016-09-18 14:50 ./usr/lib/libtomoyotools.so.3 -&gt; libtomoyotools.so.3.0.2
-drwxr-xr-x root/root         0 2016-09-18 14:50 ./usr/lib/tomoyo/
--rwxr-xr-x root/root      5892 2016-09-18 14:27 ./usr/lib/tomoyo/convert-audit-log
--rw-r--r-- root/root     17987 2016-09-18 14:27 ./usr/lib/tomoyo/COPYING.tomoyo
--rwxr-xr-x root/root     46332 2016-09-18 14:27 ./usr/lib/tomoyo/init_policy
--rwxr-xr-x root/root      4148 2016-09-18 14:27 ./usr/lib/tomoyo/audit-exec-param
--rwxr-xr-x root/root      9348 2016-09-18 14:27 ./usr/lib/tomoyo/tomoyo-editpolicy-agent
--rwxr-xr-x root/root      5304 2016-09-18 14:27 ./usr/lib/tomoyo/convert-exec-param
--rw-r--r-- root/root      1694 2016-09-18 14:27 ./usr/lib/tomoyo/README.tomoyo
--rwxr-xr-x root/root      3648 2016-09-18 14:27 ./usr/sbin/tomoyo-sortpolicy
--rwxr-xr-x root/root     12608 2016-09-18 14:27 ./usr/sbin/tomoyo-queryd
--rwxr-xr-x root/root      8420 2016-09-18 14:27 ./usr/sbin/tomoyo-savepolicy
--rwxr-xr-x root/root      8096 2016-09-18 14:27 ./usr/sbin/tomoyo-loadpolicy
--rwxr-xr-x root/root      4444 2016-09-18 14:27 ./usr/sbin/tomoyo-selectpolicy
--rwxr-xr-x root/root      5456 2016-09-18 14:27 ./usr/sbin/tomoyo-pstree
--rwxr-xr-x root/root     13268 2016-09-18 14:27 ./usr/sbin/tomoyo-checkpolicy
--rwxr-xr-x root/root      4688 2016-09-18 14:27 ./usr/sbin/tomoyo-domainmatch
--rwxr-xr-x root/root      5180 2016-09-18 14:27 ./usr/sbin/tomoyo-findtemp
--rwxr-xr-x root/root     10068 2016-09-18 14:27 ./usr/sbin/tomoyo-patternize
--rwxr-xr-x root/root     10480 2016-09-18 14:27 ./usr/sbin/tomoyo-auditd
--rwxr-xr-x root/root      4768 2016-09-18 14:27 ./usr/sbin/tomoyo-diffpolicy
--rwxr-xr-x root/root      5520 2016-09-18 14:27 ./usr/sbin/tomoyo-setlevel
--rwxr-xr-x root/root      5916 2016-09-18 14:27 ./usr/sbin/tomoyo-setprofile
--rwxr-xr-x root/root      8784 2016-09-18 14:27 ./usr/sbin/tomoyo-notifyd
--rwxr-xr-x root/root     85180 2016-09-18 14:27 ./usr/sbin/tomoyo-editpolicy
--rwx------ root/root     10676 2016-09-18 14:27 ./sbin/tomoyo-init
+-rwx------ root/root     10692 2017-11-12 13:45 ./sbin/tomoyo-init
+-rwxr-xr-x root/root      8112 2017-11-12 13:45 ./usr/sbin/tomoyo-loadpolicy
+-rwxr-xr-x root/root      5536 2017-11-12 13:45 ./usr/sbin/tomoyo-setlevel
+-rwxr-xr-x root/root      5472 2017-11-12 13:45 ./usr/sbin/tomoyo-pstree
+-rwxr-xr-x root/root      4704 2017-11-12 13:45 ./usr/sbin/tomoyo-domainmatch
+-rwxr-xr-x root/root      4460 2017-11-12 13:45 ./usr/sbin/tomoyo-selectpolicy
+-rwxr-xr-x root/root     10080 2017-11-12 13:45 ./usr/sbin/tomoyo-patternize
+-rwxr-xr-x root/root     10496 2017-11-12 13:45 ./usr/sbin/tomoyo-auditd
+-rwxr-xr-x root/root      5196 2017-11-12 13:45 ./usr/sbin/tomoyo-findtemp
+-rwxr-xr-x root/root      8800 2017-11-12 13:45 ./usr/sbin/tomoyo-notifyd
+-rwxr-xr-x root/root      3664 2017-11-12 13:45 ./usr/sbin/tomoyo-sortpolicy
+-rwxr-xr-x root/root      5928 2017-11-12 13:45 ./usr/sbin/tomoyo-setprofile
+-rwxr-xr-x root/root      4784 2017-11-12 13:45 ./usr/sbin/tomoyo-diffpolicy
+-rwxr-xr-x root/root      8108 2017-11-12 13:45 ./usr/sbin/tomoyo-savepolicy
+-rwxr-xr-x root/root     12408 2017-11-12 13:45 ./usr/sbin/tomoyo-checkpolicy
+-rwxr-xr-x root/root     83620 2017-11-12 13:45 ./usr/sbin/tomoyo-editpolicy
+-rwxr-xr-x root/root     12624 2017-11-12 13:45 ./usr/sbin/tomoyo-queryd
+-rwxr-xr-x root/root     22972 2017-11-12 13:45 ./usr/lib/libtomoyotools.so.3.0.3
+drwxr-xr-x root/root         0 2017-11-12 20:16 ./usr/lib/tomoyo/
+-rwxr-xr-x root/root      4164 2017-11-12 13:45 ./usr/lib/tomoyo/audit-exec-param
+-rwxr-xr-x root/root      5904 2017-11-12 13:45 ./usr/lib/tomoyo/convert-audit-log
+-rwxr-xr-x root/root     45632 2017-11-12 13:45 ./usr/lib/tomoyo/init_policy
+-rwxr-xr-x root/root      5320 2017-11-12 13:45 ./usr/lib/tomoyo/convert-exec-param
+-rw-r--r-- root/root      1766 2017-11-12 13:44 ./usr/lib/tomoyo/README.tomoyo
+-rwxr-xr-x root/root      9472 2017-11-12 13:45 ./usr/lib/tomoyo/tomoyo-editpolicy-agent
+-rw-r--r-- root/root     17987 2017-11-12 13:44 ./usr/lib/tomoyo/COPYING.tomoyo
+lrwxrwxrwx root/root         0 2017-11-12 20:16 ./usr/lib/libtomoyotools.so.3 -&gt; libtomoyotools.so.3.0.3
 </pre>
 
 <p>MACHINE = "raspberrypi3" を指定した場合は、以下のようになります。</p>
 
 <pre class="command">
 kumaneko@ubuntu:~/yocto/poky/build$ bitbake rpi-basic-image
-Parsing recipes: 100% |######################################################################################################################################################################################################| Time: 00:00:25
-Parsing of 920 .bb files complete (0 cached, 920 parsed). 1351 targets, 58 skipped, 0 masked, 0 errors.
+Parsing recipes: 100% |######################################################################################################################################################################################################| Time: 00:00:41
+Parsing of 892 .bb files complete (0 cached, 892 parsed). 1322 targets, 67 skipped, 0 masked, 0 errors.
 NOTE: Resolving any missing task queue dependencies
 
 Build Configuration:
-BB_VERSION        = "1.28.0"
+BB_VERSION        = "1.30.0"
 BUILD_SYS         = "x86_64-linux"
-NATIVELSBSTRING   = "Ubuntu-14.04"
+NATIVELSBSTRING   = "universal"
 TARGET_SYS        = "arm-poky-linux-gnueabi"
 MACHINE           = "raspberrypi3"
 DISTRO            = "poky"
-DISTRO_VERSION    = "2.0.2"
-TUNE_FEATURES     = "arm armv7a vfp thumb neon callconvention-hard vfpv4 cortexa7"
-TARGET_FPU        = "vfp-vfpv4-neon"
+DISTRO_VERSION    = "2.1.3"
+TUNE_FEATURES     = "arm armv7ve vfp thumb neon vfpv4 callconvention-hard cortexa7"
+TARGET_FPU        = "hard"
 meta
-meta-yocto
-meta-yocto-bsp    = "jethro:37eb21b2b1d5977a028a448e52551607fae99bf7"
-meta-raspberrypi  = "master:4c02c7ce07121c2f5367204445f93199d828bb10"
-meta-tomoyo       = "jethro:37eb21b2b1d5977a028a448e52551607fae99bf7"
+meta-poky
+meta-yocto-bsp    = "krogoth:1083d90888589b9f0d50a1d480f7c774d8b4bda3"
+meta-raspberrypi  = "krogoth:a5f9b07a820d50ae5fb62e07306cd4e72d8638a9"
+meta-tomoyo       = "krogoth:1083d90888589b9f0d50a1d480f7c774d8b4bda3"
 
 NOTE: Preparing RunQueue
 NOTE: Executing SetScene Tasks
 NOTE: Executing RunQueue Tasks
-NOTE: Tasks Summary: Attempted 2013 tasks of which 1876 didn't need to be rerun and all succeeded.
+NOTE: Tasks Summary: Attempted 2189 tasks of which 2043 didn't need to be rerun and all succeeded.
 kumaneko@ubuntu:~/yocto/poky/build$ ls -lrtR tmp/deploy/images/
 tmp/deploy/images/:
 total 4
-drwxr-xr-x 3 kumaneko kumaneko 4096 Sep 18 15:51 raspberrypi3
+drwxr-xr-x 3 kumaneko kumaneko 4096 Nov 12 20:44 raspberrypi3
 
 tmp/deploy/images/raspberrypi3:
-total 247220
--rw-r--r-- 2 kumaneko kumaneko   9113600 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi3-20160918063631.bin
--rw-rw-r-- 2 kumaneko kumaneko  16411443 Sep 18 15:48 modules-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi3-20160918063631.tgz
--rw-r--r-- 2 kumaneko kumaneko     10849 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2708-rpi-b-20160918063631.dtb
--rw-r--r-- 2 kumaneko kumaneko     11128 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2708-rpi-b-plus-20160918063631.dtb
--rw-r--r-- 2 kumaneko kumaneko     12116 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2709-rpi-2-b-20160918063631.dtb
--rw-r--r-- 2 kumaneko kumaneko     12870 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2710-rpi-3-b-20160918063631.dtb
--rw-r--r-- 2 kumaneko kumaneko       779 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-amp-overlay-20160918063631.dtb
--rw-r--r-- 2 kumaneko kumaneko       655 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-dac-overlay-20160918063631.dtb
--rw-r--r-- 2 kumaneko kumaneko      1378 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-dacplus-overlay-20160918063631.dtb
--rw-r--r-- 2 kumaneko kumaneko       783 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-digi-overlay-20160918063631.dtb
--rw-r--r-- 2 kumaneko kumaneko      2313 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-i2c-rtc-overlay-20160918063631.dtb
--rw-r--r-- 2 kumaneko kumaneko       775 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-iqaudio-dac-overlay-20160918063631.dtb
--rw-r--r-- 2 kumaneko kumaneko      1051 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-iqaudio-dacplus-overlay-20160918063631.dtb
--rw-r--r-- 2 kumaneko kumaneko      1003 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-pps-gpio-overlay-20160918063631.dtb
--rw-r--r-- 2 kumaneko kumaneko      2658 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-pitft28-resistive-overlay-20160918063631.dtb
--rw-r--r-- 2 kumaneko kumaneko      1576 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-pitft22-overlay-20160918063631.dtb
--rw-r--r-- 2 kumaneko kumaneko      1428 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-lirc-rpi-overlay-20160918063631.dtb
--rw-r--r-- 2 kumaneko kumaneko       484 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-rpi-ft5406-overlay-20160918063631.dtb
--rw-r--r-- 2 kumaneko kumaneko      1124 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-w1-gpio-overlay-20160918063631.dtb
--rw-r--r-- 2 kumaneko kumaneko      1291 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-w1-gpio-pullup-overlay-20160918063631.dtb
--rw-r--r-- 2 kumaneko kumaneko      1097 Sep 18 15:48 Image-1-4.1.21+git0+ff45bc0e89-r0-pi3-miniuart-bt-overlay-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        67 Sep 18 15:48 modules-raspberrypi3.tgz -&gt; modules-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi3-20160918063631.tgz
-lrwxrwxrwx 1 kumaneko kumaneko        75 Sep 18 15:48 Image-w1-gpio-pullup-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-w1-gpio-pullup-overlay-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        68 Sep 18 15:48 Image-w1-gpio-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-w1-gpio-overlay-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        71 Sep 18 15:48 Image-rpi-ft5406-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-rpi-ft5406-overlay-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        65 Sep 18 15:48 Image-raspberrypi3.bin -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi3-20160918063631.bin
-lrwxrwxrwx 1 kumaneko kumaneko        69 Sep 18 15:48 Image-pps-gpio-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-pps-gpio-overlay-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        78 Sep 18 15:48 Image-pitft28-resistive-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-pitft28-resistive-overlay-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        68 Sep 18 15:48 Image-pitft22-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-pitft22-overlay-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        76 Sep 18 15:48 Image-pi3-miniuart-bt-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-pi3-miniuart-bt-overlay-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        69 Sep 18 15:48 Image-lirc-rpi-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-lirc-rpi-overlay-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        76 Sep 18 15:48 Image-iqaudio-dacplus-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-iqaudio-dacplus-overlay-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        72 Sep 18 15:48 Image-iqaudio-dac-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-iqaudio-dac-overlay-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        68 Sep 18 15:48 Image-i2c-rtc-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-i2c-rtc-overlay-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        75 Sep 18 15:48 Image-hifiberry-digi-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-digi-overlay-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        78 Sep 18 15:48 Image-hifiberry-dacplus-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-dacplus-overlay-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        74 Sep 18 15:48 Image-hifiberry-dac-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-dac-overlay-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        74 Sep 18 15:48 Image-hifiberry-amp-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-amp-overlay-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        68 Sep 18 15:48 Image-bcm2710-rpi-3-b.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2710-rpi-3-b-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        68 Sep 18 15:48 Image-bcm2709-rpi-2-b.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2709-rpi-2-b-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        71 Sep 18 15:48 Image-bcm2708-rpi-b-plus.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2708-rpi-b-plus-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        66 Sep 18 15:48 Image-bcm2708-rpi-b.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2708-rpi-b-20160918063631.dtb
-lrwxrwxrwx 1 kumaneko kumaneko        65 Sep 18 15:48 Image -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi3-20160918063631.bin
-drwxr-xr-x 2 kumaneko kumaneko      4096 Sep 18 15:48 bcm2835-bootfiles
--rw-r--r-- 2 kumaneko kumaneko       294 Sep 18 15:50 README_-_DO_NOT_DELETE_FILES_IN_THIS_DIRECTORY.txt
--rw-r--r-- 1 kumaneko kumaneko     90315 Sep 18 15:51 rpi-basic-image-raspberrypi3-20160918063631.rootfs.manifest
--rw-r--r-- 1 kumaneko kumaneko  21153614 Sep 18 15:51 rpi-basic-image-raspberrypi3-20160918063631.rootfs.tar.bz2
--rw-r--r-- 1 kumaneko kumaneko  92274688 Sep 18 15:51 rpi-basic-image-raspberrypi3-20160918063631.rootfs.ext3
-lrwxrwxrwx 1 kumaneko kumaneko        58 Sep 18 15:51 rpi-basic-image-raspberrypi3.tar.bz2 -&gt; rpi-basic-image-raspberrypi3-20160918063631.rootfs.tar.bz2
-lrwxrwxrwx 1 kumaneko kumaneko        59 Sep 18 15:51 rpi-basic-image-raspberrypi3.manifest -&gt; rpi-basic-image-raspberrypi3-20160918063631.rootfs.manifest
-lrwxrwxrwx 1 kumaneko kumaneko        55 Sep 18 15:51 rpi-basic-image-raspberrypi3.ext3 -&gt; rpi-basic-image-raspberrypi3-20160918063631.rootfs.ext3
--rw-r--r-- 1 kumaneko kumaneko 138412032 Sep 18 15:51 rpi-basic-image-raspberrypi3-20160918063631.rootfs.rpi-sdimg
-lrwxrwxrwx 1 kumaneko kumaneko        60 Sep 18 15:51 rpi-basic-image-raspberrypi3.rpi-sdimg -&gt; rpi-basic-image-raspberrypi3-20160918063631.rootfs.rpi-sdimg
+total 244948
+-rw-r--r-- 2 kumaneko kumaneko   9105408 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi3-20171112112744.bin
+-rw-rw-r-- 2 kumaneko kumaneko  16376356 Nov 12 20:40 modules-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi3-20171112112744.tgz
+-rw-r--r-- 2 kumaneko kumaneko     10849 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2708-rpi-b-20171112112744.dtb
+-rw-r--r-- 2 kumaneko kumaneko     11128 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2708-rpi-b-plus-20171112112744.dtb
+-rw-r--r-- 2 kumaneko kumaneko     12116 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2709-rpi-2-b-20171112112744.dtb
+-rw-r--r-- 2 kumaneko kumaneko     12870 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2710-rpi-3-b-20171112112744.dtb
+-rw-r--r-- 2 kumaneko kumaneko       779 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-amp-overlay-20171112112744.dtb
+-rw-r--r-- 2 kumaneko kumaneko       655 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-dac-overlay-20171112112744.dtb
+-rw-r--r-- 2 kumaneko kumaneko      1378 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-dacplus-overlay-20171112112744.dtb
+-rw-r--r-- 2 kumaneko kumaneko       783 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-digi-overlay-20171112112744.dtb
+-rw-r--r-- 2 kumaneko kumaneko      2313 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-i2c-rtc-overlay-20171112112744.dtb
+-rw-r--r-- 2 kumaneko kumaneko       775 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-iqaudio-dac-overlay-20171112112744.dtb
+-rw-r--r-- 2 kumaneko kumaneko      1051 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-iqaudio-dacplus-overlay-20171112112744.dtb
+-rw-r--r-- 2 kumaneko kumaneko      1428 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-lirc-rpi-overlay-20171112112744.dtb
+-rw-r--r-- 2 kumaneko kumaneko      1576 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-pitft22-overlay-20171112112744.dtb
+-rw-r--r-- 2 kumaneko kumaneko      2658 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-pitft28-resistive-overlay-20171112112744.dtb
+-rw-r--r-- 2 kumaneko kumaneko      1003 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-pps-gpio-overlay-20171112112744.dtb
+-rw-r--r-- 2 kumaneko kumaneko       484 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-rpi-ft5406-overlay-20171112112744.dtb
+-rw-r--r-- 2 kumaneko kumaneko      1124 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-w1-gpio-overlay-20171112112744.dtb
+-rw-r--r-- 2 kumaneko kumaneko      1291 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-w1-gpio-pullup-overlay-20171112112744.dtb
+-rw-r--r-- 2 kumaneko kumaneko      1097 Nov 12 20:40 Image-1-4.1.21+git0+ff45bc0e89-r0-pi3-miniuart-bt-overlay-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        67 Nov 12 20:40 modules-raspberrypi3.tgz -&gt; modules-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi3-20171112112744.tgz
+drwxr-xr-x 2 kumaneko kumaneko      4096 Nov 12 20:40 bcm2835-bootfiles
+lrwxrwxrwx 1 kumaneko kumaneko        75 Nov 12 20:40 Image-w1-gpio-pullup-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-w1-gpio-pullup-overlay-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        68 Nov 12 20:40 Image-w1-gpio-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-w1-gpio-overlay-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        71 Nov 12 20:40 Image-rpi-ft5406-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-rpi-ft5406-overlay-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        65 Nov 12 20:40 Image-raspberrypi3.bin -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi3-20171112112744.bin
+lrwxrwxrwx 1 kumaneko kumaneko        69 Nov 12 20:40 Image-pps-gpio-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-pps-gpio-overlay-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        78 Nov 12 20:40 Image-pitft28-resistive-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-pitft28-resistive-overlay-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        68 Nov 12 20:40 Image-pitft22-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-pitft22-overlay-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        76 Nov 12 20:40 Image-pi3-miniuart-bt-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-pi3-miniuart-bt-overlay-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        69 Nov 12 20:40 Image-lirc-rpi-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-lirc-rpi-overlay-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        76 Nov 12 20:40 Image-iqaudio-dacplus-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-iqaudio-dacplus-overlay-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        72 Nov 12 20:40 Image-iqaudio-dac-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-iqaudio-dac-overlay-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        68 Nov 12 20:40 Image-i2c-rtc-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-i2c-rtc-overlay-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        75 Nov 12 20:40 Image-hifiberry-digi-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-digi-overlay-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        78 Nov 12 20:40 Image-hifiberry-dacplus-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-dacplus-overlay-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        74 Nov 12 20:40 Image-hifiberry-dac-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-dac-overlay-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        74 Nov 12 20:40 Image-hifiberry-amp-overlay.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-hifiberry-amp-overlay-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        68 Nov 12 20:40 Image-bcm2710-rpi-3-b.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2710-rpi-3-b-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        68 Nov 12 20:40 Image-bcm2709-rpi-2-b.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2709-rpi-2-b-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        66 Nov 12 20:40 Image-bcm2708-rpi-b.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2708-rpi-b-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        71 Nov 12 20:40 Image-bcm2708-rpi-b-plus.dtb -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-bcm2708-rpi-b-plus-20171112112744.dtb
+lrwxrwxrwx 1 kumaneko kumaneko        65 Nov 12 20:40 Image -&gt; Image-1-4.1.21+git0+ff45bc0e89-r0-raspberrypi3-20171112112744.bin
+-rw-r--r-- 2 kumaneko kumaneko       294 Nov 12 20:42 README_-_DO_NOT_DELETE_FILES_IN_THIS_DIRECTORY.txt
+lrwxrwxrwx 1 kumaneko kumaneko        59 Nov 12 20:43 rpi-basic-image-raspberrypi3.manifest -&gt; rpi-basic-image-raspberrypi3-20171112112744.rootfs.manifest
+-rw-r--r-- 1 kumaneko kumaneko     90322 Nov 12 20:43 rpi-basic-image-raspberrypi3-20171112112744.rootfs.manifest
+-rw-r--r-- 1 kumaneko kumaneko  21336875 Nov 12 20:43 rpi-basic-image-raspberrypi3-20171112112744.rootfs.tar.bz2
+-rw-r--r-- 1 kumaneko kumaneko  92274688 Nov 12 20:43 rpi-basic-image-raspberrypi3-20171112112744.rootfs.ext3
+lrwxrwxrwx 1 kumaneko kumaneko        55 Nov 12 20:43 rpi-basic-image-raspberrypi3.ext3 -&gt; rpi-basic-image-raspberrypi3-20171112112744.rootfs.ext3
+lrwxrwxrwx 1 kumaneko kumaneko        58 Nov 12 20:44 rpi-basic-image-raspberrypi3.tar.bz2 -&gt; rpi-basic-image-raspberrypi3-20171112112744.rootfs.tar.bz2
+-rw-r--r-- 1 kumaneko kumaneko 138412032 Nov 12 20:44 rpi-basic-image-raspberrypi3-20171112112744.rootfs.rpi-sdimg
+lrwxrwxrwx 1 kumaneko kumaneko        60 Nov 12 20:44 rpi-basic-image-raspberrypi3.rpi-sdimg -&gt; rpi-basic-image-raspberrypi3-20171112112744.rootfs.rpi-sdimg
 
 tmp/deploy/images/raspberrypi3/bcm2835-bootfiles:
 total 11984
--rw-r--r-- 2 kumaneko kumaneko   36159 Sep 18 15:38 config.txt
--rw-r--r-- 2 kumaneko kumaneko 2746552 Sep 18 15:38 start.elf
--rw-r--r-- 2 kumaneko kumaneko  617432 Sep 18 15:38 start_cd.elf
--rw-r--r-- 2 kumaneko kumaneko 4926264 Sep 18 15:38 start_db.elf
--rw-r--r-- 2 kumaneko kumaneko 3877720 Sep 18 15:38 start_x.elf
--rw-r--r-- 2 kumaneko kumaneko    9717 Sep 18 15:38 fixup_x.dat
--rw-r--r-- 2 kumaneko kumaneko    9717 Sep 18 15:38 fixup_db.dat
--rw-r--r-- 2 kumaneko kumaneko    6482 Sep 18 15:38 fixup.dat
--rw-r--r-- 2 kumaneko kumaneko    2504 Sep 18 15:38 fixup_cd.dat
--rw-r--r-- 2 kumaneko kumaneko   17932 Sep 18 15:38 bootcode.bin
--rw-rw-r-- 2 kumaneko kumaneko       0 Sep 18 15:38 bcm2835-bootfiles-20160622.stamp
--rw-rw-r-- 2 kumaneko kumaneko      96 Sep 18 15:48 cmdline.txt
+-rw-r--r-- 2 kumaneko kumaneko   36159 Nov 12 20:29 config.txt
+-rw-r--r-- 2 kumaneko kumaneko  617432 Nov 12 20:31 start_cd.elf
+-rw-r--r-- 2 kumaneko kumaneko 2746552 Nov 12 20:31 start.elf
+-rw-r--r-- 2 kumaneko kumaneko 4926264 Nov 12 20:31 start_db.elf
+-rw-r--r-- 2 kumaneko kumaneko 3877720 Nov 12 20:31 start_x.elf
+-rw-r--r-- 2 kumaneko kumaneko    9717 Nov 12 20:31 fixup_x.dat
+-rw-r--r-- 2 kumaneko kumaneko    9717 Nov 12 20:31 fixup_db.dat
+-rw-r--r-- 2 kumaneko kumaneko    2504 Nov 12 20:31 fixup_cd.dat
+-rw-r--r-- 2 kumaneko kumaneko    6482 Nov 12 20:31 fixup.dat
+-rw-r--r-- 2 kumaneko kumaneko   17932 Nov 12 20:31 bootcode.bin
+-rw-rw-r-- 2 kumaneko kumaneko       0 Nov 12 20:31 bcm2835-bootfiles-20160622.stamp
+-rw-rw-r-- 2 kumaneko kumaneko      96 Nov 12 20:40 cmdline.txt
 kumaneko@ubuntu:~/yocto/poky/build$ tar -vvtf tmp/deploy/images/raspberrypi3/rpi-basic-image-raspberrypi3.tar.bz2 | grep tomoyo
--rwxr-xr-x root/root     22900 2016-09-18 14:27 ./usr/lib/libtomoyotools.so.3.0.2
-lrwxrwxrwx root/root         0 2016-09-18 15:51 ./usr/lib/libtomoyotools.so.3 -&gt; libtomoyotools.so.3.0.2
-drwxr-xr-x root/root         0 2016-09-18 15:51 ./usr/lib/tomoyo/
--rwxr-xr-x root/root      5892 2016-09-18 14:27 ./usr/lib/tomoyo/convert-audit-log
--rw-r--r-- root/root     17987 2016-09-18 14:27 ./usr/lib/tomoyo/COPYING.tomoyo
--rwxr-xr-x root/root     46332 2016-09-18 14:27 ./usr/lib/tomoyo/init_policy
--rwxr-xr-x root/root      4148 2016-09-18 14:27 ./usr/lib/tomoyo/audit-exec-param
--rwxr-xr-x root/root      9348 2016-09-18 14:27 ./usr/lib/tomoyo/tomoyo-editpolicy-agent
--rwxr-xr-x root/root      5304 2016-09-18 14:27 ./usr/lib/tomoyo/convert-exec-param
--rw-r--r-- root/root      1694 2016-09-18 14:27 ./usr/lib/tomoyo/README.tomoyo
--rwxr-xr-x root/root      3648 2016-09-18 14:27 ./usr/sbin/tomoyo-sortpolicy
--rwxr-xr-x root/root     12608 2016-09-18 14:27 ./usr/sbin/tomoyo-queryd
--rwxr-xr-x root/root      8420 2016-09-18 14:27 ./usr/sbin/tomoyo-savepolicy
--rwxr-xr-x root/root      8096 2016-09-18 14:27 ./usr/sbin/tomoyo-loadpolicy
--rwxr-xr-x root/root      4444 2016-09-18 14:27 ./usr/sbin/tomoyo-selectpolicy
--rwxr-xr-x root/root      5456 2016-09-18 14:27 ./usr/sbin/tomoyo-pstree
--rwxr-xr-x root/root     13268 2016-09-18 14:27 ./usr/sbin/tomoyo-checkpolicy
--rwxr-xr-x root/root      4688 2016-09-18 14:27 ./usr/sbin/tomoyo-domainmatch
--rwxr-xr-x root/root      5180 2016-09-18 14:27 ./usr/sbin/tomoyo-findtemp
--rwxr-xr-x root/root     10068 2016-09-18 14:27 ./usr/sbin/tomoyo-patternize
--rwxr-xr-x root/root     10480 2016-09-18 14:27 ./usr/sbin/tomoyo-auditd
--rwxr-xr-x root/root      4768 2016-09-18 14:27 ./usr/sbin/tomoyo-diffpolicy
--rwxr-xr-x root/root      5520 2016-09-18 14:27 ./usr/sbin/tomoyo-setlevel
--rwxr-xr-x root/root      5916 2016-09-18 14:27 ./usr/sbin/tomoyo-setprofile
--rwxr-xr-x root/root      8784 2016-09-18 14:27 ./usr/sbin/tomoyo-notifyd
--rwxr-xr-x root/root     85180 2016-09-18 14:27 ./usr/sbin/tomoyo-editpolicy
--rwx------ root/root     10676 2016-09-18 14:27 ./sbin/tomoyo-init
+-rwx------ root/root     10692 2017-11-12 13:45 ./sbin/tomoyo-init
+-rwxr-xr-x root/root      8112 2017-11-12 13:45 ./usr/sbin/tomoyo-loadpolicy
+-rwxr-xr-x root/root      5536 2017-11-12 13:45 ./usr/sbin/tomoyo-setlevel
+-rwxr-xr-x root/root      5472 2017-11-12 13:45 ./usr/sbin/tomoyo-pstree
+-rwxr-xr-x root/root      4704 2017-11-12 13:45 ./usr/sbin/tomoyo-domainmatch
+-rwxr-xr-x root/root      4460 2017-11-12 13:45 ./usr/sbin/tomoyo-selectpolicy
+-rwxr-xr-x root/root     10080 2017-11-12 13:45 ./usr/sbin/tomoyo-patternize
+-rwxr-xr-x root/root     10496 2017-11-12 13:45 ./usr/sbin/tomoyo-auditd
+-rwxr-xr-x root/root      5196 2017-11-12 13:45 ./usr/sbin/tomoyo-findtemp
+-rwxr-xr-x root/root      8800 2017-11-12 13:45 ./usr/sbin/tomoyo-notifyd
+-rwxr-xr-x root/root      3664 2017-11-12 13:45 ./usr/sbin/tomoyo-sortpolicy
+-rwxr-xr-x root/root      5928 2017-11-12 13:45 ./usr/sbin/tomoyo-setprofile
+-rwxr-xr-x root/root      4784 2017-11-12 13:45 ./usr/sbin/tomoyo-diffpolicy
+-rwxr-xr-x root/root      8108 2017-11-12 13:45 ./usr/sbin/tomoyo-savepolicy
+-rwxr-xr-x root/root     12408 2017-11-12 13:45 ./usr/sbin/tomoyo-checkpolicy
+-rwxr-xr-x root/root     83620 2017-11-12 13:45 ./usr/sbin/tomoyo-editpolicy
+-rwxr-xr-x root/root     12624 2017-11-12 13:45 ./usr/sbin/tomoyo-queryd
+-rwxr-xr-x root/root     22972 2017-11-12 13:45 ./usr/lib/libtomoyotools.so.3.0.3
+drwxr-xr-x root/root         0 2017-11-12 20:43 ./usr/lib/tomoyo/
+-rwxr-xr-x root/root      4164 2017-11-12 13:45 ./usr/lib/tomoyo/audit-exec-param
+-rwxr-xr-x root/root      5904 2017-11-12 13:45 ./usr/lib/tomoyo/convert-audit-log
+-rwxr-xr-x root/root     45632 2017-11-12 13:45 ./usr/lib/tomoyo/init_policy
+-rwxr-xr-x root/root      5320 2017-11-12 13:45 ./usr/lib/tomoyo/convert-exec-param
+-rw-r--r-- root/root      1766 2017-11-12 13:44 ./usr/lib/tomoyo/README.tomoyo
+-rwxr-xr-x root/root      9472 2017-11-12 13:45 ./usr/lib/tomoyo/tomoyo-editpolicy-agent
+-rw-r--r-- root/root     17987 2017-11-12 13:44 ./usr/lib/tomoyo/COPYING.tomoyo
+lrwxrwxrwx root/root         0 2017-11-12 20:43 ./usr/lib/libtomoyotools.so.3 -&gt; libtomoyotools.so.3.0.3
 </pre>
 
 <p>MACHINE = "qemuarm" を指定した場合は、以下のようになります。</p>
 
 <pre class="command">
 kumaneko@ubuntu:~/yocto/poky/build$ bitbake rpi-basic-image
-Parsing recipes: 100% |######################################################################################################################################################################################################| Time: 00:01:01
-Parsing of 920 .bb files complete (0 cached, 920 parsed). 1351 targets, 71 skipped, 0 masked, 0 errors.
+Parsing recipes: 100% |######################################################################################################################################################################################################| Time: 00:00:35
+Parsing of 892 .bb files complete (0 cached, 892 parsed). 1322 targets, 80 skipped, 0 masked, 0 errors.
 NOTE: Resolving any missing task queue dependencies
 
 Build Configuration:
-BB_VERSION        = "1.28.0"
+BB_VERSION        = "1.30.0"
 BUILD_SYS         = "x86_64-linux"
 NATIVELSBSTRING   = "Ubuntu-14.04"
 TARGET_SYS        = "arm-poky-linux-gnueabi"
 MACHINE           = "qemuarm"
 DISTRO            = "poky"
-DISTRO_VERSION    = "2.0.2"
+DISTRO_VERSION    = "2.1.3"
 TUNE_FEATURES     = "arm armv5 thumb dsp"
 TARGET_FPU        = "soft"
 meta
-meta-yocto
-meta-yocto-bsp    = "jethro:37eb21b2b1d5977a028a448e52551607fae99bf7"
-meta-raspberrypi  = "master:4c02c7ce07121c2f5367204445f93199d828bb10"
-meta-tomoyo       = "jethro:37eb21b2b1d5977a028a448e52551607fae99bf7"
+meta-poky
+meta-yocto-bsp    = "krogoth:1083d90888589b9f0d50a1d480f7c774d8b4bda3"
+meta-raspberrypi  = "krogoth:a5f9b07a820d50ae5fb62e07306cd4e72d8638a9"
+meta-tomoyo       = "krogoth:1083d90888589b9f0d50a1d480f7c774d8b4bda3"
 
+NOTE: Fetching uninative binary shim from http://downloads.yoctoproject.org/releases/uninative/1.0.1/x86_64-nativesdk-libc.tar.bz2;sha256sum=acf1e44a0ac2e855e81da6426197d36358bf7b4e88e552ef933128498c8910f8
 NOTE: Preparing RunQueue
 NOTE: Executing SetScene Tasks
 NOTE: Executing RunQueue Tasks
-NOTE: Tasks Summary: Attempted 2089 tasks of which 786 didn't need to be rerun and all succeeded.
+NOTE: Tasks Summary: Attempted 2100 tasks of which 10 didn't need to be rerun and all succeeded.
 kumaneko@ubuntu:~/yocto/poky/build$ ls -lrtR tmp/deploy/images/
 tmp/deploy/images/:
 total 4
-drwxrwxr-x 2 kumaneko kumaneko 4096 Sep 18 17:26 qemuarm
+drwxrwxr-x 2 kumaneko kumaneko 4096 Nov 12 13:12 qemuarm
 
 tmp/deploy/images/qemuarm:
-total 49892
--rw-r--r-- 2 kumaneko kumaneko  4521120 Sep 18 17:09 zImage--4.1.15+git0+46bb64d605_cf760f381c-r0-qemuarm-20160918073412.bin
--rw-rw-r-- 2 kumaneko kumaneko 30194130 Sep 18 17:09 modules--4.1.15+git0+46bb64d605_cf760f381c-r0-qemuarm-20160918073412.tgz
-lrwxrwxrwx 1 kumaneko kumaneko       71 Sep 18 17:09 zImage-qemuarm.bin -&gt; zImage--4.1.15+git0+46bb64d605_cf760f381c-r0-qemuarm-20160918073412.bin
-lrwxrwxrwx 1 kumaneko kumaneko       71 Sep 18 17:09 zImage -&gt; zImage--4.1.15+git0+46bb64d605_cf760f381c-r0-qemuarm-20160918073412.bin
-lrwxrwxrwx 1 kumaneko kumaneko       72 Sep 18 17:09 modules-qemuarm.tgz -&gt; modules--4.1.15+git0+46bb64d605_cf760f381c-r0-qemuarm-20160918073412.tgz
--rw-r--r-- 2 kumaneko kumaneko      294 Sep 18 17:26 README_-_DO_NOT_DELETE_FILES_IN_THIS_DIRECTORY.txt
--rw-r--r-- 1 kumaneko kumaneko    17367 Sep 18 17:26 rpi-basic-image-qemuarm-20160918073412.rootfs.manifest
--rw-r--r-- 1 kumaneko kumaneko  4124961 Sep 18 17:26 rpi-basic-image-qemuarm-20160918073412.rootfs.tar.bz2
--rw-r--r-- 1 kumaneko kumaneko 16752640 Sep 18 17:26 rpi-basic-image-qemuarm-20160918073412.rootfs.ext4
-lrwxrwxrwx 1 kumaneko kumaneko       53 Sep 18 17:26 rpi-basic-image-qemuarm.tar.bz2 -&gt; rpi-basic-image-qemuarm-20160918073412.rootfs.tar.bz2
-lrwxrwxrwx 1 kumaneko kumaneko       54 Sep 18 17:26 rpi-basic-image-qemuarm.manifest -&gt; rpi-basic-image-qemuarm-20160918073412.rootfs.manifest
-lrwxrwxrwx 1 kumaneko kumaneko       50 Sep 18 17:26 rpi-basic-image-qemuarm.ext4 -&gt; rpi-basic-image-qemuarm-20160918073412.rootfs.ext4
+total 52448
+-rw-r--r-- 2 kumaneko kumaneko  4583472 Nov 12 12:53 zImage--4.4.26+git0+3030330b06_187bcc13f3-r0-qemuarm-20171112023711.bin
+-rw-rw-r-- 2 kumaneko kumaneko 33145846 Nov 12 12:53 modules--4.4.26+git0+3030330b06_187bcc13f3-r0-qemuarm-20171112023711.tgz
+lrwxrwxrwx 1 kumaneko kumaneko       71 Nov 12 12:53 zImage-qemuarm.bin -&gt; zImage--4.4.26+git0+3030330b06_187bcc13f3-r0-qemuarm-20171112023711.bin
+lrwxrwxrwx 1 kumaneko kumaneko       71 Nov 12 12:53 zImage -&gt; zImage--4.4.26+git0+3030330b06_187bcc13f3-r0-qemuarm-20171112023711.bin
+lrwxrwxrwx 1 kumaneko kumaneko       72 Nov 12 12:53 modules-qemuarm.tgz -&gt; modules--4.4.26+git0+3030330b06_187bcc13f3-r0-qemuarm-20171112023711.tgz
+-rw-r--r-- 2 kumaneko kumaneko      294 Nov 12 13:11 README_-_DO_NOT_DELETE_FILES_IN_THIS_DIRECTORY.txt
+lrwxrwxrwx 1 kumaneko kumaneko       54 Nov 12 13:12 rpi-basic-image-qemuarm.manifest -&gt; rpi-basic-image-qemuarm-20171112023711.rootfs.manifest
+-rw-r--r-- 1 kumaneko kumaneko    17536 Nov 12 13:12 rpi-basic-image-qemuarm-20171112023711.rootfs.manifest
+-rw-r--r-- 1 kumaneko kumaneko  4298536 Nov 12 13:12 rpi-basic-image-qemuarm-20171112023711.rootfs.tar.bz2
+-rw-r--r-- 1 kumaneko kumaneko 17167360 Nov 12 13:12 rpi-basic-image-qemuarm-20171112023711.rootfs.ext4
+lrwxrwxrwx 1 kumaneko kumaneko       50 Nov 12 13:12 rpi-basic-image-qemuarm.ext4 -&gt; rpi-basic-image-qemuarm-20171112023711.rootfs.ext4
+lrwxrwxrwx 1 kumaneko kumaneko       53 Nov 12 13:12 rpi-basic-image-qemuarm.tar.bz2 -&gt; rpi-basic-image-qemuarm-20171112023711.rootfs.tar.bz2
 kumaneko@ubuntu:~/yocto/poky/build$ tar -vvtf tmp/deploy/images/qemuarm/rpi-basic-image-qemuarm.tar.bz2 | grep tomoyo
--rwxr-xr-x root/root     23048 2016-09-18 17:10 ./usr/lib/libtomoyotools.so.3.0.2
-lrwxrwxrwx root/root         0 2016-09-18 17:26 ./usr/lib/libtomoyotools.so.3 -&gt; libtomoyotools.so.3.0.2
-drwxr-xr-x root/root         0 2016-09-18 17:26 ./usr/lib/tomoyo/
--rwxr-xr-x root/root      5880 2016-09-18 17:10 ./usr/lib/tomoyo/convert-audit-log
--rw-r--r-- root/root     17987 2016-09-18 17:10 ./usr/lib/tomoyo/COPYING.tomoyo
--rwxr-xr-x root/root     46008 2016-09-18 17:10 ./usr/lib/tomoyo/init_policy
--rwxr-xr-x root/root      4136 2016-09-18 17:10 ./usr/lib/tomoyo/audit-exec-param
--rwxr-xr-x root/root      9332 2016-09-18 17:10 ./usr/lib/tomoyo/tomoyo-editpolicy-agent
--rwxr-xr-x root/root      5248 2016-09-18 17:10 ./usr/lib/tomoyo/convert-exec-param
--rw-r--r-- root/root      1694 2016-09-18 17:10 ./usr/lib/tomoyo/README.tomoyo
--rwxr-xr-x root/root      3628 2016-09-18 17:10 ./usr/sbin/tomoyo-sortpolicy
--rwxr-xr-x root/root     12632 2016-09-18 17:10 ./usr/sbin/tomoyo-queryd
--rwxr-xr-x root/root      8400 2016-09-18 17:10 ./usr/sbin/tomoyo-savepolicy
--rwxr-xr-x root/root      8016 2016-09-18 17:10 ./usr/sbin/tomoyo-loadpolicy
--rwxr-xr-x root/root      4412 2016-09-18 17:10 ./usr/sbin/tomoyo-selectpolicy
--rwxr-xr-x root/root      5396 2016-09-18 17:10 ./usr/sbin/tomoyo-pstree
--rwxr-xr-x root/root     13236 2016-09-18 17:10 ./usr/sbin/tomoyo-checkpolicy
--rwxr-xr-x root/root      4664 2016-09-18 17:10 ./usr/sbin/tomoyo-domainmatch
--rwxr-xr-x root/root      5176 2016-09-18 17:10 ./usr/sbin/tomoyo-findtemp
--rwxr-xr-x root/root     10060 2016-09-18 17:10 ./usr/sbin/tomoyo-patternize
--rwxr-xr-x root/root     10356 2016-09-18 17:10 ./usr/sbin/tomoyo-auditd
--rwxr-xr-x root/root      4732 2016-09-18 17:10 ./usr/sbin/tomoyo-diffpolicy
--rwxr-xr-x root/root      5480 2016-09-18 17:10 ./usr/sbin/tomoyo-setlevel
--rwxr-xr-x root/root      5904 2016-09-18 17:10 ./usr/sbin/tomoyo-setprofile
--rwxr-xr-x root/root      8680 2016-09-18 17:10 ./usr/sbin/tomoyo-notifyd
--rwxr-xr-x root/root     85172 2016-09-18 17:10 ./usr/sbin/tomoyo-editpolicy
--rwx------ root/root     10456 2016-09-18 17:10 ./sbin/tomoyo-init
+-rwx------ root/root     10460 2017-11-12 12:52 ./sbin/tomoyo-init
+-rwxr-xr-x root/root      8020 2017-11-12 12:52 ./usr/sbin/tomoyo-loadpolicy
+-rwxr-xr-x root/root      5484 2017-11-12 12:52 ./usr/sbin/tomoyo-setlevel
+-rwxr-xr-x root/root      5400 2017-11-12 12:52 ./usr/sbin/tomoyo-pstree
+-rwxr-xr-x root/root      4668 2017-11-12 12:52 ./usr/sbin/tomoyo-domainmatch
+-rwxr-xr-x root/root      4416 2017-11-12 12:52 ./usr/sbin/tomoyo-selectpolicy
+-rwxr-xr-x root/root     10060 2017-11-12 12:52 ./usr/sbin/tomoyo-patternize
+-rwxr-xr-x root/root     10360 2017-11-12 12:52 ./usr/sbin/tomoyo-auditd
+-rwxr-xr-x root/root      5180 2017-11-12 12:52 ./usr/sbin/tomoyo-findtemp
+-rwxr-xr-x root/root      8684 2017-11-12 12:52 ./usr/sbin/tomoyo-notifyd
+-rwxr-xr-x root/root      3632 2017-11-12 12:52 ./usr/sbin/tomoyo-sortpolicy
+-rwxr-xr-x root/root      5904 2017-11-12 12:52 ./usr/sbin/tomoyo-setprofile
+-rwxr-xr-x root/root      4736 2017-11-12 12:52 ./usr/sbin/tomoyo-diffpolicy
+-rwxr-xr-x root/root      8728 2017-11-12 12:52 ./usr/sbin/tomoyo-savepolicy
+-rwxr-xr-x root/root     12368 2017-11-12 12:52 ./usr/sbin/tomoyo-checkpolicy
+-rwxr-xr-x root/root     83492 2017-11-12 12:52 ./usr/sbin/tomoyo-editpolicy
+-rwxr-xr-x root/root     12636 2017-11-12 12:52 ./usr/sbin/tomoyo-queryd
+-rwxr-xr-x root/root     23112 2017-11-12 12:52 ./usr/lib/libtomoyotools.so.3.0.3
+drwxr-xr-x root/root         0 2017-11-12 13:12 ./usr/lib/tomoyo/
+-rwxr-xr-x root/root      4140 2017-11-12 12:52 ./usr/lib/tomoyo/audit-exec-param
+-rwxr-xr-x root/root      5880 2017-11-12 12:52 ./usr/lib/tomoyo/convert-audit-log
+-rwxr-xr-x root/root     45944 2017-11-12 12:52 ./usr/lib/tomoyo/init_policy
+-rwxr-xr-x root/root      5252 2017-11-12 12:52 ./usr/lib/tomoyo/convert-exec-param
+-rw-r--r-- root/root      1766 2017-11-12 12:52 ./usr/lib/tomoyo/README.tomoyo
+-rwxr-xr-x root/root      9444 2017-11-12 12:52 ./usr/lib/tomoyo/tomoyo-editpolicy-agent
+-rw-r--r-- root/root     17987 2017-11-12 12:52 ./usr/lib/tomoyo/COPYING.tomoyo
+lrwxrwxrwx root/root         0 2017-11-12 13:12 ./usr/lib/libtomoyotools.so.3 -&gt; libtomoyotools.so.3.0.3
 </pre>
 
 <h3><a name="step7">ステップ７：エミュレータから実行する（ Qemu for ARM の場合のみ）</a></h3>
