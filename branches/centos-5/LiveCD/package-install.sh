@@ -20,9 +20,9 @@ yum clean all
 rpm --rebuilddb
 rm -f /var/log/yum.log
 # Install Flash Player plugin needed for TOMOYO website.
-wget --no-check-certificate `wget --no-check-certificate -O - 'https://get.adobe.com/flashplayer/download/?installer=FP_11.2_for_other_Linux_32-bit_%28.rpm%29&stype=2734&standalone=1' | awk ' { if ($1 == "setTimeout(\"location.href") print substr($3, 2, length($3) - 5); } '`
-rpm -ivh flash-plugin-*.rpm
-rm -f flash-plugin-*.rpm
+wget --no-check-certificate `wget --no-check-certificate -O - 'https://get.adobe.com/jp/flashplayer/download/?installer=FP_27.0_for_Linux_32-bit_(.rpm)_-_NPAPI&stype=6692&standalone=1' | awk ' { if ($1 == "setTimeout(\"location.href") print substr($3, 2, length($3) - 5); } '`
+rpm -ivh flash-player-*.rpm
+rm -f flash-player-*.rpm
 # Create symbolic link needed for Mozilla.
 ln -s /usr/lib/flash-plugin/libflashplayer.so /usr/lib/mozilla/plugins-wrapped/
 
