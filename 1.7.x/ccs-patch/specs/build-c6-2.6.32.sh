@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.32-696.13.2.el6.src.rpm ]
+if [ ! -r kernel-2.6.32-696.16.1.el6.src.rpm ]
 then
-    wget http://vault.centos.org/6.9/updates/Source/SPackages/kernel-2.6.32-696.13.2.el6.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/6.9/updates/Source/SPackages/kernel-2.6.32-696.16.1.el6.src.rpm || die "Can't download source package."
 fi
-LANG=C rpm --checksig kernel-2.6.32-696.13.2.el6.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
-rpm -ivh kernel-2.6.32-696.13.2.el6.src.rpm || die "Can't install source package."
+LANG=C rpm --checksig kernel-2.6.32-696.16.1.el6.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
+rpm -ivh kernel-2.6.32-696.16.1.el6.src.rpm || die "Can't install source package."
 
 cd ~/rpmbuild/SOURCES/ || die "Can't chdir to ~/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.3-20171111.tar.gz ]
@@ -35,7 +35,7 @@ patch << "EOF" || die "Can't patch spec file."
 -# % define buildid .local
 +%define buildid _tomoyo_1.7.3p5
  
- %define distro_build 696.13.2
+ %define distro_build 696.16.1
  %define signmodules 1
 @@ -437,7 +437,7 @@
  # Packages that need to be installed before the kernel is, because the %post
