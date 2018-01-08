@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-4.4.92-1vl6.src.rpm ]
+if [ ! -r kernel-4.4.110-2vl6.src.rpm ]
 then
-    wget http://updates.vinelinux.org/Vine-6.5/updates/SRPMS/kernel-4.4.92-1vl6.src.rpm || die "Can't download source package."
+    wget http://updates.vinelinux.org/Vine-6.5/updates/SRPMS/kernel-4.4.110-2vl6.src.rpm || die "Can't download source package."
 fi
-LANG=C rpm --checksig kernel-4.4.92-1vl6.src.rpm | grep -F ': (sha1) dsa sha1 md5 gpg OK' || die "Can't verify signature."
-rpm -ivh kernel-4.4.92-1vl6.src.rpm || die "Can't install source package."
+LANG=C rpm --checksig kernel-4.4.110-2vl6.src.rpm | grep -F ': (sha1) dsa sha1 md5 gpg OK' || die "Can't verify signature."
+rpm -ivh kernel-4.4.110-2vl6.src.rpm || die "Can't install source package."
 
 cd ~/rpm/SOURCES/ || die "Can't chdir to ~/rpm/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.5-20171111.tar.gz ]
@@ -29,11 +29,11 @@ patch << "EOF" || die "Can't patch spec file."
 --- kernel44-vl.spec
 +++ kernel44-vl.spec
 @@ -34,7 +34,7 @@
- %define patchlevel 92
+ %define patchlevel 110
  %define kversion 4.%{sublevel}
  %define rpmversion 4.%{sublevel}.%{patchlevel}
--%define release 1%{?_dist_release}
-+%define release 1%{?_dist_release}_tomoyo_1.8.5p1
+-%define release 2%{?_dist_release}
++%define release 2%{?_dist_release}_tomoyo_1.8.5p1
  
  %define make_target bzImage
  %define hdrarch %_target_cpu
@@ -56,7 +56,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  Version: %{rpmversion}
-@@ -666,6 +669,10 @@
+@@ -670,6 +673,10 @@
  
  # END OF PATCH APPLICATIONS
  
@@ -67,7 +67,7 @@ patch << "EOF" || die "Can't patch spec file."
  cp %{SOURCE10} Documentation/
  
  # put Vine logo
-@@ -684,6 +691,9 @@
+@@ -688,6 +695,9 @@
  for i in *.config
  do 
  	mv $i .config 
