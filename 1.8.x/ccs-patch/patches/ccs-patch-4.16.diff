@@ -8,6 +8,7 @@ Source code for this patch is https://git.kernel.org/pub/scm/linux/kernel/git/ne
  include/linux/sched.h     |    5 +++
  include/linux/security.h  |   68 ++++++++++++++++++++++++++++------------------
  include/net/ip.h          |    4 ++
+ init/init_task.c          |    4 ++
  kernel/kexec.c            |    4 ++
  kernel/module.c           |    5 +++
  kernel/ptrace.c           |   10 ++++++
@@ -25,7 +26,7 @@ Source code for this patch is https://git.kernel.org/pub/scm/linux/kernel/git/ne
  security/Kconfig          |    2 +
  security/Makefile         |    3 ++
  security/security.c       |    9 +++++-
- 23 files changed, 144 insertions(+), 29 deletions(-)
+ 24 files changed, 148 insertions(+), 29 deletions(-)
 
 --- linux-next.orig/fs/exec.c
 +++ linux-next/fs/exec.c
@@ -58,7 +59,7 @@ Source code for this patch is https://git.kernel.org/pub/scm/linux/kernel/git/ne
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 4.15-rc8-next-20180119 2018/01/21\n");
++	printk(KERN_INFO "Hook version: 4.15-rc8-next-20180119 2018/01/22\n");
 +	return 0;
 +}
 +fs_initcall(ccs_show_version);
@@ -324,6 +325,19 @@ Source code for this patch is https://git.kernel.org/pub/scm/linux/kernel/git/ne
 +		return 1;
  	return 0;
  }
+ 
+--- linux-next.orig/init/init_task.c
++++ linux-next/init/init_task.c
+@@ -175,6 +175,10 @@ struct task_struct init_task
+ #ifdef CONFIG_SECURITY
+ 	.security	= NULL,
+ #endif
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
++	.ccs_domain_info = NULL,
++	.ccs_flags      = 0,
++#endif
+ };
+ EXPORT_SYMBOL(init_task);
  
 --- linux-next.orig/kernel/kexec.c
 +++ linux-next/kernel/kexec.c
