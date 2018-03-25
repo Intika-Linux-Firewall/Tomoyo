@@ -8,7 +8,7 @@ die () {
     exit 1
 }
 
-ABI_VERSION=4
+ABI_VERSION=5
 ORIGINAL_FLAVOUR=686-pae
 NEW_FLAVOUR=${ORIGINAL_FLAVOUR}-ccs
 REVISION=`apt-cache show --no-all-versions linux-source-3.2 | awk ' { if ($1 == "Version:") print $2; } '`
