@@ -3248,3 +3248,10 @@ Fix 2017/02/02
       while_each_thread() without tasklist_lock is not safe.
       Use for_each_process_thread() if it is available, hold
       tasklist_lock otherwise.
+
+Fix 2018/04/01
+
+    @ Use smb_rmb() when waiting for initialization.
+
+      "while (!cond);" is implicitly optimized like "if (!cond) while (1);".
+      Use "while (!cond) smp_rmb();" in order to prevent such optimization.
