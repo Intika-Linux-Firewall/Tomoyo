@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.5   2015/11/11
+ * Version: 1.8.5+   2018/04/01
  */
 
 #include "internal.h"
@@ -3361,12 +3361,18 @@ static int __ccs_socket_listen_permission(struct socket *sock)
 	int addr_len;
 	if (!family || (type != SOCK_STREAM && type != SOCK_SEQPACKET))
 		return 0;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 17, 0)
 	{
 		const int error = sock->ops->getname(sock, (struct sockaddr *)
 						     &addr, &addr_len, 0);
 		if (error)
 			return error;
 	}
+#else
+	addr_len = sock->ops->getname(sock, (struct sockaddr *) &addr, 0);
+	if (addr_len < 0)
+		return addr_len;
+#endif
 	address.protocol = type;
 	address.operation = CCS_NETWORK_LISTEN;
 	if (family == PF_UNIX)
@@ -3493,6 +3499,7 @@ static int __ccs_socket_post_accept_permission(struct socket *sock,
 	int addr_len;
 	if (!family || (type != SOCK_STREAM && type != SOCK_SEQPACKET))
 		return 0;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 17, 0)
 	{
 		const int error = newsock->ops->getname(newsock,
 							(struct sockaddr *)
@@ -3500,6 +3507,12 @@ static int __ccs_socket_post_accept_permission(struct socket *sock,
 		if (error)
 			return error;
 	}
+#else
+	addr_len = newsock->ops->getname(newsock, (struct sockaddr *) &addr,
+					 2);
+	if (addr_len < 0)
+		return addr_len;
+#endif
 	address.protocol = type;
 	address.operation = CCS_NETWORK_ACCEPT;
 	if (family == PF_UNIX)

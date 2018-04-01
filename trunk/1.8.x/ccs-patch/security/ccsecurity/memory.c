@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 1.8.5   2015/11/11
+ * Version: 1.8.5+   2018/04/01
  */
 
 #include "internal.h"
@@ -254,7 +254,8 @@ struct ccs_security *ccs_find_task_security(const struct task_struct *task)
 	struct list_head *list = &ccs_task_security_list
 		[hash_ptr((void *) task, CCS_TASK_SECURITY_HASH_BITS)];
 	/* Make sure INIT_LIST_HEAD() in ccs_mm_init() takes effect. */
-	while (!list->next);
+	while (!list->next)
+		smp_rmb();
 	rcu_read_lock();
 	list_for_each_entry_rcu(ptr, list, list) {
 		if (ptr->task != task)
