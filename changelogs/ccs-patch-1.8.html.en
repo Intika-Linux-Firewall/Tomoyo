@@ -32,6 +32,13 @@
 <h4>ChangeLog for ccs-patch 1.8.5</h4>
 
 <pre>
+Fix 2018/04/01
+
+    @ Use smb_rmb() when waiting for initialization.
+
+      "while (!cond);" is implicitly optimized like "if (!cond) while (1);".
+      Use "while (!cond) smp_rmb();" in order to prevent such optimization.
+
 Fix 2017/02/02
 
     @ Use for_each_thread() for GC operation.
