@@ -1,14 +1,14 @@
-This is TOMOYO Linux patch for kernel 4.14.50.
+This is TOMOYO Linux patch for kernel 4.18-rc1.
 
-Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.14.50.tar.xz
+Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc1.tar.gz
 ---
  fs/exec.c                 |    2 -
  fs/open.c                 |    2 +
  fs/proc/version.c         |    7 ++++
- include/linux/init_task.h |    9 ++++++
  include/linux/sched.h     |    5 +++
  include/linux/security.h  |   68 ++++++++++++++++++++++++++++------------------
  include/net/ip.h          |    4 ++
+ init/init_task.c          |    4 ++
  kernel/kexec.c            |    4 ++
  kernel/module.c           |    5 +++
  kernel/ptrace.c           |   10 ++++++
@@ -16,7 +16,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  kernel/sched/core.c       |    2 +
  kernel/signal.c           |   10 ++++++
  kernel/sys.c              |    8 +++++
- kernel/time/ntp.c         |    8 +++++
+ kernel/time/timekeeping.c |    8 +++++
  net/ipv4/raw.c            |    4 ++
  net/ipv4/udp.c            |    2 +
  net/ipv6/raw.c            |    4 ++
@@ -26,11 +26,11 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  security/Kconfig          |    2 +
  security/Makefile         |    3 ++
  security/security.c       |    9 +++++-
- 24 files changed, 153 insertions(+), 29 deletions(-)
+ 24 files changed, 148 insertions(+), 29 deletions(-)
 
---- linux-4.14.50.orig/fs/exec.c
-+++ linux-4.14.50/fs/exec.c
-@@ -1677,7 +1677,7 @@ static int exec_binprm(struct linux_binp
+--- linux-4.18-rc1.orig/fs/exec.c
++++ linux-4.18-rc1/fs/exec.c
+@@ -1692,7 +1692,7 @@ static int exec_binprm(struct linux_binp
  	old_vpid = task_pid_nr_ns(current, task_active_pid_ns(current->parent));
  	rcu_read_unlock();
  
@@ -39,9 +39,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	if (ret >= 0) {
  		audit_bprm(bprm);
  		trace_sched_process_exec(current, old_pid, bprm);
---- linux-4.14.50.orig/fs/open.c
-+++ linux-4.14.50/fs/open.c
-@@ -1171,6 +1171,8 @@ EXPORT_SYMBOL(sys_close);
+--- linux-4.18-rc1.orig/fs/open.c
++++ linux-4.18-rc1/fs/open.c
+@@ -1212,6 +1212,8 @@ SYSCALL_DEFINE1(close, unsigned int, fd)
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -50,47 +50,22 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-4.14.50.orig/fs/proc/version.c
-+++ linux-4.14.50/fs/proc/version.c
-@@ -33,3 +33,10 @@ static int __init proc_version_init(void
+--- linux-4.18-rc1.orig/fs/proc/version.c
++++ linux-4.18-rc1/fs/proc/version.c
+@@ -21,3 +21,10 @@ static int __init proc_version_init(void
  	return 0;
  }
  fs_initcall(proc_version_init);
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 4.14.50 2018/06/17\n");
++	printk(KERN_INFO "Hook version: 4.18-rc1 2018/06/17\n");
 +	return 0;
 +}
 +fs_initcall(ccs_show_version);
---- linux-4.14.50.orig/include/linux/init_task.h
-+++ linux-4.14.50/include/linux/init_task.h
-@@ -219,6 +219,14 @@ extern struct cred init_cred;
- #define INIT_TASK_SECURITY
- #endif
- 
-+#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
-+#define INIT_CCSECURITY          \
-+	.ccs_domain_info = NULL, \
-+	.ccs_flags = 0,
-+#else
-+#define INIT_CCSECURITY
-+#endif
-+
- /*
-  *  INIT_TASK is used to set up the first task table, touch at
-  * your own risk!. Base=0, limit=0x1fffff (=2MB)
-@@ -299,6 +307,7 @@ extern struct cred init_cred;
- 	INIT_KASAN(tsk)							\
- 	INIT_LIVEPATCH(tsk)						\
- 	INIT_TASK_SECURITY						\
-+	INIT_CCSECURITY                                                 \
- }
- 
- 
---- linux-4.14.50.orig/include/linux/sched.h
-+++ linux-4.14.50/include/linux/sched.h
-@@ -33,6 +33,7 @@ struct audit_context;
+--- linux-4.18-rc1.orig/include/linux/sched.h
++++ linux-4.18-rc1/include/linux/sched.h
+@@ -34,6 +34,7 @@ struct audit_context;
  struct backing_dev_info;
  struct bio_list;
  struct blk_plug;
@@ -98,7 +73,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  struct cfs_rq;
  struct fs_struct;
  struct futex_pi_state;
-@@ -1097,6 +1098,10 @@ struct task_struct {
+@@ -1179,6 +1180,10 @@ struct task_struct {
  	/* Used by LSM modules for access restriction: */
  	void				*security;
  #endif
@@ -109,9 +84,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	/*
  	 * New fields for task_struct should be added above here, so that
---- linux-4.14.50.orig/include/linux/security.h
-+++ linux-4.14.50/include/linux/security.h
-@@ -56,6 +56,7 @@ struct msg_queue;
+--- linux-4.18-rc1.orig/include/linux/security.h
++++ linux-4.18-rc1/include/linux/security.h
+@@ -53,6 +53,7 @@ struct msg_msg;
  struct xattr;
  struct xfrm_sec_ctx;
  struct mm_struct;
@@ -119,7 +94,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  /* If capable should audit the security request */
  #define SECURITY_CAP_NOAUDIT 0
-@@ -506,7 +507,10 @@ static inline int security_syslog(int ty
+@@ -499,7 +500,10 @@ static inline int security_syslog(int ty
  static inline int security_settime64(const struct timespec64 *ts,
  				     const struct timezone *tz)
  {
@@ -130,8 +105,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
 +	return error;
  }
  
- static inline int security_settime(const struct timespec *ts,
-@@ -578,18 +582,18 @@ static inline int security_sb_mount(cons
+ static inline int security_vm_enough_memory_mm(struct mm_struct *mm, long pages)
+@@ -563,18 +567,18 @@ static inline int security_sb_mount(cons
  				    const char *type, unsigned long flags,
  				    void *data)
  {
@@ -153,7 +128,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  static inline int security_sb_set_mnt_opts(struct super_block *sb,
-@@ -738,7 +742,7 @@ static inline int security_inode_setattr
+@@ -723,7 +727,7 @@ static inline int security_inode_setattr
  
  static inline int security_inode_getattr(const struct path *path)
  {
@@ -162,7 +137,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  static inline int security_inode_setxattr(struct dentry *dentry,
-@@ -824,7 +828,7 @@ static inline void security_file_free(st
+@@ -809,7 +813,7 @@ static inline void security_file_free(st
  static inline int security_file_ioctl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -171,7 +146,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  static inline int security_mmap_file(struct file *file, unsigned long prot,
-@@ -853,7 +857,7 @@ static inline int security_file_lock(str
+@@ -838,7 +842,7 @@ static inline int security_file_lock(str
  static inline int security_file_fcntl(struct file *file, unsigned int cmd,
  				      unsigned long arg)
  {
@@ -180,7 +155,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  static inline void security_file_set_fowner(struct file *file)
-@@ -876,17 +880,19 @@ static inline int security_file_receive(
+@@ -861,17 +865,19 @@ static inline int security_file_receive(
  static inline int security_file_open(struct file *file,
  				     const struct cred *cred)
  {
@@ -203,7 +178,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  static inline int security_cred_alloc_blank(struct cred *cred, gfp_t gfp)
  {
-@@ -1247,7 +1253,7 @@ static inline int security_unix_may_send
+@@ -1238,7 +1244,7 @@ static inline int security_unix_may_send
  static inline int security_socket_create(int family, int type,
  					 int protocol, int kern)
  {
@@ -212,7 +187,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  static inline int security_socket_post_create(struct socket *sock,
-@@ -1262,19 +1268,19 @@ static inline int security_socket_bind(s
+@@ -1259,19 +1265,19 @@ static inline int security_socket_bind(s
  				       struct sockaddr *address,
  				       int addrlen)
  {
@@ -235,7 +210,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  static inline int security_socket_accept(struct socket *sock,
-@@ -1286,7 +1292,7 @@ static inline int security_socket_accept
+@@ -1283,7 +1289,7 @@ static inline int security_socket_accept
  static inline int security_socket_sendmsg(struct socket *sock,
  					  struct msghdr *msg, int size)
  {
@@ -244,7 +219,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  static inline int security_socket_recvmsg(struct socket *sock,
-@@ -1554,42 +1560,42 @@ int security_path_chroot(const struct pa
+@@ -1570,42 +1576,42 @@ int security_path_chroot(const struct pa
  #else	/* CONFIG_SECURITY_PATH */
  static inline int security_path_unlink(const struct path *dir, struct dentry *dentry)
  {
@@ -294,7 +269,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  static inline int security_path_rename(const struct path *old_dir,
-@@ -1598,22 +1604,32 @@ static inline int security_path_rename(c
+@@ -1614,22 +1620,32 @@ static inline int security_path_rename(c
  				       struct dentry *new_dentry,
  				       unsigned int flags)
  {
@@ -331,9 +306,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-4.14.50.orig/include/net/ip.h
-+++ linux-4.14.50/include/net/ip.h
-@@ -266,6 +266,8 @@ void inet_get_local_port_range(struct ne
+--- linux-4.18-rc1.orig/include/net/ip.h
++++ linux-4.18-rc1/include/net/ip.h
+@@ -278,6 +278,8 @@ void inet_get_local_port_range(struct ne
  #ifdef CONFIG_SYSCTL
  static inline int inet_is_local_reserved_port(struct net *net, int port)
  {
@@ -342,7 +317,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	if (!net->ipv4.sysctl_local_reserved_ports)
  		return 0;
  	return test_bit(port, net->ipv4.sysctl_local_reserved_ports);
-@@ -284,6 +286,8 @@ static inline int inet_prot_sock(struct
+@@ -296,6 +298,8 @@ static inline int inet_prot_sock(struct
  #else
  static inline int inet_is_local_reserved_port(struct net *net, int port)
  {
@@ -351,8 +326,21 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	return 0;
  }
  
---- linux-4.14.50.orig/kernel/kexec.c
-+++ linux-4.14.50/kernel/kexec.c
+--- linux-4.18-rc1.orig/init/init_task.c
++++ linux-4.18-rc1/init/init_task.c
+@@ -176,6 +176,10 @@ struct task_struct init_task
+ #ifdef CONFIG_SECURITY
+ 	.security	= NULL,
+ #endif
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
++	.ccs_domain_info = NULL,
++	.ccs_flags      = 0,
++#endif
+ };
+ EXPORT_SYMBOL(init_task);
+ 
+--- linux-4.18-rc1.orig/kernel/kexec.c
++++ linux-4.18-rc1/kernel/kexec.c
 @@ -17,7 +17,7 @@
  #include <linux/syscalls.h>
  #include <linux/vmalloc.h>
@@ -362,7 +350,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  #include "kexec_internal.h"
  
  static int copy_user_segment_list(struct kimage *image,
-@@ -200,6 +200,8 @@ SYSCALL_DEFINE4(kexec_load, unsigned lon
+@@ -198,6 +198,8 @@ static inline int kexec_load_check(unsig
  	/* We only trust the superuser with rebooting the system. */
  	if (!capable(CAP_SYS_BOOT) || kexec_load_disabled)
  		return -EPERM;
@@ -371,8 +359,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-4.14.50.orig/kernel/module.c
-+++ linux-4.14.50/kernel/module.c
+--- linux-4.18-rc1.orig/kernel/module.c
++++ linux-4.18-rc1/kernel/module.c
 @@ -66,6 +66,7 @@
  #include <linux/audit.h>
  #include <uapi/linux/module.h>
@@ -381,7 +369,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  #define CREATE_TRACE_POINTS
  #include <trace/events/module.h>
-@@ -960,6 +961,8 @@ SYSCALL_DEFINE2(delete_module, const cha
+@@ -966,6 +967,8 @@ SYSCALL_DEFINE2(delete_module, const cha
  
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -390,7 +378,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -3533,6 +3536,8 @@ static int may_init_module(void)
+@@ -3546,6 +3549,8 @@ static int may_init_module(void)
  {
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -399,9 +387,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	return 0;
  }
---- linux-4.14.50.orig/kernel/ptrace.c
-+++ linux-4.14.50/kernel/ptrace.c
-@@ -1123,6 +1123,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+--- linux-4.18-rc1.orig/kernel/ptrace.c
++++ linux-4.18-rc1/kernel/ptrace.c
+@@ -1112,6 +1112,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
@@ -413,7 +401,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -1272,6 +1277,11 @@ COMPAT_SYSCALL_DEFINE4(ptrace, compat_lo
+@@ -1260,6 +1265,11 @@ COMPAT_SYSCALL_DEFINE4(ptrace, compat_lo
  {
  	struct task_struct *child;
  	long ret;
@@ -425,8 +413,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-4.14.50.orig/kernel/reboot.c
-+++ linux-4.14.50/kernel/reboot.c
+--- linux-4.18-rc1.orig/kernel/reboot.c
++++ linux-4.18-rc1/kernel/reboot.c
 @@ -16,6 +16,7 @@
  #include <linux/syscalls.h>
  #include <linux/syscore_ops.h>
@@ -435,7 +423,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  /*
   * this indicates whether you can reboot with ctrl-alt-del: the default is yes
-@@ -295,6 +296,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
+@@ -322,6 +323,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  			magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -444,9 +432,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	/*
  	 * If pid namespaces are enabled and the current task is in a child
---- linux-4.14.50.orig/kernel/sched/core.c
-+++ linux-4.14.50/kernel/sched/core.c
-@@ -3852,6 +3852,8 @@ int can_nice(const struct task_struct *p
+--- linux-4.18-rc1.orig/kernel/sched/core.c
++++ linux-4.18-rc1/kernel/sched/core.c
+@@ -3975,6 +3975,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -455,18 +443,18 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-4.14.50.orig/kernel/signal.c
-+++ linux-4.14.50/kernel/signal.c
-@@ -2954,6 +2954,8 @@ COMPAT_SYSCALL_DEFINE4(rt_sigtimedwait,
+--- linux-4.18-rc1.orig/kernel/signal.c
++++ linux-4.18-rc1/kernel/signal.c
+@@ -3167,6 +3167,8 @@ COMPAT_SYSCALL_DEFINE4(rt_sigtimedwait,
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct siginfo info;
 +	if (ccs_kill_permission(pid, sig))
 +		return -EPERM;
  
+ 	clear_siginfo(&info);
  	info.si_signo = sig;
- 	info.si_errno = 0;
-@@ -3022,6 +3024,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -3237,6 +3239,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -475,7 +463,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -3038,6 +3042,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
+@@ -3253,6 +3257,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -484,7 +472,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	return do_tkill(0, pid, sig);
  }
-@@ -3052,6 +3058,8 @@ static int do_rt_sigqueueinfo(pid_t pid,
+@@ -3267,6 +3273,8 @@ static int do_rt_sigqueueinfo(pid_t pid,
  		return -EPERM;
  
  	info->si_signo = sig;
@@ -493,7 +481,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, info, pid);
-@@ -3100,6 +3108,8 @@ static int do_rt_tgsigqueueinfo(pid_t tg
+@@ -3315,6 +3323,8 @@ static int do_rt_tgsigqueueinfo(pid_t tg
  		return -EPERM;
  
  	info->si_signo = sig;
@@ -502,9 +490,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-4.14.50.orig/kernel/sys.c
-+++ linux-4.14.50/kernel/sys.c
-@@ -193,6 +193,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
+--- linux-4.18-rc1.orig/kernel/sys.c
++++ linux-4.18-rc1/kernel/sys.c
+@@ -204,6 +204,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
  		goto out;
@@ -515,7 +503,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	/* normalize: avoid signed division (rounding problems) */
  	error = -ESRCH;
-@@ -1258,6 +1262,8 @@ SYSCALL_DEFINE2(sethostname, char __user
+@@ -1319,6 +1323,8 @@ SYSCALL_DEFINE2(sethostname, char __user
  
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -524,7 +512,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	down_write(&uts_sem);
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
-@@ -1308,6 +1314,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
+@@ -1369,6 +1375,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
  		return -EPERM;
  	if (len < 0 || len > __NEW_UTS_LEN)
  		return -EINVAL;
@@ -533,17 +521,17 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-4.14.50.orig/kernel/time/ntp.c
-+++ linux-4.14.50/kernel/time/ntp.c
-@@ -18,6 +18,7 @@
- #include <linux/module.h>
- #include <linux/rtc.h>
- #include <linux/math64.h>
+--- linux-4.18-rc1.orig/kernel/time/timekeeping.c
++++ linux-4.18-rc1/kernel/time/timekeeping.c
+@@ -25,6 +25,7 @@
+ #include <linux/stop_machine.h>
+ #include <linux/pvclock_gtod.h>
+ #include <linux/compiler.h>
 +#include <linux/ccsecurity.h>
  
+ #include "tick-internal.h"
  #include "ntp_internal.h"
- #include "timekeeping_internal.h"
-@@ -667,10 +668,15 @@ int ntp_validate_timex(struct timex *txc
+@@ -2229,10 +2230,15 @@ static int timekeeping_validate_timex(st
  		if (!(txc->modes & ADJ_OFFSET_READONLY) &&
  		    !capable(CAP_SYS_TIME))
  			return -EPERM;
@@ -552,25 +540,25 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
 +			return -EPERM;
  	} else {
  		/* In order to modify anything, you gotta be super-user! */
- 		 if (txc->modes && !capable(CAP_SYS_TIME))
+ 		if (txc->modes && !capable(CAP_SYS_TIME))
  			return -EPERM;
 +		if (txc->modes && !ccs_capable(CCS_SYS_SETTIME))
 +			return -EPERM;
  		/*
  		 * if the quartz is off by more than 10% then
  		 * something is VERY wrong!
-@@ -685,6 +691,8 @@ int ntp_validate_timex(struct timex *txc
+@@ -2247,6 +2253,8 @@ static int timekeeping_validate_timex(st
  		/* In order to inject time, you gotta be super-user! */
  		if (!capable(CAP_SYS_TIME))
  			return -EPERM;
 +		if (!ccs_capable(CCS_SYS_SETTIME))
 +			return -EPERM;
  
- 		if (txc->modes & ADJ_NANO) {
- 			struct timespec ts;
---- linux-4.14.50.orig/net/ipv4/raw.c
-+++ linux-4.14.50/net/ipv4/raw.c
-@@ -766,6 +766,10 @@ static int raw_recvmsg(struct sock *sk,
+ 		/*
+ 		 * Validate if a timespec/timeval used to inject a time
+--- linux-4.18-rc1.orig/net/ipv4/raw.c
++++ linux-4.18-rc1/net/ipv4/raw.c
+@@ -779,6 +779,10 @@ static int raw_recvmsg(struct sock *sk,
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -581,9 +569,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-4.14.50.orig/net/ipv4/udp.c
-+++ linux-4.14.50/net/ipv4/udp.c
-@@ -1593,6 +1593,8 @@ try_again:
+--- linux-4.18-rc1.orig/net/ipv4/udp.c
++++ linux-4.18-rc1/net/ipv4/udp.c
+@@ -1659,6 +1659,8 @@ try_again:
  	skb = __skb_recv_udp(sk, flags, noblock, &peeked, &off, &err);
  	if (!skb)
  		return err;
@@ -592,8 +580,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	ulen = udp_skb_len(skb);
  	copied = len;
---- linux-4.14.50.orig/net/ipv6/raw.c
-+++ linux-4.14.50/net/ipv6/raw.c
+--- linux-4.18-rc1.orig/net/ipv6/raw.c
++++ linux-4.18-rc1/net/ipv6/raw.c
 @@ -483,6 +483,10 @@ static int rawv6_recvmsg(struct sock *sk
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -605,9 +593,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-4.14.50.orig/net/ipv6/udp.c
-+++ linux-4.14.50/net/ipv6/udp.c
-@@ -371,6 +371,8 @@ try_again:
+--- linux-4.18-rc1.orig/net/ipv6/udp.c
++++ linux-4.18-rc1/net/ipv6/udp.c
+@@ -339,6 +339,8 @@ try_again:
  	skb = __skb_recv_udp(sk, flags, noblock, &peeked, &off, &err);
  	if (!skb)
  		return err;
@@ -616,9 +604,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	ulen = udp6_skb_len(skb);
  	copied = len;
---- linux-4.14.50.orig/net/socket.c
-+++ linux-4.14.50/net/socket.c
-@@ -1574,6 +1574,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
+--- linux-4.18-rc1.orig/net/socket.c
++++ linux-4.18-rc1/net/socket.c
+@@ -1636,6 +1636,10 @@ int __sys_accept4(int fd, struct sockadd
  	if (err < 0)
  		goto out_fd;
  
@@ -627,13 +615,13 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
 +		goto out_fd;
 +	}
  	if (upeer_sockaddr) {
- 		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
- 					  &len, 2) < 0) {
---- linux-4.14.50.orig/net/unix/af_unix.c
-+++ linux-4.14.50/net/unix/af_unix.c
-@@ -2131,6 +2131,10 @@ static int unix_dgram_recvmsg(struct soc
- 						POLLOUT | POLLWRNORM |
- 						POLLWRBAND);
+ 		len = newsock->ops->getname(newsock,
+ 					(struct sockaddr *)&address, 2);
+--- linux-4.18-rc1.orig/net/unix/af_unix.c
++++ linux-4.18-rc1/net/unix/af_unix.c
+@@ -2121,6 +2121,10 @@ static int unix_dgram_recvmsg(struct soc
+ 						EPOLLOUT | EPOLLWRNORM |
+ 						EPOLLWRBAND);
  
 +	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
 +		err = -EAGAIN; /* Hope less harmful than -EPERM. */
@@ -642,7 +630,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	if (msg->msg_name)
  		unix_copy_addr(msg, skb->sk);
  
-@@ -2181,6 +2185,7 @@ static int unix_dgram_recvmsg(struct soc
+@@ -2171,6 +2175,7 @@ static int unix_dgram_recvmsg(struct soc
  
  out_free:
  	skb_free_datagram(sk, skb);
@@ -650,9 +638,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	mutex_unlock(&u->iolock);
  out:
  	return err;
---- linux-4.14.50.orig/security/Kconfig
-+++ linux-4.14.50/security/Kconfig
-@@ -263,5 +263,7 @@ config DEFAULT_SECURITY
+--- linux-4.18-rc1.orig/security/Kconfig
++++ linux-4.18-rc1/security/Kconfig
+@@ -277,5 +277,7 @@ config DEFAULT_SECURITY
  	default "apparmor" if DEFAULT_SECURITY_APPARMOR
  	default "" if DEFAULT_SECURITY_DAC
  
@@ -660,8 +648,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
 +
  endmenu
  
---- linux-4.14.50.orig/security/Makefile
-+++ linux-4.14.50/security/Makefile
+--- linux-4.18-rc1.orig/security/Makefile
++++ linux-4.18-rc1/security/Makefile
 @@ -30,3 +30,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
@@ -669,9 +657,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/
---- linux-4.14.50.orig/security/security.c
-+++ linux-4.14.50/security/security.c
-@@ -976,12 +976,19 @@ int security_file_open(struct file *file
+--- linux-4.18-rc1.orig/security/security.c
++++ linux-4.18-rc1/security/security.c
+@@ -983,12 +983,19 @@ int security_file_open(struct file *file
  
  int security_task_alloc(struct task_struct *task, unsigned long clone_flags)
  {
