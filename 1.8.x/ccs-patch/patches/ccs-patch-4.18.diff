@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for kernel 4.18-rc3.
+This is TOMOYO Linux patch for kernel 4.18-rc4.
 
-Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.tar.gz
+Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc4.tar.gz
 ---
  fs/exec.c                 |    2 -
  fs/open.c                 |    2 +
@@ -28,8 +28,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  security/security.c       |    9 +++++-
  24 files changed, 148 insertions(+), 29 deletions(-)
 
---- linux-4.18-rc3.orig/fs/exec.c
-+++ linux-4.18-rc3/fs/exec.c
+--- linux-4.18-rc4.orig/fs/exec.c
++++ linux-4.18-rc4/fs/exec.c
 @@ -1692,7 +1692,7 @@ static int exec_binprm(struct linux_binp
  	old_vpid = task_pid_nr_ns(current, task_active_pid_ns(current->parent));
  	rcu_read_unlock();
@@ -39,8 +39,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  	if (ret >= 0) {
  		audit_bprm(bprm);
  		trace_sched_process_exec(current, old_pid, bprm);
---- linux-4.18-rc3.orig/fs/open.c
-+++ linux-4.18-rc3/fs/open.c
+--- linux-4.18-rc4.orig/fs/open.c
++++ linux-4.18-rc4/fs/open.c
 @@ -1212,6 +1212,8 @@ SYSCALL_DEFINE1(close, unsigned int, fd)
   */
  SYSCALL_DEFINE0(vhangup)
@@ -50,8 +50,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-4.18-rc3.orig/fs/proc/version.c
-+++ linux-4.18-rc3/fs/proc/version.c
+--- linux-4.18-rc4.orig/fs/proc/version.c
++++ linux-4.18-rc4/fs/proc/version.c
 @@ -21,3 +21,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -59,12 +59,12 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 4.18-rc3 2018/07/08\n");
++	printk(KERN_INFO "Hook version: 4.18-rc4 2018/07/12\n");
 +	return 0;
 +}
 +fs_initcall(ccs_show_version);
---- linux-4.18-rc3.orig/include/linux/sched.h
-+++ linux-4.18-rc3/include/linux/sched.h
+--- linux-4.18-rc4.orig/include/linux/sched.h
++++ linux-4.18-rc4/include/linux/sched.h
 @@ -34,6 +34,7 @@ struct audit_context;
  struct backing_dev_info;
  struct bio_list;
@@ -84,8 +84,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  
  	/*
  	 * New fields for task_struct should be added above here, so that
---- linux-4.18-rc3.orig/include/linux/security.h
-+++ linux-4.18-rc3/include/linux/security.h
+--- linux-4.18-rc4.orig/include/linux/security.h
++++ linux-4.18-rc4/include/linux/security.h
 @@ -53,6 +53,7 @@ struct msg_msg;
  struct xattr;
  struct xfrm_sec_ctx;
@@ -306,8 +306,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-4.18-rc3.orig/include/net/ip.h
-+++ linux-4.18-rc3/include/net/ip.h
+--- linux-4.18-rc4.orig/include/net/ip.h
++++ linux-4.18-rc4/include/net/ip.h
 @@ -278,6 +278,8 @@ void inet_get_local_port_range(struct ne
  #ifdef CONFIG_SYSCTL
  static inline int inet_is_local_reserved_port(struct net *net, int port)
@@ -326,8 +326,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  	return 0;
  }
  
---- linux-4.18-rc3.orig/init/init_task.c
-+++ linux-4.18-rc3/init/init_task.c
+--- linux-4.18-rc4.orig/init/init_task.c
++++ linux-4.18-rc4/init/init_task.c
 @@ -176,6 +176,10 @@ struct task_struct init_task
  #ifdef CONFIG_SECURITY
  	.security	= NULL,
@@ -339,8 +339,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  };
  EXPORT_SYMBOL(init_task);
  
---- linux-4.18-rc3.orig/kernel/kexec.c
-+++ linux-4.18-rc3/kernel/kexec.c
+--- linux-4.18-rc4.orig/kernel/kexec.c
++++ linux-4.18-rc4/kernel/kexec.c
 @@ -17,7 +17,7 @@
  #include <linux/syscalls.h>
  #include <linux/vmalloc.h>
@@ -359,8 +359,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-4.18-rc3.orig/kernel/module.c
-+++ linux-4.18-rc3/kernel/module.c
+--- linux-4.18-rc4.orig/kernel/module.c
++++ linux-4.18-rc4/kernel/module.c
 @@ -66,6 +66,7 @@
  #include <linux/audit.h>
  #include <uapi/linux/module.h>
@@ -387,8 +387,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  
  	return 0;
  }
---- linux-4.18-rc3.orig/kernel/ptrace.c
-+++ linux-4.18-rc3/kernel/ptrace.c
+--- linux-4.18-rc4.orig/kernel/ptrace.c
++++ linux-4.18-rc4/kernel/ptrace.c
 @@ -1112,6 +1112,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
@@ -413,8 +413,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-4.18-rc3.orig/kernel/reboot.c
-+++ linux-4.18-rc3/kernel/reboot.c
+--- linux-4.18-rc4.orig/kernel/reboot.c
++++ linux-4.18-rc4/kernel/reboot.c
 @@ -16,6 +16,7 @@
  #include <linux/syscalls.h>
  #include <linux/syscore_ops.h>
@@ -432,9 +432,9 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  
  	/*
  	 * If pid namespaces are enabled and the current task is in a child
---- linux-4.18-rc3.orig/kernel/sched/core.c
-+++ linux-4.18-rc3/kernel/sched/core.c
-@@ -3975,6 +3975,8 @@ int can_nice(const struct task_struct *p
+--- linux-4.18-rc4.orig/kernel/sched/core.c
++++ linux-4.18-rc4/kernel/sched/core.c
+@@ -3972,6 +3972,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -443,8 +443,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-4.18-rc3.orig/kernel/signal.c
-+++ linux-4.18-rc3/kernel/signal.c
+--- linux-4.18-rc4.orig/kernel/signal.c
++++ linux-4.18-rc4/kernel/signal.c
 @@ -3167,6 +3167,8 @@ COMPAT_SYSCALL_DEFINE4(rt_sigtimedwait,
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
@@ -490,8 +490,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-4.18-rc3.orig/kernel/sys.c
-+++ linux-4.18-rc3/kernel/sys.c
+--- linux-4.18-rc4.orig/kernel/sys.c
++++ linux-4.18-rc4/kernel/sys.c
 @@ -204,6 +204,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -521,8 +521,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  
  	down_write(&uts_sem);
  	errno = -EFAULT;
---- linux-4.18-rc3.orig/kernel/time/timekeeping.c
-+++ linux-4.18-rc3/kernel/time/timekeeping.c
+--- linux-4.18-rc4.orig/kernel/time/timekeeping.c
++++ linux-4.18-rc4/kernel/time/timekeeping.c
 @@ -25,6 +25,7 @@
  #include <linux/stop_machine.h>
  #include <linux/pvclock_gtod.h>
@@ -556,8 +556,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  
  		/*
  		 * Validate if a timespec/timeval used to inject a time
---- linux-4.18-rc3.orig/net/ipv4/raw.c
-+++ linux-4.18-rc3/net/ipv4/raw.c
+--- linux-4.18-rc4.orig/net/ipv4/raw.c
++++ linux-4.18-rc4/net/ipv4/raw.c
 @@ -779,6 +779,10 @@ static int raw_recvmsg(struct sock *sk,
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -569,8 +569,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-4.18-rc3.orig/net/ipv4/udp.c
-+++ linux-4.18-rc3/net/ipv4/udp.c
+--- linux-4.18-rc4.orig/net/ipv4/udp.c
++++ linux-4.18-rc4/net/ipv4/udp.c
 @@ -1659,6 +1659,8 @@ try_again:
  	skb = __skb_recv_udp(sk, flags, noblock, &peeked, &off, &err);
  	if (!skb)
@@ -580,8 +580,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  
  	ulen = udp_skb_len(skb);
  	copied = len;
---- linux-4.18-rc3.orig/net/ipv6/raw.c
-+++ linux-4.18-rc3/net/ipv6/raw.c
+--- linux-4.18-rc4.orig/net/ipv6/raw.c
++++ linux-4.18-rc4/net/ipv6/raw.c
 @@ -483,6 +483,10 @@ static int rawv6_recvmsg(struct sock *sk
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -593,8 +593,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-4.18-rc3.orig/net/ipv6/udp.c
-+++ linux-4.18-rc3/net/ipv6/udp.c
+--- linux-4.18-rc4.orig/net/ipv6/udp.c
++++ linux-4.18-rc4/net/ipv6/udp.c
 @@ -339,6 +339,8 @@ try_again:
  	skb = __skb_recv_udp(sk, flags, noblock, &peeked, &off, &err);
  	if (!skb)
@@ -604,8 +604,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  
  	ulen = udp6_skb_len(skb);
  	copied = len;
---- linux-4.18-rc3.orig/net/socket.c
-+++ linux-4.18-rc3/net/socket.c
+--- linux-4.18-rc4.orig/net/socket.c
++++ linux-4.18-rc4/net/socket.c
 @@ -1600,6 +1600,10 @@ int __sys_accept4(int fd, struct sockadd
  	if (err < 0)
  		goto out_fd;
@@ -617,8 +617,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  	if (upeer_sockaddr) {
  		len = newsock->ops->getname(newsock,
  					(struct sockaddr *)&address, 2);
---- linux-4.18-rc3.orig/net/unix/af_unix.c
-+++ linux-4.18-rc3/net/unix/af_unix.c
+--- linux-4.18-rc4.orig/net/unix/af_unix.c
++++ linux-4.18-rc4/net/unix/af_unix.c
 @@ -2122,6 +2122,10 @@ static int unix_dgram_recvmsg(struct soc
  						EPOLLOUT | EPOLLWRNORM |
  						EPOLLWRBAND);
@@ -638,8 +638,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
  	mutex_unlock(&u->iolock);
  out:
  	return err;
---- linux-4.18-rc3.orig/security/Kconfig
-+++ linux-4.18-rc3/security/Kconfig
+--- linux-4.18-rc4.orig/security/Kconfig
++++ linux-4.18-rc4/security/Kconfig
 @@ -277,5 +277,7 @@ config DEFAULT_SECURITY
  	default "apparmor" if DEFAULT_SECURITY_APPARMOR
  	default "" if DEFAULT_SECURITY_DAC
@@ -648,8 +648,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
 +
  endmenu
  
---- linux-4.18-rc3.orig/security/Makefile
-+++ linux-4.18-rc3/security/Makefile
+--- linux-4.18-rc4.orig/security/Makefile
++++ linux-4.18-rc4/security/Makefile
 @@ -30,3 +30,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
@@ -657,8 +657,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.18-rc3.t
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/
---- linux-4.18-rc3.orig/security/security.c
-+++ linux-4.18-rc3/security/security.c
+--- linux-4.18-rc4.orig/security/security.c
++++ linux-4.18-rc4/security/security.c
 @@ -983,12 +983,19 @@ int security_file_open(struct file *file
  
  int security_task_alloc(struct task_struct *task, unsigned long clone_flags)
