@@ -66,10 +66,10 @@ cd $ANDROID_HOME/tmp/<br>
 wget -O kernel-source.tar.gz 'http://android.git.kernel.org/?p=kernel/common.git;a=snapshot;h=b0d93fb0426911d0329f861f22c59f1c72cff815;sf=tgz'<br>
 tar -zxf kernel-source.tar.gz<br>
 cd common-b0d93fb/<br>
-wget -O ccs-patch-1.8.5-20180522.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.5-20180522.tar.gz'<br>
-wget -O ccs-patch-1.8.5-20180522.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.5-20180522.tar.gz.asc'<br>
-gpg ccs-patch-1.8.5-20180522.tar.gz.asc<br>
-tar -zxf ccs-patch-1.8.5-20180522.tar.gz<br>
+wget -O ccs-patch-1.8.5-20180714.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.5-20180714.tar.gz'<br>
+wget -O ccs-patch-1.8.5-20180714.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/49684/ccs-patch-1.8.5-20180714.tar.gz.asc'<br>
+gpg ccs-patch-1.8.5-20180714.tar.gz.asc<br>
+tar -zxf ccs-patch-1.8.5-20180714.tar.gz<br>
 patch -p1 &lt; patches/ccs-patch-2.6.29-android-goldfish.diff<br>
 sed -i -e 's:/sbin/modprobe /sbin/hotplug::' -e 's:/sbin/ccs-start:/init:' -- security/ccsecurity/Kconfig<br>
 ARCH=arm CROSS_COMPILE=$ANDROID_TOOLCHAIN/arm-eabi- make goldfish_defconfig<br>

@@ -10,17 +10,17 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-2.6.32-696.30.1.el6.src.rpm ]
+if [ ! -r kernel-2.6.32-754.2.1.el6.src.rpm ]
 then
-    wget http://vault.centos.org/6.9/updates/Source/SPackages/kernel-2.6.32-696.30.1.el6.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/6.10/updates/Source/SPackages/kernel-2.6.32-754.2.1.el6.src.rpm || die "Can't download source package."
 fi
-LANG=C rpm --checksig kernel-2.6.32-696.30.1.el6.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
-rpm -ivh kernel-2.6.32-696.30.1.el6.src.rpm || die "Can't install source package."
+LANG=C rpm --checksig kernel-2.6.32-754.2.1.el6.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
+rpm -ivh kernel-2.6.32-754.2.1.el6.src.rpm || die "Can't install source package."
 
 cd ~/rpmbuild/SOURCES/ || die "Can't chdir to ~/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.5-20180522.tar.gz ]
+if [ ! -r ccs-patch-1.8.5-20180714.tar.gz ]
 then
-    wget -O ccs-patch-1.8.5-20180522.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.5-20180522.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.5-20180714.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.5-20180714.tar.gz' || die "Can't download patch."
 fi
 
 cd ~/rpmbuild/SPECS/ || die "Can't chdir to ~/rpmbuild/SPECS/ ."
@@ -35,9 +35,9 @@ patch << "EOF" || die "Can't patch spec file."
 -# % define buildid .local
 +%define buildid _tomoyo_1.8.5p2
  
- %define distro_build 696.30.1
- %define signmodules 1
-@@ -437,7 +437,7 @@
+ %define distro_build 754.2.1
+ %define kabi_build 754
+@@ -438,7 +438,7 @@
  # Packages that need to be installed before the kernel is, because the %post
  # scripts use them.
  #
@@ -46,7 +46,7 @@ patch << "EOF" || die "Can't patch spec file."
  %if %{with_dracut}
  %define initrd_prereq  dracut-kernel >= 004-408.el6
  %else
-@@ -473,7 +473,7 @@
+@@ -474,7 +474,7 @@
  AutoProv: yes\
  %{nil}
  
@@ -55,7 +55,7 @@ patch << "EOF" || die "Can't patch spec file."
  Group: System Environment/Kernel
  License: GPLv2
  URL: http://www.kernel.org/
-@@ -771,7 +771,7 @@
+@@ -772,7 +772,7 @@
  Provides: kernel-devel-uname-r = %{KVERREL}%{?1:.%{1}}\
  AutoReqProv: no\
  Requires(pre): /usr/bin/find\
@@ -64,18 +64,18 @@ patch << "EOF" || die "Can't patch spec file."
  This package provides kernel headers and makefiles sufficient to build modules\
  against the %{?2:%{2} }kernel package.\
  %{nil}
-@@ -937,6 +937,10 @@
+@@ -938,6 +938,10 @@
  
  ApplyOptionalPatch linux-kernel-test.patch
  
 +# TOMOYO Linux
-+tar -zxf %_sourcedir/ccs-patch-1.8.5-20180522.tar.gz
++tar -zxf %_sourcedir/ccs-patch-1.8.5-20180714.tar.gz
 +patch -sp1 < patches/ccs-patch-2.6.32-centos-6.diff
 +
  # Any further pre-build tree manipulations happen here.
  
  chmod +x scripts/checkpatch.pl
-@@ -961,6 +965,8 @@
+@@ -962,6 +966,8 @@
  for i in *.config
  do
    mv $i .config
