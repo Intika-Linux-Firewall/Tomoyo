@@ -1,0 +1,682 @@
+This is TOMOYO Linux patch for kernel 4.19-rc1.
+
+Source code for this patch is https://git.kernel.org/torvalds/t/linux-4.19-rc1.tar.gz
+---
+ fs/exec.c                 |    2 -
+ fs/open.c                 |    2 +
+ fs/proc/version.c         |    7 ++++
+ include/linux/sched.h     |    5 +++
+ include/linux/security.h  |   68 ++++++++++++++++++++++++++++------------------
+ include/net/ip.h          |    4 ++
+ init/init_task.c          |    4 ++
+ kernel/kexec.c            |    4 ++
+ kernel/module.c           |    5 +++
+ kernel/ptrace.c           |   10 ++++++
+ kernel/reboot.c           |    3 ++
+ kernel/sched/core.c       |    2 +
+ kernel/signal.c           |   10 ++++++
+ kernel/sys.c              |    8 +++++
+ kernel/time/timekeeping.c |    8 +++++
+ net/ipv4/raw.c            |    4 ++
+ net/ipv4/udp.c            |    2 +
+ net/ipv6/raw.c            |    4 ++
+ net/ipv6/udp.c            |    2 +
+ net/socket.c              |    4 ++
+ net/unix/af_unix.c        |    5 +++
+ security/Kconfig          |    2 +
+ security/Makefile         |    3 ++
+ security/security.c       |    9 +++++-
+ 24 files changed, 148 insertions(+), 29 deletions(-)
+
+--- linux.orig/fs/exec.c
++++ linux/fs/exec.c
+@@ -1692,7 +1692,7 @@ static int exec_binprm(struct linux_binp
+ 	old_vpid = task_pid_nr_ns(current, task_active_pid_ns(current->parent));
+ 	rcu_read_unlock();
+ 
+-	ret = search_binary_handler(bprm);
++	ret = ccs_search_binary_handler(bprm);
+ 	if (ret >= 0) {
+ 		audit_bprm(bprm);
+ 		trace_sched_process_exec(current, old_pid, bprm);
+--- linux.orig/fs/open.c
++++ linux/fs/open.c
+@@ -1174,6 +1174,8 @@ SYSCALL_DEFINE1(close, unsigned int, fd)
+  */
+ SYSCALL_DEFINE0(vhangup)
+ {
++	if (!ccs_capable(CCS_SYS_VHANGUP))
++		return -EPERM;
+ 	if (capable(CAP_SYS_TTY_CONFIG)) {
+ 		tty_vhangup_self();
+ 		return 0;
+--- linux.orig/fs/proc/version.c
++++ linux/fs/proc/version.c
+@@ -21,3 +21,10 @@ static int __init proc_version_init(void
+ 	return 0;
+ }
+ fs_initcall(proc_version_init);
++
++static int __init ccs_show_version(void)
++{
++	printk(KERN_INFO "Hook version: 4.19-rc1 2018/08/27\n");
++	return 0;
++}
++fs_initcall(ccs_show_version);
+--- linux.orig/include/linux/sched.h
++++ linux/include/linux/sched.h
+@@ -34,6 +34,7 @@ struct audit_context;
+ struct backing_dev_info;
+ struct bio_list;
+ struct blk_plug;
++struct ccs_domain_info;
+ struct cfs_rq;
+ struct fs_struct;
+ struct futex_pi_state;
+@@ -1191,6 +1192,10 @@ struct task_struct {
+ 	/* Used by LSM modules for access restriction: */
+ 	void				*security;
+ #endif
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
++	struct ccs_domain_info		*ccs_domain_info;
++	u32				ccs_flags;
++#endif
+ 
+ 	/*
+ 	 * New fields for task_struct should be added above here, so that
+--- linux.orig/include/linux/security.h
++++ linux/include/linux/security.h
+@@ -53,6 +53,7 @@ struct msg_msg;
+ struct xattr;
+ struct xfrm_sec_ctx;
+ struct mm_struct;
++#include <linux/ccsecurity.h>
+ 
+ /* If capable should audit the security request */
+ #define SECURITY_CAP_NOAUDIT 0
+@@ -521,7 +522,10 @@ static inline int security_syslog(int ty
+ static inline int security_settime64(const struct timespec64 *ts,
+ 				     const struct timezone *tz)
+ {
+-	return cap_settime(ts, tz);
++	int error = cap_settime(ts, tz);
++	if (!error)
++		error = ccs_settime(ts, tz);
++	return error;
+ }
+ 
+ static inline int security_vm_enough_memory_mm(struct mm_struct *mm, long pages)
+@@ -585,18 +589,18 @@ static inline int security_sb_mount(cons
+ 				    const char *type, unsigned long flags,
+ 				    void *data)
+ {
+-	return 0;
++	return ccs_sb_mount(dev_name, path, type, flags, data);
+ }
+ 
+ static inline int security_sb_umount(struct vfsmount *mnt, int flags)
+ {
+-	return 0;
++	return ccs_sb_umount(mnt, flags);
+ }
+ 
+ static inline int security_sb_pivotroot(const struct path *old_path,
+ 					const struct path *new_path)
+ {
+-	return 0;
++	return ccs_sb_pivotroot(old_path, new_path);
+ }
+ 
+ static inline int security_sb_set_mnt_opts(struct super_block *sb,
+@@ -745,7 +749,7 @@ static inline int security_inode_setattr
+ 
+ static inline int security_inode_getattr(const struct path *path)
+ {
+-	return 0;
++	return ccs_inode_getattr(path);
+ }
+ 
+ static inline int security_inode_setxattr(struct dentry *dentry,
+@@ -831,7 +835,7 @@ static inline void security_file_free(st
+ static inline int security_file_ioctl(struct file *file, unsigned int cmd,
+ 				      unsigned long arg)
+ {
+-	return 0;
++	return ccs_file_ioctl(file, cmd, arg);
+ }
+ 
+ static inline int security_mmap_file(struct file *file, unsigned long prot,
+@@ -860,7 +864,7 @@ static inline int security_file_lock(str
+ static inline int security_file_fcntl(struct file *file, unsigned int cmd,
+ 				      unsigned long arg)
+ {
+-	return 0;
++	return ccs_file_fcntl(file, cmd, arg);
+ }
+ 
+ static inline void security_file_set_fowner(struct file *file)
+@@ -882,17 +886,19 @@ static inline int security_file_receive(
+ 
+ static inline int security_file_open(struct file *file)
+ {
+-	return 0;
++	return ccs_file_open(file);
+ }
+ 
+ static inline int security_task_alloc(struct task_struct *task,
+ 				      unsigned long clone_flags)
+ {
+-	return 0;
++	return ccs_alloc_task_security(task);
+ }
+ 
+ static inline void security_task_free(struct task_struct *task)
+-{ }
++{
++	ccs_free_task_security(task);
++}
+ 
+ static inline int security_cred_alloc_blank(struct cred *cred, gfp_t gfp)
+ {
+@@ -1264,7 +1270,7 @@ static inline int security_unix_may_send
+ static inline int security_socket_create(int family, int type,
+ 					 int protocol, int kern)
+ {
+-	return 0;
++	return ccs_socket_create(family, type, protocol, kern);
+ }
+ 
+ static inline int security_socket_post_create(struct socket *sock,
+@@ -1285,19 +1291,19 @@ static inline int security_socket_bind(s
+ 				       struct sockaddr *address,
+ 				       int addrlen)
+ {
+-	return 0;
++	return ccs_socket_bind(sock, address, addrlen);
+ }
+ 
+ static inline int security_socket_connect(struct socket *sock,
+ 					  struct sockaddr *address,
+ 					  int addrlen)
+ {
+-	return 0;
++	return ccs_socket_connect(sock, address, addrlen);
+ }
+ 
+ static inline int security_socket_listen(struct socket *sock, int backlog)
+ {
+-	return 0;
++	return ccs_socket_listen(sock, backlog);
+ }
+ 
+ static inline int security_socket_accept(struct socket *sock,
+@@ -1309,7 +1315,7 @@ static inline int security_socket_accept
+ static inline int security_socket_sendmsg(struct socket *sock,
+ 					  struct msghdr *msg, int size)
+ {
+-	return 0;
++	return ccs_socket_sendmsg(sock, msg, size);
+ }
+ 
+ static inline int security_socket_recvmsg(struct socket *sock,
+@@ -1596,42 +1602,42 @@ int security_path_chroot(const struct pa
+ #else	/* CONFIG_SECURITY_PATH */
+ static inline int security_path_unlink(const struct path *dir, struct dentry *dentry)
+ {
+-	return 0;
++	return ccs_path_unlink(dir, dentry);
+ }
+ 
+ static inline int security_path_mkdir(const struct path *dir, struct dentry *dentry,
+ 				      umode_t mode)
+ {
+-	return 0;
++	return ccs_path_mkdir(dir, dentry, mode);
+ }
+ 
+ static inline int security_path_rmdir(const struct path *dir, struct dentry *dentry)
+ {
+-	return 0;
++	return ccs_path_rmdir(dir, dentry);
+ }
+ 
+ static inline int security_path_mknod(const struct path *dir, struct dentry *dentry,
+ 				      umode_t mode, unsigned int dev)
+ {
+-	return 0;
++	return ccs_path_mknod(dir, dentry, mode, dev);
+ }
+ 
+ static inline int security_path_truncate(const struct path *path)
+ {
+-	return 0;
++	return ccs_path_truncate(path);
+ }
+ 
+ static inline int security_path_symlink(const struct path *dir, struct dentry *dentry,
+ 					const char *old_name)
+ {
+-	return 0;
++	return ccs_path_symlink(dir, dentry, old_name);
+ }
+ 
+ static inline int security_path_link(struct dentry *old_dentry,
+ 				     const struct path *new_dir,
+ 				     struct dentry *new_dentry)
+ {
+-	return 0;
++	return ccs_path_link(old_dentry, new_dir, new_dentry);
+ }
+ 
+ static inline int security_path_rename(const struct path *old_dir,
+@@ -1640,22 +1646,32 @@ static inline int security_path_rename(c
+ 				       struct dentry *new_dentry,
+ 				       unsigned int flags)
+ {
+-	return 0;
++	/*
++	 * Not using RENAME_EXCHANGE here in order to avoid KABI breakage
++	 * by doing "#include <uapi/linux/fs.h>" .
++	 */
++	if (flags & (1 << 1)) {
++		int err = ccs_path_rename(new_dir, new_dentry, old_dir,
++					  old_dentry);
++		if (err)
++			return err;
++	}
++	return ccs_path_rename(old_dir, old_dentry, new_dir, new_dentry);
+ }
+ 
+ static inline int security_path_chmod(const struct path *path, umode_t mode)
+ {
+-	return 0;
++	return ccs_path_chmod(path, mode);
+ }
+ 
+ static inline int security_path_chown(const struct path *path, kuid_t uid, kgid_t gid)
+ {
+-	return 0;
++	return ccs_path_chown(path, uid, gid);
+ }
+ 
+ static inline int security_path_chroot(const struct path *path)
+ {
+-	return 0;
++	return ccs_path_chroot(path);
+ }
+ #endif	/* CONFIG_SECURITY_PATH */
+ 
+--- linux.orig/include/net/ip.h
++++ linux/include/net/ip.h
+@@ -301,6 +301,8 @@ void inet_get_local_port_range(struct ne
+ #ifdef CONFIG_SYSCTL
+ static inline int inet_is_local_reserved_port(struct net *net, int port)
+ {
++	if (ccs_lport_reserved(port))
++		return 1;
+ 	if (!net->ipv4.sysctl_local_reserved_ports)
+ 		return 0;
+ 	return test_bit(port, net->ipv4.sysctl_local_reserved_ports);
+@@ -319,6 +321,8 @@ static inline int inet_prot_sock(struct
+ #else
+ static inline int inet_is_local_reserved_port(struct net *net, int port)
+ {
++	if (ccs_lport_reserved(port))
++		return 1;
+ 	return 0;
+ }
+ 
+--- linux.orig/init/init_task.c
++++ linux/init/init_task.c
+@@ -179,6 +179,10 @@ struct task_struct init_task
+ #ifdef CONFIG_SECURITY
+ 	.security	= NULL,
+ #endif
++#if defined(CONFIG_CCSECURITY) && !defined(CONFIG_CCSECURITY_USE_EXTERNAL_TASK_SECURITY)
++	.ccs_domain_info = NULL,
++	.ccs_flags      = 0,
++#endif
+ };
+ EXPORT_SYMBOL(init_task);
+ 
+--- linux.orig/kernel/kexec.c
++++ linux/kernel/kexec.c
+@@ -18,7 +18,7 @@
+ #include <linux/syscalls.h>
+ #include <linux/vmalloc.h>
+ #include <linux/slab.h>
+-
++#include <linux/ccsecurity.h>
+ #include "kexec_internal.h"
+ 
+ static int copy_user_segment_list(struct kimage *image,
+@@ -201,6 +201,8 @@ static inline int kexec_load_check(unsig
+ 	/* We only trust the superuser with rebooting the system. */
+ 	if (!capable(CAP_SYS_BOOT) || kexec_load_disabled)
+ 		return -EPERM;
++	if (!ccs_capable(CCS_SYS_KEXEC_LOAD))
++		return -EPERM;
+ 
+ 	/* Permit LSMs and IMA to fail the kexec */
+ 	result = security_kernel_load_data(LOADING_KEXEC_IMAGE);
+--- linux.orig/kernel/module.c
++++ linux/kernel/module.c
+@@ -66,6 +66,7 @@
+ #include <linux/audit.h>
+ #include <uapi/linux/module.h>
+ #include "module-internal.h"
++#include <linux/ccsecurity.h>
+ 
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/module.h>
+@@ -966,6 +967,8 @@ SYSCALL_DEFINE2(delete_module, const cha
+ 
+ 	if (!capable(CAP_SYS_MODULE) || modules_disabled)
+ 		return -EPERM;
++	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
++		return -EPERM;
+ 
+ 	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
+ 		return -EFAULT;
+@@ -3532,6 +3535,8 @@ static int may_init_module(void)
+ {
+ 	if (!capable(CAP_SYS_MODULE) || modules_disabled)
+ 		return -EPERM;
++	if (!ccs_capable(CCS_USE_KERNEL_MODULE))
++		return -EPERM;
+ 
+ 	return 0;
+ }
+--- linux.orig/kernel/ptrace.c
++++ linux/kernel/ptrace.c
+@@ -1112,6 +1112,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+ {
+ 	struct task_struct *child;
+ 	long ret;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
+ 
+ 	if (request == PTRACE_TRACEME) {
+ 		ret = ptrace_traceme();
+@@ -1260,6 +1265,11 @@ COMPAT_SYSCALL_DEFINE4(ptrace, compat_lo
+ {
+ 	struct task_struct *child;
+ 	long ret;
++	{
++		const int rc = ccs_ptrace_permission(request, pid);
++		if (rc)
++			return rc;
++	}
+ 
+ 	if (request == PTRACE_TRACEME) {
+ 		ret = ptrace_traceme();
+--- linux.orig/kernel/reboot.c
++++ linux/kernel/reboot.c
+@@ -16,6 +16,7 @@
+ #include <linux/syscalls.h>
+ #include <linux/syscore_ops.h>
+ #include <linux/uaccess.h>
++#include <linux/ccsecurity.h>
+ 
+ /*
+  * this indicates whether you can reboot with ctrl-alt-del: the default is yes
+@@ -322,6 +323,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
+ 			magic2 != LINUX_REBOOT_MAGIC2B &&
+ 			magic2 != LINUX_REBOOT_MAGIC2C))
+ 		return -EINVAL;
++	if (!ccs_capable(CCS_SYS_REBOOT))
++		return -EPERM;
+ 
+ 	/*
+ 	 * If pid namespaces are enabled and the current task is in a child
+--- linux.orig/kernel/sched/core.c
++++ linux/kernel/sched/core.c
+@@ -3944,6 +3944,8 @@ int can_nice(const struct task_struct *p
+ SYSCALL_DEFINE1(nice, int, increment)
+ {
+ 	long nice, retval;
++	if (!ccs_capable(CCS_SYS_NICE))
++		return -EPERM;
+ 
+ 	/*
+ 	 * Setpriority might change our priority at the same moment.
+--- linux.orig/kernel/signal.c
++++ linux/kernel/signal.c
+@@ -3210,6 +3210,8 @@ COMPAT_SYSCALL_DEFINE4(rt_sigtimedwait,
+ SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
+ {
+ 	struct siginfo info;
++	if (ccs_kill_permission(pid, sig))
++		return -EPERM;
+ 
+ 	clear_siginfo(&info);
+ 	info.si_signo = sig;
+@@ -3280,6 +3282,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+ 	/* This is only valid for single tasks */
+ 	if (pid <= 0 || tgid <= 0)
+ 		return -EINVAL;
++	if (ccs_tgkill_permission(tgid, pid, sig))
++		return -EPERM;
+ 
+ 	return do_tkill(tgid, pid, sig);
+ }
+@@ -3296,6 +3300,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
+ 	/* This is only valid for single tasks */
+ 	if (pid <= 0)
+ 		return -EINVAL;
++	if (ccs_tkill_permission(pid, sig))
++		return -EPERM;
+ 
+ 	return do_tkill(0, pid, sig);
+ }
+@@ -3310,6 +3316,8 @@ static int do_rt_sigqueueinfo(pid_t pid,
+ 		return -EPERM;
+ 
+ 	info->si_signo = sig;
++	if (ccs_sigqueue_permission(pid, sig))
++		return -EPERM;
+ 
+ 	/* POSIX.1b doesn't mention process groups.  */
+ 	return kill_proc_info(sig, info, pid);
+@@ -3358,6 +3366,8 @@ static int do_rt_tgsigqueueinfo(pid_t tg
+ 		return -EPERM;
+ 
+ 	info->si_signo = sig;
++	if (ccs_tgsigqueue_permission(tgid, pid, sig))
++		return -EPERM;
+ 
+ 	return do_send_specific(tgid, pid, sig, info);
+ }
+--- linux.orig/kernel/sys.c
++++ linux/kernel/sys.c
+@@ -204,6 +204,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
+ 
+ 	if (which > PRIO_USER || which < PRIO_PROCESS)
+ 		goto out;
++	if (!ccs_capable(CCS_SYS_NICE)) {
++		error = -EPERM;
++		goto out;
++	}
+ 
+ 	/* normalize: avoid signed division (rounding problems) */
+ 	error = -ESRCH;
+@@ -1311,6 +1315,8 @@ SYSCALL_DEFINE2(sethostname, char __user
+ 
+ 	if (len < 0 || len > __NEW_UTS_LEN)
+ 		return -EINVAL;
++	if (!ccs_capable(CCS_SYS_SETHOSTNAME))
++		return -EPERM;
+ 	errno = -EFAULT;
+ 	if (!copy_from_user(tmp, name, len)) {
+ 		struct new_utsname *u;
+@@ -1363,6 +1369,8 @@ SYSCALL_DEFINE2(setdomainname, char __us
+ 		return -EPERM;
+ 	if (len < 0 || len > __NEW_UTS_LEN)
+ 		return -EINVAL;
++	if (!ccs_capable(CCS_SYS_SETHOSTNAME))
++		return -EPERM;
+ 
+ 	errno = -EFAULT;
+ 	if (!copy_from_user(tmp, name, len)) {
+--- linux.orig/kernel/time/timekeeping.c
++++ linux/kernel/time/timekeeping.c
+@@ -26,6 +26,7 @@
+ #include <linux/stop_machine.h>
+ #include <linux/pvclock_gtod.h>
+ #include <linux/compiler.h>
++#include <linux/ccsecurity.h>
+ 
+ #include "tick-internal.h"
+ #include "ntp_internal.h"
+@@ -2278,10 +2279,15 @@ static int timekeeping_validate_timex(co
+ 		if (!(txc->modes & ADJ_OFFSET_READONLY) &&
+ 		    !capable(CAP_SYS_TIME))
+ 			return -EPERM;
++		if (!(txc->modes & ADJ_OFFSET_READONLY) &&
++		    !ccs_capable(CCS_SYS_SETTIME))
++			return -EPERM;
+ 	} else {
+ 		/* In order to modify anything, you gotta be super-user! */
+ 		if (txc->modes && !capable(CAP_SYS_TIME))
+ 			return -EPERM;
++		if (txc->modes && !ccs_capable(CCS_SYS_SETTIME))
++			return -EPERM;
+ 		/*
+ 		 * if the quartz is off by more than 10% then
+ 		 * something is VERY wrong!
+@@ -2296,6 +2302,8 @@ static int timekeeping_validate_timex(co
+ 		/* In order to inject time, you gotta be super-user! */
+ 		if (!capable(CAP_SYS_TIME))
+ 			return -EPERM;
++		if (!ccs_capable(CCS_SYS_SETTIME))
++			return -EPERM;
+ 
+ 		/*
+ 		 * Validate if a timespec/timeval used to inject a time
+--- linux.orig/net/ipv4/raw.c
++++ linux/net/ipv4/raw.c
+@@ -772,6 +772,10 @@ static int raw_recvmsg(struct sock *sk,
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out;
++	}
+ 
+ 	copied = skb->len;
+ 	if (len < copied) {
+--- linux.orig/net/ipv4/udp.c
++++ linux/net/ipv4/udp.c
+@@ -1655,6 +1655,8 @@ try_again:
+ 	skb = __skb_recv_udp(sk, flags, noblock, &peeked, &off, &err);
+ 	if (!skb)
+ 		return err;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags))
++		return -EAGAIN; /* Hope less harmful than -EPERM. */
+ 
+ 	ulen = udp_skb_len(skb);
+ 	copied = len;
+--- linux.orig/net/ipv6/raw.c
++++ linux/net/ipv6/raw.c
+@@ -483,6 +483,10 @@ static int rawv6_recvmsg(struct sock *sk
+ 	skb = skb_recv_datagram(sk, flags, noblock, &err);
+ 	if (!skb)
+ 		goto out;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out;
++	}
+ 
+ 	copied = skb->len;
+ 	if (copied > len) {
+--- linux.orig/net/ipv6/udp.c
++++ linux/net/ipv6/udp.c
+@@ -343,6 +343,8 @@ try_again:
+ 	skb = __skb_recv_udp(sk, flags, noblock, &peeked, &off, &err);
+ 	if (!skb)
+ 		return err;
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags))
++		return -EAGAIN; /* Hope less harmful than -EPERM. */
+ 
+ 	ulen = udp6_skb_len(skb);
+ 	copied = len;
+--- linux.orig/net/socket.c
++++ linux/net/socket.c
+@@ -1589,6 +1589,10 @@ int __sys_accept4(int fd, struct sockadd
+ 	if (err < 0)
+ 		goto out_fd;
+ 
++	if (ccs_socket_post_accept_permission(sock, newsock)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out_fd;
++	}
+ 	if (upeer_sockaddr) {
+ 		len = newsock->ops->getname(newsock,
+ 					(struct sockaddr *)&address, 2);
+--- linux.orig/net/unix/af_unix.c
++++ linux/net/unix/af_unix.c
+@@ -2127,6 +2127,10 @@ static int unix_dgram_recvmsg(struct soc
+ 						EPOLLOUT | EPOLLWRNORM |
+ 						EPOLLWRBAND);
+ 
++	if (ccs_socket_post_recvmsg_permission(sk, skb, flags)) {
++		err = -EAGAIN; /* Hope less harmful than -EPERM. */
++		goto out_unlock;
++	}
+ 	if (msg->msg_name)
+ 		unix_copy_addr(msg, skb->sk);
+ 
+@@ -2177,6 +2181,7 @@ static int unix_dgram_recvmsg(struct soc
+ 
+ out_free:
+ 	skb_free_datagram(sk, skb);
++out_unlock:
+ 	mutex_unlock(&u->iolock);
+ out:
+ 	return err;
+--- linux.orig/security/Kconfig
++++ linux/security/Kconfig
+@@ -276,5 +276,7 @@ config DEFAULT_SECURITY
+ 	default "apparmor" if DEFAULT_SECURITY_APPARMOR
+ 	default "" if DEFAULT_SECURITY_DAC
+ 
++source security/ccsecurity/Kconfig
++
+ endmenu
+ 
+--- linux.orig/security/Makefile
++++ linux/security/Makefile
+@@ -30,3 +30,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
+ # Object integrity file lists
+ subdir-$(CONFIG_INTEGRITY)		+= integrity
+ obj-$(CONFIG_INTEGRITY)			+= integrity/
++
++subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
++obj-$(CONFIG_CCSECURITY)		+= ccsecurity/
+--- linux.orig/security/security.c
++++ linux/security/security.c
+@@ -988,12 +988,19 @@ int security_file_open(struct file *file
+ 
+ int security_task_alloc(struct task_struct *task, unsigned long clone_flags)
+ {
+-	return call_int_hook(task_alloc, 0, task, clone_flags);
++	int ret = ccs_alloc_task_security(task);
++	if (ret)
++		return ret;
++	ret = call_int_hook(task_alloc, 0, task, clone_flags);
++	if (ret)
++		ccs_free_task_security(task);
++	return ret;
+ }
+ 
+ void security_task_free(struct task_struct *task)
+ {
+ 	call_void_hook(task_free, task);
++	ccs_free_task_security(task);
+ }
+ 
+ int security_cred_alloc_blank(struct cred *cred, gfp_t gfp)

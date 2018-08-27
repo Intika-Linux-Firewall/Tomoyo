@@ -27,7 +27,11 @@ int ccs_inode_getattr(const struct path *path);
 #endif
 int ccs_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 int ccs_file_fcntl(struct file *file, unsigned int cmd, unsigned long arg);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
+int ccs_file_open(struct file *file);
+#else
 int ccs_file_open(struct file *file, const struct cred *cred);
+#endif
 int ccs_socket_create(int family, int type, int protocol, int kern);
 int ccs_socket_bind(struct socket *sock, struct sockaddr *address,
 		    int addrlen);
@@ -128,10 +132,17 @@ static inline int ccs_file_fcntl(struct file *file, unsigned int cmd,
 {
 	return 0;
 }
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
+static inline int ccs_file_open(struct file *file)
+{
+	return 0;
+}
+#else
 static inline int ccs_file_open(struct file *file, const struct cred *cred)
 {
 	return 0;
 }
+#endif
 static inline int ccs_socket_create(int family, int type, int protocol,
 				    int kern)
 {

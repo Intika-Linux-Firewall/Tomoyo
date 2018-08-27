@@ -29,9 +29,9 @@ apt-get -y install wget
 # Download TOMOYO Linux patches.
 mkdir -p ~/rpmbuild/SOURCES/
 cd ~/rpmbuild/SOURCES/ || die "Can't chdir to ~/rpmbuild/SOURCES/ ."
-if [ ! -r ccs-patch-1.8.5-20180714.tar.gz ]
+if [ ! -r ccs-patch-1.8.5-20180827.tar.gz ]
 then
-    wget -O ccs-patch-1.8.5-20180714.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.5-20180714.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.5-20180827.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.5-20180827.tar.gz' || die "Can't download patch."
 fi
 
 # Install kernel source packages.
@@ -44,7 +44,7 @@ for i in `awk ' { if ( $1 != "Build-Depends:") next; $1 = ""; n = split($0, a, "
 # Apply patches and create kernel config.
 cd linux-3.8.0/ || die "Can't chdir to linux-3.8.0/ ."
 update_maintainer
-tar -zxf ~/rpmbuild/SOURCES/ccs-patch-1.8.5-20180714.tar.gz || die "Can't extract patch."
+tar -zxf ~/rpmbuild/SOURCES/ccs-patch-1.8.5-20180827.tar.gz || die "Can't extract patch."
 patch -p1 < patches/ccs-patch-3.8-ubuntu-13.04.diff || die "Can't apply patch."
 rm -fR patches/ specs/ || die "Can't delete patch."
 for i in `find debian.master/ -type f -name '*'${ORIGINAL_FLAVOUR}'*'`; do cp -p $i `echo $i | sed -e 's/'${ORIGINAL_FLAVOUR}'/'${NEW_FLAVOUR}'/g'`; done
