@@ -1491,7 +1491,7 @@ static void *ccs_commit_ok(void *data, const unsigned int size)
  * @string: String representation for permissions in foo/bar/buz format.
  * @keyword: Keyword to find from @string/
  *
- * Returns ture if @keyword was found in @string, false otherwise.
+ * Returns true if @keyword was found in @string, false otherwise.
  *
  * This function assumes that strncmp(w1, w2, strlen(w1)) != 0 if w1 != w2.
  */
