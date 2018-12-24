@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for kernel 4.9.146.
+This is TOMOYO Linux patch for kernel 4.9.147.
 
-Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.9.146.tar.xz
+Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux-4.9.147.tar.xz
 ---
  fs/exec.c                 |    2 -
  fs/open.c                 |    2 +
@@ -28,8 +28,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  security/Makefile         |    3 ++
  24 files changed, 147 insertions(+), 26 deletions(-)
 
---- linux-4.9.146.orig/fs/exec.c
-+++ linux-4.9.146/fs/exec.c
+--- linux-4.9.147.orig/fs/exec.c
++++ linux-4.9.147/fs/exec.c
 @@ -1660,7 +1660,7 @@ static int exec_binprm(struct linux_binp
  	old_vpid = task_pid_nr_ns(current, task_active_pid_ns(current->parent));
  	rcu_read_unlock();
@@ -39,8 +39,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	if (ret >= 0) {
  		audit_bprm(bprm);
  		trace_sched_process_exec(current, old_pid, bprm);
---- linux-4.9.146.orig/fs/open.c
-+++ linux-4.9.146/fs/open.c
+--- linux-4.9.147.orig/fs/open.c
++++ linux-4.9.147/fs/open.c
 @@ -1151,6 +1151,8 @@ EXPORT_SYMBOL(sys_close);
   */
  SYSCALL_DEFINE0(vhangup)
@@ -50,8 +50,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-4.9.146.orig/fs/proc/version.c
-+++ linux-4.9.146/fs/proc/version.c
+--- linux-4.9.147.orig/fs/proc/version.c
++++ linux-4.9.147/fs/proc/version.c
 @@ -32,3 +32,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -59,12 +59,12 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 4.9.146 2018/12/17\n");
++	printk(KERN_INFO "Hook version: 4.9.147 2018/12/24\n");
 +	return 0;
 +}
 +fs_initcall(ccs_show_version);
---- linux-4.9.146.orig/include/linux/init_task.h
-+++ linux-4.9.146/include/linux/init_task.h
+--- linux-4.9.147.orig/include/linux/init_task.h
++++ linux-4.9.147/include/linux/init_task.h
 @@ -193,6 +193,14 @@ extern struct task_group root_task_group
  # define INIT_TASK_TI(tsk)
  #endif
@@ -88,8 +88,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  
  
---- linux-4.9.146.orig/include/linux/sched.h
-+++ linux-4.9.146/include/linux/sched.h
+--- linux-4.9.147.orig/include/linux/sched.h
++++ linux-4.9.147/include/linux/sched.h
 @@ -6,6 +6,8 @@
  #include <linux/sched/prio.h>
  
@@ -110,8 +110,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  /* CPU-specific state of this task */
  	struct thread_struct thread;
  /*
---- linux-4.9.146.orig/include/linux/security.h
-+++ linux-4.9.146/include/linux/security.h
+--- linux-4.9.147.orig/include/linux/security.h
++++ linux-4.9.147/include/linux/security.h
 @@ -55,6 +55,7 @@ struct msg_queue;
  struct xattr;
  struct xfrm_sec_ctx;
@@ -318,8 +318,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-4.9.146.orig/include/net/ip.h
-+++ linux-4.9.146/include/net/ip.h
+--- linux-4.9.147.orig/include/net/ip.h
++++ linux-4.9.147/include/net/ip.h
 @@ -254,6 +254,8 @@ void inet_get_local_port_range(struct ne
  #ifdef CONFIG_SYSCTL
  static inline int inet_is_local_reserved_port(struct net *net, int port)
@@ -338,8 +338,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	return 0;
  }
  #endif
---- linux-4.9.146.orig/kernel/fork.c
-+++ linux-4.9.146/kernel/fork.c
+--- linux-4.9.147.orig/kernel/fork.c
++++ linux-4.9.147/kernel/fork.c
 @@ -395,6 +395,7 @@ void __put_task_struct(struct task_struc
  	delayacct_tsk_free(tsk);
  	put_signal_struct(tsk->signal);
@@ -366,8 +366,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  bad_fork_cleanup_perf:
  	perf_event_free_task(p);
  bad_fork_cleanup_policy:
---- linux-4.9.146.orig/kernel/kexec.c
-+++ linux-4.9.146/kernel/kexec.c
+--- linux-4.9.147.orig/kernel/kexec.c
++++ linux-4.9.147/kernel/kexec.c
 @@ -17,7 +17,7 @@
  #include <linux/syscalls.h>
  #include <linux/vmalloc.h>
@@ -386,8 +386,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	/*
  	 * Verify we have a legal set of flags
---- linux-4.9.146.orig/kernel/module.c
-+++ linux-4.9.146/kernel/module.c
+--- linux-4.9.147.orig/kernel/module.c
++++ linux-4.9.147/kernel/module.c
 @@ -63,6 +63,7 @@
  #include <linux/dynamic_debug.h>
  #include <uapi/linux/module.h>
@@ -414,8 +414,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	return 0;
  }
---- linux-4.9.146.orig/kernel/ptrace.c
-+++ linux-4.9.146/kernel/ptrace.c
+--- linux-4.9.147.orig/kernel/ptrace.c
++++ linux-4.9.147/kernel/ptrace.c
 @@ -1122,6 +1122,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
@@ -440,8 +440,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-4.9.146.orig/kernel/reboot.c
-+++ linux-4.9.146/kernel/reboot.c
+--- linux-4.9.147.orig/kernel/reboot.c
++++ linux-4.9.147/kernel/reboot.c
 @@ -16,6 +16,7 @@
  #include <linux/syscalls.h>
  #include <linux/syscore_ops.h>
@@ -459,8 +459,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	/*
  	 * If pid namespaces are enabled and the current task is in a child
---- linux-4.9.146.orig/kernel/sched/core.c
-+++ linux-4.9.146/kernel/sched/core.c
+--- linux-4.9.147.orig/kernel/sched/core.c
++++ linux-4.9.147/kernel/sched/core.c
 @@ -3813,6 +3813,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
@@ -470,8 +470,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-4.9.146.orig/kernel/signal.c
-+++ linux-4.9.146/kernel/signal.c
+--- linux-4.9.147.orig/kernel/signal.c
++++ linux-4.9.147/kernel/signal.c
 @@ -2868,6 +2868,8 @@ SYSCALL_DEFINE4(rt_sigtimedwait, const s
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
@@ -517,8 +517,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-4.9.146.orig/kernel/sys.c
-+++ linux-4.9.146/kernel/sys.c
+--- linux-4.9.147.orig/kernel/sys.c
++++ linux-4.9.147/kernel/sys.c
 @@ -185,6 +185,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -548,8 +548,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
---- linux-4.9.146.orig/kernel/time/ntp.c
-+++ linux-4.9.146/kernel/time/ntp.c
+--- linux-4.9.147.orig/kernel/time/ntp.c
++++ linux-4.9.147/kernel/time/ntp.c
 @@ -17,6 +17,7 @@
  #include <linux/module.h>
  #include <linux/rtc.h>
@@ -583,8 +583,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  		if (txc->modes & ADJ_NANO) {
  			struct timespec ts;
---- linux-4.9.146.orig/net/ipv4/raw.c
-+++ linux-4.9.146/net/ipv4/raw.c
+--- linux-4.9.147.orig/net/ipv4/raw.c
++++ linux-4.9.147/net/ipv4/raw.c
 @@ -744,6 +744,10 @@ static int raw_recvmsg(struct sock *sk,
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -596,8 +596,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-4.9.146.orig/net/ipv4/udp.c
-+++ linux-4.9.146/net/ipv4/udp.c
+--- linux-4.9.147.orig/net/ipv4/udp.c
++++ linux-4.9.147/net/ipv4/udp.c
 @@ -1267,6 +1267,8 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
@@ -607,8 +607,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	ulen = skb->len;
  	copied = len;
---- linux-4.9.146.orig/net/ipv6/raw.c
-+++ linux-4.9.146/net/ipv6/raw.c
+--- linux-4.9.147.orig/net/ipv6/raw.c
++++ linux-4.9.147/net/ipv6/raw.c
 @@ -478,6 +478,10 @@ static int rawv6_recvmsg(struct sock *sk
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -620,8 +620,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-4.9.146.orig/net/ipv6/udp.c
-+++ linux-4.9.146/net/ipv6/udp.c
+--- linux-4.9.147.orig/net/ipv6/udp.c
++++ linux-4.9.147/net/ipv6/udp.c
 @@ -348,6 +348,8 @@ try_again:
  				  &peeked, &off, &err);
  	if (!skb)
@@ -631,8 +631,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  
  	ulen = skb->len;
  	copied = len;
---- linux-4.9.146.orig/net/socket.c
-+++ linux-4.9.146/net/socket.c
+--- linux-4.9.147.orig/net/socket.c
++++ linux-4.9.147/net/socket.c
 @@ -1482,6 +1482,10 @@ SYSCALL_DEFINE4(accept4, int, fd, struct
  	if (err < 0)
  		goto out_fd;
@@ -644,8 +644,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	if (upeer_sockaddr) {
  		if (newsock->ops->getname(newsock, (struct sockaddr *)&address,
  					  &len, 2) < 0) {
---- linux-4.9.146.orig/net/unix/af_unix.c
-+++ linux-4.9.146/net/unix/af_unix.c
+--- linux-4.9.147.orig/net/unix/af_unix.c
++++ linux-4.9.147/net/unix/af_unix.c
 @@ -2150,6 +2150,10 @@ static int unix_dgram_recvmsg(struct soc
  						POLLOUT | POLLWRNORM |
  						POLLWRBAND);
@@ -665,8 +665,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
  	mutex_unlock(&u->iolock);
  out:
  	return err;
---- linux-4.9.146.orig/security/Kconfig
-+++ linux-4.9.146/security/Kconfig
+--- linux-4.9.147.orig/security/Kconfig
++++ linux-4.9.147/security/Kconfig
 @@ -214,5 +214,7 @@ config DEFAULT_SECURITY
  	default "apparmor" if DEFAULT_SECURITY_APPARMOR
  	default "" if DEFAULT_SECURITY_DAC
@@ -675,8 +675,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v4.x/linux
 +
  endmenu
  
---- linux-4.9.146.orig/security/Makefile
-+++ linux-4.9.146/security/Makefile
+--- linux-4.9.147.orig/security/Makefile
++++ linux-4.9.147/security/Makefile
 @@ -29,3 +29,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
