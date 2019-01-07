@@ -73,6 +73,9 @@
 #include <net/ip.h>
 #include <net/ipv6.h>
 #include <net/udp.h>
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)
+#include <uapi/linux/mount.h>
+#endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 5, 0)
 #define sk_family family
