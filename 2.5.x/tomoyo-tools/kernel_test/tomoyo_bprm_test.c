@@ -178,6 +178,7 @@ int main(int argc, char *argv[])
 	ccs_test_init();
 	fprintf(domain_fp, "%s " BINDIR "/true\n", self_domain);
 	fprintf(domain_fp, "use_profile 255\n");
+	fprintf(domain_fp, "use_group 0\n");
 	fprintf(domain_fp, "select pid=%u\n", pid);
 	fprintf(domain_fp, "file read/write %s\n", proc_policy_domain_policy);
 	set_profile(3, "file::execute");
