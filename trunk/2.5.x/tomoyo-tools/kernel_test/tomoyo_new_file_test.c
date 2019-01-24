@@ -118,6 +118,7 @@ static void stage_file_test(void)
 	size_t size = sizeof(buffer);
 	int pipe_fd[2] = { EOF, EOF };
 	int err = 0;
+	int flags;
 	int fd;
 	char pbuffer[1024];
 	struct stat sbuf;
@@ -183,6 +184,38 @@ static void stage_file_test(void)
 	show_result(uselib("/tmp/uselib"), 1);
 	write_domain_policy(policy, 1);
 	show_result(uselib("/tmp/uselib"), 0);
+
+	policy = "file write /dev/null";
+	fd = open("/dev/null", O_WRONLY);
+	show_result(fd, 0);
+	close(fd);
+	write_domain_policy(policy, 0);
+	fd = open("/dev/null", O_WRONLY);
+	show_result(fd, 1);
+	write_domain_policy(policy, 1);
+	flags = fcntl(fd, F_GETFL, 0) | O_APPEND;
+	policy = "file append /dev/null";
+	show_result(fcntl(fd, F_SETFL, flags), 0);
+	write_domain_policy(policy, 0);
+	show_result(fcntl(fd, F_SETFL, flags), 1);
+	write_domain_policy(policy, 1);
+	close(fd);
+
+	policy = "file append /dev/null";
+	fd = open("/dev/null", O_WRONLY | O_APPEND);
+	show_result(fd, 0);
+	close(fd);
+	write_domain_policy(policy, 0);
+	fd = open("/dev/null", O_WRONLY | O_APPEND);
+	show_result(fd, 1);
+	write_domain_policy(policy, 1);
+	flags = fcntl(fd, F_GETFL, 0) & ~O_APPEND;
+	policy = "file write /dev/null";
+	show_result(fcntl(fd, F_SETFL, flags), 0);
+	write_domain_policy(policy, 0);
+	show_result(fcntl(fd, F_SETFL, flags), 1);
+	write_domain_policy(policy, 1);
+	close(fd);
 
 	policy = "file execute " BINDIR "/true task.uid!=10 path1.parent.uid=0";
 	write_domain_policy(policy, 0);
@@ -625,6 +658,7 @@ int main(int argc, char *argv[])
 	make_elf_lib();
 	fprintf(domain_fp, "%s " BINDIR "/true\n", self_domain);
 	fprintf(domain_fp, "use_profile 255\n");
+	fprintf(domain_fp, "use_group 0\n");
 	fprintf(domain_fp, "select pid=%u\n", pid);
 	fprintf(profile_fp, "255-PREFERENCE={ max_reject_log=1024 }\n");
 	stage_file_test();
