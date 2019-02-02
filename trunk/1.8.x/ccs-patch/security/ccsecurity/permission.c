@@ -1437,6 +1437,10 @@ bool ccs_dump_page(struct linux_binprm *bprm, unsigned long pos,
 	if (get_user_pages_remote(current, bprm->mm, pos, 1, FOLL_FORCE, &page,
 				  NULL) <= 0)
 		return false;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 4, 168) && LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)
+	if (get_user_pages(current, bprm->mm, pos, 1, FOLL_FORCE, &page,
+			   NULL) <= 0)
+		return false;
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
 	if (get_user_pages_remote(current, bprm->mm, pos, 1, 0, 1, &page,
 				  NULL) <= 0)
