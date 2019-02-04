@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
 <title>TOMOYO Linux導入手順</title>
-<link rel="stylesheet" href="http://tomoyo.osdn.jp/tomoyo.css" media="all" type="text/css">
+<link rel="stylesheet" href="https://tomoyo.osdn.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <p>Info: Version <a href="../1.3/">1.3</a> is available.</p>
@@ -69,7 +69,7 @@
 <tr><td>
 cd /root/<br>
 # TOMOYO Linux ツールのソースをダウンロードする。<br>
-wget -O ccs-tools-1.2-20060903.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/21579/ccs-tools-1.2-20060903.tar.gz'<br>
+wget -O ccs-tools-1.2-20060903.tar.gz 'https://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/21579/ccs-tools-1.2-20060903.tar.gz'<br>
 # 展開する。<br>
 tar -zxf ccs-tools-1.2-20060903.tar.gz<br>
 # コンパイルする。<br>
@@ -110,7 +110,7 @@ cat /proc/ccs/status &gt; /root/security/status.txt
 <p>ssh を使用してログインする際のセキュリティを向上させるのが目的です。この手順は任意ですが、簡単に実現できるので活用することを推奨します。</p>
 
 <p>TOMOYO Linux では、 SELinux のように sshd を改造してバッファオーバーフロー対策などを行うことはできません。 そのため、 sshd または認証モジュールに脆弱性が存在した場合、 SELinux よりも簡単に侵入を許してしまいます。
-しかし、脅威はバッファオーバーフローなどだけではありません。正規のユーザ名とパスワードを使用してログインされるという可能性も存在します。 ssh でログインする場合、パスワードまたは公開鍵認証を使用している場合が圧倒的に多いと思います。しかし、<a href="http://itpro.nikkeibp.co.jp/article/NEWS/20051107/224128/">ブルートフォース攻撃により侵入されてフィッシングなどに悪用される</a>などの被害が増えてきています。そのため、ログイン認証は突破されることを前提として、追加のログイン認証が行われるようにすることが大切です。 詳細については、論文「<a href="http://osdn.jp/projects/tomoyo/document/winf2005.pdf">セキュリティ強化OSによるログイン認証の強化手法</a>」を参照してください。</p>
+しかし、脅威はバッファオーバーフローなどだけではありません。正規のユーザ名とパスワードを使用してログインされるという可能性も存在します。 ssh でログインする場合、パスワードまたは公開鍵認証を使用している場合が圧倒的に多いと思います。しかし、<a href="http://itpro.nikkeibp.co.jp/article/NEWS/20051107/224128/">ブルートフォース攻撃により侵入されてフィッシングなどに悪用される</a>などの被害が増えてきています。そのため、ログイン認証は突破されることを前提として、追加のログイン認証が行われるようにすることが大切です。 詳細については、論文「<a href="https://osdn.jp/projects/tomoyo/document/winf2005.pdf">セキュリティ強化OSによるログイン認証の強化手法</a>」を参照してください。</p>
 
 <p>追加的な防御手段で使用するプログラムは、管理者が自由な仕様で作成することができます。 この段階でそのためのプログラムを作成して、意図したとおりの使い方ができることを確認しておいてください。</p>
 
@@ -214,7 +214,7 @@ TOMOYO Linux カーネルで行うと、シャットダウン時に /root/ccstoo
 
 <h2><a name="example_policy">デフォルトポリシーについて</a></h2>
 <p>TOMOYO Linux には、ソフトウェアと一緒に配布されるデフォルトポリシーはありません。学習モードを使用して策定する必要があります。<br>
-参考までに、<a href="http://tomoyo.osdn.jp/cgi-bin/lxr/source/?v=policy-sample">サンプルのポリシー</a>を置いてあります。参照は自由ですが、デフォルトポリシーとしての利用はしないでください。</p>
+参考までに、<a href="https://tomoyo.osdn.jp/cgi-bin/lxr/source/?v=policy-sample">サンプルのポリシー</a>を置いてあります。参照は自由ですが、デフォルトポリシーとしての利用はしないでください。</p>
 
 <h2><a name="manager-programs">ポリシーの変更を許可するプログラムの指定</a></h2>
 
@@ -1057,6 +1057,6 @@ allow_rename /home/\*/samba/\*/\*/\*/ /home/\*/samba/\*/\*/\*/ if task.euid=path
 <h2><a name="enforce-mode">強制モード</a></h2>
 
 <p>起動時のブートプロンプトで TOMOYO Linux カーネルを選択し、強制モード用のプロファイル番号を CCS= に指定して起動します。</p>
-<p><a href="http://osdn.jp/"><img src="http://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
+<p><a href="https://osdn.jp/"><img src="https://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
 </body>
 </html>

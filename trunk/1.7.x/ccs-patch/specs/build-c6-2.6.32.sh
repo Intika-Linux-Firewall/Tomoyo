@@ -20,7 +20,7 @@ rpm -ivh kernel-2.6.32-754.10.1.el6.src.rpm || die "Can't install source package
 cd ~/rpmbuild/SOURCES/ || die "Can't chdir to ~/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.7.3-20171111.tar.gz ]
 then
-    wget -O ccs-patch-1.7.3-20171111.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.3-20171111.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.7.3-20171111.tar.gz 'https://osdn.jp/frs/redir.php?f=/tomoyo/43375/ccs-patch-1.7.3-20171111.tar.gz' || die "Can't download patch."
 fi
 
 cd ~/rpmbuild/SPECS/ || die "Can't chdir to ~/rpmbuild/SPECS/ ."

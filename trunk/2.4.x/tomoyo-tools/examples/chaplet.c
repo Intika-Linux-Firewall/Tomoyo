@@ -2,7 +2,7 @@
  * chaplet.c
  *
  * An example program for CERBERUS.
- * ( http://osdn.jp/projects/tomoyo/document/winf2005-en.pdf )
+ * ( https://osdn.jp/projects/tomoyo/document/winf2005-en.pdf )
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *

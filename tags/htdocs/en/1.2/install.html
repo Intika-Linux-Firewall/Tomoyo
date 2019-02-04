@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
 <meta http-equiv="Content-Style-Type" content="text/css">
 <title>TOMOYO Linux Install manual</title>
-<link rel="stylesheet" href="http://tomoyo.osdn.jp/tomoyo.css" media="all" type="text/css">
+<link rel="stylesheet" href="https://tomoyo.osdn.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <p>Info: Version <a href="../1.3/">1.3</a> is available.</p>
@@ -68,7 +68,7 @@
 <tr><td>
 cd /root/<br>
 # Download source of tools for TOMOYO Linux.<br>
-wget -O ccs-tools-1.2-20060903.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/21579/ccs-tools-1.2-20060903.tar.gz'<br>
+wget -O ccs-tools-1.2-20060903.tar.gz 'https://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/21579/ccs-tools-1.2-20060903.tar.gz'<br>
 # Extract.<br>
 tar -zxf ccs-tools-1.2-20060903.tar.gz<br>
 # Compile.<br>
@@ -115,7 +115,7 @@ There is a threat that a cracker logs in using proper username and passwords.
 Many users use password authentication or public-key authentication for ssh login.
 But, in fact, the passwords are cracked by brute force attacks, the system gets configured as a platform for phishing.
 Therefore, it is important that you prepare additional authentication mechanism on the basis that the sshd authentication are run through.
-Read the paper <a href="http://osdn.jp/projects/tomoyo/document/winf2005-en.pdf">"Chained Enforceable Re-authentication Barrier Ensures Really Unbreakable Security"</a> for details.</p>
+Read the paper <a href="https://osdn.jp/projects/tomoyo/document/winf2005-en.pdf">"Chained Enforceable Re-authentication Barrier Ensures Really Unbreakable Security"</a> for details.</p>
 
 <p>You can make programs for additional authentication mechanism as you like.
 Create the programs at this step, and confirm that the program works as you intended.</p>
@@ -228,7 +228,7 @@ If you use TOMOYO Linux's kernel, /root/ccstools/savepolicy will be executed on 
 <h2><a name="example_policy">About Default Policy</a></h2>
 
 <p>TOMOYO Linux doesn't have default policy files distributed with softwares. Administrators need to create policy files using "accept mode".<br>
-The <a href="http://tomoyo.osdn.jp/cgi-bin/lxr/source/?v=policy-sample">example policies</a> are available to help your understanding. You may use these examples as a guide, but you MUST NOT use these examples as default policies.</p>
+The <a href="https://tomoyo.osdn.jp/cgi-bin/lxr/source/?v=policy-sample">example policies</a> are available to help your understanding. You may use these examples as a guide, but you MUST NOT use these examples as default policies.</p>
 
 <h2><a name="manager-programs">Defining Policy Managers</a></h2>
 
@@ -1060,6 +1060,6 @@ allow_rename /home/\*/samba/\*/\*/\*/ /home/\*/samba/\*/\*/\*/ if task.euid=path
 <h2><a name="enforce-mode">Enforce mode</a></h2>
 
 <p>Boot with TOMOYO Linux kernel with the profile number for enforce mode to CCS= parameter.</p>
-<p><a href="http://osdn.jp/"><img src="http://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
+<p><a href="https://osdn.jp/"><img src="https://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
 </body>
 </html>

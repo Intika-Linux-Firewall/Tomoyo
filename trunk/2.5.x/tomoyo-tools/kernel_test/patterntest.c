@@ -459,28 +459,28 @@ static const struct {
 	{ "pipe:[12345]", "pipe:[\\$]", 1 },
 	{ "socket:[family=1:type=2:protocol=3]",
 	  "socket:[family=1:type=2:protocol=\\$]", 1 },
-	{ "http://tomoyo.osdn.jp/", "\\*/\\*/\\*/", 1 },
-	{ "http://tomoyo.osdn.jp/index.html", "\\*/\\*/\\*/\\*", 1 },
-	{ "http://tomoyo.osdn.jp/index.html",
+	{ "https://tomoyo.osdn.jp/", "\\*/\\*/\\*/", 1 },
+	{ "https://tomoyo.osdn.jp/index.html", "\\*/\\*/\\*/\\*", 1 },
+	{ "https://tomoyo.osdn.jp/index.html",
 	  "\\*/\\*/\\*/\\*\\*\\@\\*\\@", 1 },
-	{ "http://tomoyo.osdn.jp/index.html",
+	{ "https://tomoyo.osdn.jp/index.html",
 	  "\\*/\\@\\*/\\*\\@/\\*\\@\\*\\@\\*", 1 },
-	{ "http://tomoyo.osdn.jp/1.7/index.html",
+	{ "https://tomoyo.osdn.jp/1.7/index.html",
 	  "http://\\{\\*\\}/\\@.html", 1 },
-	{ "http://tomoyo.osdn.jp/index.html",
+	{ "https://tomoyo.osdn.jp/index.html",
 	  "\\*://\\@.osdn.jp/\\*", 1 },
-	{ "http://tomoyo.osdn.jp/index.html",
+	{ "https://tomoyo.osdn.jp/index.html",
 	  "\\*://\\@.osdn.jp/\\*", 1 },
-	{ "http://osdn.jp/projects/tomoyo/svn/view/trunk/1.7.x/"
+	{ "https://osdn.jp/projects/tomoyo/svn/view/trunk/1.7.x/"
 	  "ccs-patch/security/ccsecurity/?root=tomoyo",
 	  "\\*://\\@osdn.jp/\\{\\*\\}/?root=tomoyo", 1 },
-	{ "http://osdn.jp/projects/tomoyo/svn/view/trunk/1.7.x/"
+	{ "https://osdn.jp/projects/tomoyo/svn/view/trunk/1.7.x/"
 	  "ccs-patch/security/?root=tomoyo",
 	  "\\*://\\@osdn.jp/\\{\\*\\}/?root=tomoyo", 1 },
-	{ "http://osdn.jp/projects/tomoyo/svn/view/trunk/1.7.x/"
+	{ "https://osdn.jp/projects/tomoyo/svn/view/trunk/1.7.x/"
 	  "ccs-patch/?root=tomoyo",
 	  "\\*://\\@osdn.jp/\\{\\*\\}/?root=tomoyo", 1 },
-	{ "http://osdn.jp/projects/tomoyo/svn/view/trunk/1.7.x/"
+	{ "https://osdn.jp/projects/tomoyo/svn/view/trunk/1.7.x/"
 	  "/ccs-patch///security//ccsecurity///?root=tomoyo",
 	  "\\*://\\@osdn.jp/\\{\\*\\-.\\-..\\-\\*%\\*\\}/"
 	  "?root=tomoyo\\*\\*", 1 },
@@ -492,9 +492,9 @@ static const struct {
 	{ BINDIR "/", BINDIR "/\\*", 0 },
 	{ BINDIR "/", BINDIR "/\\@", 0 },
 	{ BINDIR "/", BINDIR "/\\@\\@", 0 },
-	{ "http://tomoyo.osdn.jp/", "\\*/\\*/\\*/\?", 0 },
-	{ "http://tomoyo.osdn.jp/index.html", "\\*/\\*/\\*/\\@", 0 },
-	{ "http://tomoyo.osdn.jp/index.html", "http://\\*/\\@", 0 },
+	{ "https://tomoyo.osdn.jp/", "\\*/\\*/\\*/\?", 0 },
+	{ "https://tomoyo.osdn.jp/index.html", "\\*/\\*/\\*/\\@", 0 },
+	{ "https://tomoyo.osdn.jp/index.html", "http://\\*/\\@", 0 },
 	{ "socket:[family=1:type=2:protocol=3]",
 	  "/\\{\\*\\}/socket:[\\*]", 0 },
 	{ NULL, NULL, 0 }

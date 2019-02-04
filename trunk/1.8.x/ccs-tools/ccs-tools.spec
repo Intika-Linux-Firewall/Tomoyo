@@ -21,7 +21,7 @@ Source0: http://osdn.dl.osdn.jp/tomoyo/49693/ccs-tools-1.8.5-20170102.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 1.8.x.
-Please see http://tomoyo.osdn.jp/1.8/ for documentation.
+Please see https://tomoyo.osdn.jp/1.8/ for documentation.
 
 %prep
 

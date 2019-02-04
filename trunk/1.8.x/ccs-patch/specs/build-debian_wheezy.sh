@@ -26,7 +26,7 @@ cd ~/rpmbuild/SOURCES/ || die "Can't chdir to ~/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.5-20181225.tar.gz ]
 then
     apt-get -y install wget
-    wget -O ccs-patch-1.8.5-20181225.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.5-20181225.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.5-20181225.tar.gz 'https://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.5-20181225.tar.gz' || die "Can't download patch."
 fi
 
 # Install kernel source packages.

@@ -20,7 +20,7 @@ rpm -ivh kernel-2.6.18-419.el5.src.rpm || die "Can't install source package."
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.5-20181225.tar.gz ]
 then
-    wget -O ccs-patch-1.8.5-20181225.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.5-20181225.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.5-20181225.tar.gz 'https://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.5-20181225.tar.gz' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
