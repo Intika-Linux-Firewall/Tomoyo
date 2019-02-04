@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta http-equiv="Content-Style-Type" content="text/css">
 <title>TOMOYO Linux 導入手順書</title>
-<link rel="stylesheet" href="http://tomoyo.osdn.jp/tomoyo.css" media="all" type="text/css">
+<link rel="stylesheet" href="https://tomoyo.osdn.jp/tomoyo.css" media="all" type="text/css">
 </head>
 <body>
 <p>Info: Version <a href="../1.8/">1.8.x</a> is available.</p>
@@ -115,8 +115,8 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 <p>TOMOYO Linux パッチをダウンロードして適用します。</p>
 
 <pre>
-# wget -O ccs-patch-1.7.3-20171111.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/43375/ccs-patch-1.7.3-20171111.tar.gz'
-# wget -O ccs-patch-1.7.3-20171111.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/43375/ccs-patch-1.7.3-20171111.tar.gz.asc'
+# wget -O ccs-patch-1.7.3-20171111.tar.gz 'https://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/43375/ccs-patch-1.7.3-20171111.tar.gz'
+# wget -O ccs-patch-1.7.3-20171111.tar.gz.asc 'https://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/43375/ccs-patch-1.7.3-20171111.tar.gz.asc'
 # gpg ccs-patch-1.7.3-20171111.tar.gz.asc
 # tar -zxf ccs-patch-1.7.3-20171111.tar.gz
 # patch -p1 &lt; patches/ccs-patch-2.6.15-cat-760.diff
@@ -148,7 +148,7 @@ deb http://archive.debian.org/debian-archive/debian-security/ sarge/updates main
 
 <pre>
 # cd
-# wget -O - 'http://osdn.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar' | tar -zxf -
+# wget -O - 'https://osdn.jp/projects/tomoyo/svn/view/trunk/1.7.x/ccs-tools/ccstools.tar.gz?root=tomoyo&amp;view=tar' | tar -zxf -
 </pre>
 
 <p>CAT760 向けにクロスコンパイルを行います。クロスコンパイルされたツールは /home/ebihara/tmp/sbin/ および /home/ebihara/tmp/usr/ 以下にインストールされます。</p>
@@ -735,6 +735,6 @@ setparam console=ttySC0,115200 root=/dev/mtdblock2 ro rootfstype=jffs2
 <hr>
 
 <p><a href="index.html.ja">目次へ戻る</a></p>
-<p><a href="http://osdn.jp/"><img src="http://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
+<p><a href="https://osdn.jp/"><img src="https://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
 </body>
 </html>

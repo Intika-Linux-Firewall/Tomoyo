@@ -55,7 +55,7 @@ ffffffff8115e460 T tomoyo_poll_log
 
 <p>存在しない場合、 TOMOYO Linux 対応カーネルを作成する必要がありますので、以下の手順に従ってインストールしてください。</p>
 
-<p>ただし、カーネルのコンパイルをせずに TOMOYO Linux の機能の主要部分を使いたい場合には、 AKARI というカーネルモジュールを利用することができます。このモジュールは TOMOYO 2.x よりも豊富な機能を提供していますが、 TOMOYO 1.x の機能の一部は使えません。「カーネルがどのようなコンパイルオプションでコンパイルされたか」と「ＣＰＵアーキテクチャ」に依存するという制限がありますが、カーネル 2.6.0 以降の全てのバージョンに対応しており、簡単に利用できます。 <a href="http://akari.osdn.jp/comparison.html.ja">機能比較表</a>で AKARI と TOMOYO 1.x と TOMOYO 2.x の違いについて詳細に説明されています。もし、 AKARI を使うのであれば、 <a href="http://akari.osdn.jp/">AKARI のウェブサイト</a>へと移動してください。</p>
+<p>ただし、カーネルのコンパイルをせずに TOMOYO Linux の機能の主要部分を使いたい場合には、 AKARI というカーネルモジュールを利用することができます。このモジュールは TOMOYO 2.x よりも豊富な機能を提供していますが、 TOMOYO 1.x の機能の一部は使えません。「カーネルがどのようなコンパイルオプションでコンパイルされたか」と「ＣＰＵアーキテクチャ」に依存するという制限がありますが、カーネル 2.6.0 以降の全てのバージョンに対応しており、簡単に利用できます。 <a href="https://akari.osdn.jp/comparison.html.ja">機能比較表</a>で AKARI と TOMOYO 1.x と TOMOYO 2.x の違いについて詳細に説明されています。もし、 AKARI を使うのであれば、 <a href="https://akari.osdn.jp/">AKARI のウェブサイト</a>へと移動してください。</p>
 
 <p>もし、 TOMOYO 2.x を使うつもりであり、 <a href="../2.5/">TOMOYO 2.5</a> を使いたくない理由が無いのであれば、 TOMOYO 2.5 を利用することを推奨します。 TOMOYO 2.5 はより強力で使いやすいものになっています。</p>
 
@@ -95,16 +95,16 @@ ffffffff8115e460 T tomoyo_poll_log
 <p>カーネル 3.1 で TOMOYO 2.4 を利用したい場合は、バグ修正パッチをダウンロードして適用してください：</p>
 
 <pre class="command">
-$ wget http://tomoyo.osdn.jp/2.4/patches/tomoyo-2.4-backport-for-3.1.patch
+$ wget https://tomoyo.osdn.jp/2.4/patches/tomoyo-2.4-backport-for-3.1.patch
 $ patch -p1 &lt; tomoyo-2.4-backport-for-3.1.patch
 </pre>
 
-<p>カーネル 2.6.33 ～ 3.0 で TOMOYO 2.4 を利用したい場合は、カーネルのバージョンに合ったバックポートパッチを <a href="http://tomoyo.osdn.jp/2.4/patches/">http://tomoyo.osdn.jp/2.4/patches/</a> からダウンロードし、以下のコマンドを実行してください（例えばカーネル 2.6.33 を使う場合、 $KERNELVERSION を 2.6.33 に置き換えてください）：</p>
+<p>カーネル 2.6.33 ～ 3.0 で TOMOYO 2.4 を利用したい場合は、カーネルのバージョンに合ったバックポートパッチを <a href="https://tomoyo.osdn.jp/2.4/patches/">https://tomoyo.osdn.jp/2.4/patches/</a> からダウンロードし、以下のコマンドを実行してください（例えばカーネル 2.6.33 を使う場合、 $KERNELVERSION を 2.6.33 に置き換えてください）：</p>
 
 <pre class="command">
 $ wget -O linux-3.1.10.tar.bz2 https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.1.10.tar.bz2
 $ tar -jxf linux-3.1.10.tar.bz2 --strip 1 linux-3.1.10/security/tomoyo/
-$ wget http://tomoyo.osdn.jp/2.4/patches/tomoyo-2.4-backport-for-$KERNELVERSION.patch
+$ wget https://tomoyo.osdn.jp/2.4/patches/tomoyo-2.4-backport-for-$KERNELVERSION.patch
 $ patch -p1 &lt; tomoyo-2.4-backport-for-$KERNELVERSION.patch
 </pre>
 
@@ -158,8 +158,8 @@ $ su
 <p>前述した依存するパッケージがインストールされていることを確認してください。以下のコマンドを実行することによりコンパイルおよびインストールできます。</p>
 
 <pre class="command">
-$ wget -O tomoyo-tools-2.4.0-20140601.tar.gz 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/52848/tomoyo-tools-2.4.0-20140601.tar.gz'
-$ wget -O tomoyo-tools-2.4.0-20140601.tar.gz.asc 'http://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/52848/tomoyo-tools-2.4.0-20140601.tar.gz.asc'
+$ wget -O tomoyo-tools-2.4.0-20140601.tar.gz 'https://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/52848/tomoyo-tools-2.4.0-20140601.tar.gz'
+$ wget -O tomoyo-tools-2.4.0-20140601.tar.gz.asc 'https://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/52848/tomoyo-tools-2.4.0-20140601.tar.gz.asc'
 $ wget https://tomoyo.osdn.jp/kumaneko-key
 $ gpg --import kumaneko-key
 $ gpg tomoyo-tools-2.4.0-20140601.tar.gz.asc
@@ -256,7 +256,7 @@ Creating configuration file for tomoyo-notifyd ... OK
 <p class="language">Go to <a href="chapter-3.html.en">English page</a>.</p>
 <p class="timestamp">Last modified: $Date$</p>
 <p class="trademark">Linux&reg; は世界各国における Linus Torvalds の登録商標です。 TOMOYO&reg; は<a href="http://www.nttdata.co.jp/">株式会社ＮＴＴデータ</a>の登録商標です。</p>
-<p><a href="http://osdn.jp/"><img src="http://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
+<p><a href="https://osdn.jp/"><img src="https://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
 </div>
 
 </body>
