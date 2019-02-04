@@ -12,7 +12,7 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-2.6.18-398.1.AXS3.src.rpm ]
 then
-    wget http://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-398.1.AXS3.src.rpm || die "Can't download source package."
+    wget https://ftp.miraclelinux.com/pub/Asianux/Server/3.0/updates/src/kernel-2.6.18-398.1.AXS3.src.rpm || die "Can't download source package."
 fi
 LANG=C rpm --checksig kernel-2.6.18-398.1.AXS3.src.rpm | grep -F ': (sha1) dsa sha1 md5 gpg OK' || die "Can't verify signature."
 rpm -ivh kernel-2.6.18-398.1.AXS3.src.rpm || die "Can't install source package."

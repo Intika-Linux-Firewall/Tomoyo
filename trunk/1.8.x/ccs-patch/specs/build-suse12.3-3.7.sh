@@ -62,14 +62,14 @@ cd /tmp/ || die "Can't chdir to /tmp/ ."
 
 if [ ! -r kernel-source-3.7.10-1.45.1.src.rpm ]
 then
-    wget http://download.opensuse.org/update/12.3/src/kernel-source-3.7.10-1.45.1.src.rpm || die "Can't download source package."
+    wget https://download.opensuse.org/update/12.3/src/kernel-source-3.7.10-1.45.1.src.rpm || die "Can't download source package."
 fi
 LANG=C rpm --checksig kernel-source-3.7.10-1.45.1.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
 rpm -ivh kernel-source-3.7.10-1.45.1.src.rpm || die "Can't install source package."
 
 if [ ! -r kernel-default-3.7.10-1.45.1.nosrc.rpm ]
 then
-    wget http://download.opensuse.org/update/12.3/nosrc/kernel-default-3.7.10-1.45.1.nosrc.rpm || die "Can't download source package."
+    wget https://download.opensuse.org/update/12.3/nosrc/kernel-default-3.7.10-1.45.1.nosrc.rpm || die "Can't download source package."
 fi
 LANG=C rpm --checksig kernel-default-3.7.10-1.45.1.nosrc.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
 rpm -ivh kernel-default-3.7.10-1.45.1.nosrc.rpm || die "Can't install source package."
