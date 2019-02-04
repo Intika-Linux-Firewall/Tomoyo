@@ -21,7 +21,7 @@ Source0: http://osdn.dl.osdn.jp/tomoyo/41908/tomoyo-tools-2.2.0-20120414.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 2.2.x.
-Please see http://tomoyo.osdn.jp/2.2/ for documentation.
+Please see https://tomoyo.osdn.jp/2.2/ for documentation.
 
 %prep
 

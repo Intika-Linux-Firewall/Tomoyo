@@ -20,7 +20,7 @@ rpm -ivh kernel-3.10.0-957.5.1.el7.src.rpm || die "Can't install source package.
 cd ~/rpmbuild/SOURCES/ || die "Can't chdir to ~/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.5-20181225.tar.gz ]
 then
-    wget -O ccs-patch-1.8.5-20181225.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.5-20181225.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.5-20181225.tar.gz 'https://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.5-20181225.tar.gz' || die "Can't download patch."
 fi
 
 cd ~/rpmbuild/SPECS/ || die "Can't chdir to ~/rpmbuild/SPECS/ ."
