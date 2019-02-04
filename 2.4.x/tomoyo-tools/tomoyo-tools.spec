@@ -17,7 +17,7 @@ Buildroot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Requires: ncurses
 Conflicts: tomoyo-tools < 2.4.0-7
 
-Source0: http://osdn.dl.osdn.jp/tomoyo/52848/tomoyo-tools-2.4.0-20140601.tar.gz
+Source0: https://osdn.dl.osdn.jp/tomoyo/52848/tomoyo-tools-2.4.0-20140601.tar.gz
 
 %description
 This package contains userspace tools for administrating TOMOYO Linux 2.4.x.
