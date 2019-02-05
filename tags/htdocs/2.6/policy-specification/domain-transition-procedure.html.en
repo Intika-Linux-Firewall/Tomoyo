@@ -1,0 +1,219 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="en-US">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 2.5.x : Policy specification : Domain transition procedure</title>
+</head>
+
+<body>
+
+<div id="titlebar">
+<a href="../../index.html.en"><img src="../../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left" title="TOMOYO Linux"></a>
+</div>
+
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../../index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="../../about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="../../download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelogs"><a href="../../changelogs.html.en" title="TOMOYO Linux ChangeLogs">ChangeLogs</a></li>
+<li id="tomoyo-documentation"><a href="../../documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-support"><a href="../../support.html.en" title="Support information">Support</a></li>
+<li id="tomoyo-links"><a href="../../links.html.en" title="Links">Links</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="domain-transition-procedure.html.ja" title="Go to Japanese page">Japanese page</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="documentation">
+
+<div id="navheader">
+<p><a href="securityfs-interface.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="expression-rules.html.en">&lt;Next&gt;</a></p>
+</div>
+
+<h2>Domain transition procedure</h2>
+
+<p>There are two types of domain transitions. One is domain transition that involves program execution requests (a.k.a. execve() system call). The other is domain transition that does not involve program execution requests.</p>
+
+<h3><a name="transition_by_execute">Transition by program execution requests</a></h3>
+
+<p>This type of domain transition depends on access control modes. When a process in a domain issued a program execution request, the steps below are performed.</p>
+
+<p>Any occurrence of <strong>[source]</strong> represents either the current domain name (e.g. &lt;kernel&gt; /usr/sbin/sshd /bin/bash ), or the last part of the current domain name (e.g. /bin/bash ).</p>
+
+<p>Any occurrence of <strong>[current_domain]</strong> represents the current domain name (e.g. &lt;kernel&gt; /usr/sbin/sshd /bin/bash ).</p>
+
+<p>Any occurrence of <strong>[current_namespace]</strong> represents the current domain's namespace name (e.g. &lt;kernel&gt; if &lt;kernel&gt; /usr/sbin/sshd /bin/bash ).</p>
+
+<p>Any occurrence of <strong>[destination]</strong> represents domainname to transit to when the program execution request succeeds (e.g. &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat ).</p>
+
+<p>Any occurrence of <strong>[candidate]</strong> represents a pathname which is subjected to permission checks (e.g. /bin/cat ).</p>
+
+<div class="simple-table-wrap">
+<table>
+<tr>
+<th><p>Step</p></th>
+<th><p>Procedure</p></th>
+</tr>
+<tr>
+<td><p>(1) Obtain program pathname</p></td>
+<td><p>Calculate the pathname of the requested program and set the pathname as the [candidate].<br>
+To accept programs provided using symbolic links, the last component of the pathname accepts symbolic links.</p></td>
+</tr>
+<tr>
+<td><p>(2) Check for aggregator directive</p></td>
+<td><p>If exception policy contains<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.en#aggregator">aggregator</a> [candidate] [pathname]<br>
+then set the [pathname] as the [candidate] .</p></td>
+</tr>
+<tr>
+<td><p>(3) Check for file execute directive</p></td>
+<td><p>If domain policy contains<br>
+&nbsp;&nbsp;<a href="domain-policy-syntax.html.en#file_execute">file execute</a> [candidate] keep<br>
+then set the [current_domain] as the [destination] and jump to step (5).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;file execute [candidate] child<br>
+then set the [current_domain] [candidate] as the [destination] and jump to step (5).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;file execute [candidate] reset<br>
+then set the &lt;[candidate]&gt; as the [destination] and jump to step (5).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;file execute [candidate] initialize<br>
+then set the [current_namespace] [candidate] as the [destination] and jump to step (5).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;file execute [candidate] parent<br>
+then set the parent of [current_domain] as the [destination] and jump to step (5).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;file execute [candidate] [domainname]<br>
+then set the [domainname] as the [destination] and jump to step (5).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;file execute [candidate] [pathname]<br>
+then set the [current_domain] [pathname] as the [destination] and jump to step (5).</p>
+<br>
+<p>If domain policy contains<br>
+&nbsp;&nbsp;file execute [candidate]<br>
+then jump to step (4).</p>
+<br>
+<p>Otherwise, the execution request is denied if the profile's <a href="../chapter-9.html.en#9.2.2">CONFIG, or CONFIG::file, or CONFIG::file::execute</a> (with the latter overwriting the previous) is set to "mode=enforcing".</p></td>
+</tr>
+<tr>
+<td><p>(4) Determine default domain transition</p></td>
+<td><p>
+Firstly, if exception policy contains one of<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.en#reset_domain">reset_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;reset_domain any from [source]<br>
+&nbsp;&nbsp;reset_domain any from any<br>
+and contains none of<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.en#no_reset_domain">no_reset_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;no_reset_domain any from [source]<br>
+&nbsp;&nbsp;no_reset_domain any from any<br>
+then set the &lt;[candidate]&gt; as the [destination] and jump to step (5).</p>
+<br>
+<p>
+Secondly, if exception policy contains one of<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.en#initialize_domain">initialize_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;initialize_domain any from [source]<br>
+&nbsp;&nbsp;initialize_domain any from any<br>
+and contains none of<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.en#no_initialize_domain">no_initialize_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;no_initialize_domain any from [source]<br>
+&nbsp;&nbsp;no_initialize_domain any from any<br>
+then set the [current_namespace] [candidate] as the [destination] and jump to step (5).</p>
+<br>
+<p>
+Thirdly, if exception policy contains one of<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.en#keep_domain">keep_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;keep_domain any from [source]<br>
+&nbsp;&nbsp;keep_domain any from any<br>
+and cintains none of<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.en#no_keep_domain">no_keep_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;no_keep_domain any from [source]<br>
+&nbsp;&nbsp;no_keep_domain any from any<br>
+then set the [current_domain] as the [destination] and jump to step (5).</p>
+<br>
+<p>Fourthly, set the [current_domain] [candidate] as the [destination] .</p></td>
+</tr>
+<tr>
+<td><p>(5) Create destination domain</p></td>
+<td><p>Create the [destination] as determined by step (3) or step (4) if the [destination] does not exist.</p>
+<br>
+<p>If the [destination] as determined by step (3) cannot be created, the execution request is denied.</p>
+<br>
+<p>If the [destination] as determined by reset_domain entries cannot be created, the execution request is denied.</p>
+<br>
+<p>If the [destination] as determined by step (4) cannot be created and the profile's <a href="../chapter-9.html.en#9.2.2">CONFIG, or CONFIG::file, or CONFIG::file::execute</a> (with the latter overwriting the previous) is set to "mode=enforcing", the execution request is denied.<br>
+Otherwise, the execution is continued without domain transition after marking <a href="domain-policy-syntax.html.en#transition_failed">transition_failed</a> directive.</p></td>
+</tr>
+<tr>
+<td><p>(6) Check environment variables</p></td>
+<td><p>If more than one environment variable is rejected in the [destination] and the profile (<a href="../chapter-9.html.en#9.2.2">CONFIG, or CONFIG::misc, or CONFIG::misc::env</a> (with the latter overwriting the previous)) for the [destination] is "mode=enforcing", the execution request is denied.</p></td>
+</tr>
+<tr>
+<td><p>(7) Check interpreters</p></td>
+<td><p>If read permission for the interpreter (if any) is rejected in the [destination] and the profile (<a href="../chapter-9.html.en#9.2.2">CONFIG, or CONFIG::file, or CONFIG::file::open</a> (with the latter overwriting the previous)) for the [destination] is "mode=enforcing", the execution request is denied.</p></td>
+</tr>
+<tr>
+<td><p>(8) Execute the program</p></td>
+<td><p>If the current process was successfully replaced by the requested program, the current process transits to the [destination] .</p></td>
+</tr>
+</table>
+</div>
+
+<h3><a name="transition_by_non_execute">Transition by non program execution requests</a></h3>
+
+<p>This type of domain transition is independent with access control modes. Domain transition requests that are not permitted by the policy are always rejected.</p>
+
+<p>If the domain has the <a href="domain-policy-syntax.html.en#task_manual_domain_transition">task manual_domain_transition</a> directive and the current process wrote the domainname specified with the directive to <a href="securityfs-interface.html.en#self_domain">/sys/kernel/security/tomoyo/self_domain</a> interface, the current process transits to the specified domain.</p>
+
+</div><!-- documentation -->
+
+</div><!-- content -->
+
+<div id="navfooter">
+<hr>
+<table>
+<tr>
+<td class="docs-previous">
+<a href="securityfs-interface.html.en">Prev</a>
+</td>
+<td class="docs-index">
+<a href="index.html.en">Index</a>
+</td>
+<td class="docs-next">
+<a href="expression-rules.html.en">Next</a>
+</td>
+</tr>
+<tr>
+<td class="docs-previous-description">
+<p>A1: The /sys/kernel/security/tomoyo/ interface</p>
+</td>
+<td class="docs-home">
+<a href="../index.html.en">Main Index</a>
+</td>
+<td class="docs-next-description">
+<p>A3: Expression rules</p>
+</td>
+</tr>
+</table>
+</div>
+
+<div id="footer">
+<p class="language">Go to <a href="domain-transition-procedure.html.ja">Japanese page</a>.</p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="https://www.nttdata.com/global/en/">NTT DATA Corporation</a>.</p>
+<p><a href="https://osdn.jp/"><img src="https://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
+</div>
+
+</body>
+</html>

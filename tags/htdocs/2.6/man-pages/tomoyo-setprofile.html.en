@@ -1,0 +1,117 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="https://www.w3.org/1999/xhtml">
+<head>
+<title>tomoyo-setprofile</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body style="background-color: white">
+
+
+<!-- INDEX BEGIN -->
+<div name="index">
+<p><a name="__index__"></a></p>
+
+<ul>
+
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#options">OPTIONS</a></li>
+	<li><a href="#examples">EXAMPLES</a></li>
+	<li><a href="#bugs">BUGS</a></li>
+	<li><a href="#authors">AUTHORS</a></li>
+	<li><a href="#see_also">SEE ALSO</a></li>
+</ul>
+
+<hr name="index" />
+</div>
+<!-- INDEX END -->
+
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>tomoyo-setprofile - profile assignment utility for TOMOYO Linux</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<p><strong>tomoyo-setprofile</strong> [<em>option</em>] <em>number</em> <em>&lt;domain&gt;</em> [<em>&lt;domain&gt; ...</em>]</p>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<p>This program assigns the specified profile number to the specified domain.</p>
+<p>Before this program can be invoked, you must register it in <em class="file">/sys/kernel/security/tomoyo/manager</em>. After initializing policy, this is usually as simple as rebooting the system.</p>
+<p>
+</p>
+<hr />
+<h1><a name="options">OPTIONS</a></h1>
+<dl>
+<dt><strong><a name="r" class="item"><strong>-r</strong></a></strong></dt>
+
+<dd>
+<p>Apply the specified profile number to all domains whose domain name starts with the specified string.</p>
+</dd>
+<dt><strong><a name="number" class="item"><em>number</em></a></strong></dt>
+
+<dd>
+<p>The profile number must be an integer between 0 and 255.</p>
+</dd>
+<dt><strong><a name="domain" class="item"><em>&lt;domain&gt;</em></a></strong></dt>
+
+<dd>
+<p>The string must be quoted or escaped to avoid misinterpretation by the shell. It only matches an exact string unless the <a href="#r"><code>-r</code></a> option is specified.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="examples">EXAMPLES</a></h1>
+<dl>
+<dt><strong><a name="assign_profile_0_to_all_domains" class="item"><strong>Assign profile 0 to all domains</strong></a></strong></dt>
+
+<dd>
+<pre>
+  tomoyo-setprofile -r 0 '&lt;kernel&gt;'</pre>
+</dd>
+<dt><strong><a name="assign_profile_1_to_sshd_and_httpd_domains" class="item"><strong>Assign profile 1 to sshd and httpd domains</strong></a></strong></dt>
+
+<dd>
+<pre>
+  tomoyo-setprofile 1 '&lt;kernel&gt; /usr/sbin/sshd' '&lt;kernel&gt; /usr/sbin/httpd'</pre>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="bugs">BUGS</a></h1>
+<p>If you find any bugs, send an email to &lt;<a href="mailto:tomoyo-users-en@lists.osdn.me">tomoyo-users-en@lists.osdn.me</a>&gt;.</p>
+<p>
+</p>
+<hr />
+<h1><a name="authors">AUTHORS</a></h1>
+<dl>
+<dt><strong><a name="tetsuo_handa_penguin_kernel_i_love_sakura_ne_jp" class="item">Tetsuo Handa &lt;<a href="mailto:penguin-kernel@I-love.SAKURA.ne.jp">penguin-kernel@I-love.SAKURA.ne.jp</a>&gt;</a></strong></dt>
+
+<dd>
+<p>Main author.</p>
+</dd>
+<dt><strong><a name="jamie_nguyen_jamie_tomoyolinux_co_uk" class="item">Jamie Nguyen &lt;<a href="mailto:jamie@tomoyolinux.co.uk">jamie@tomoyolinux.co.uk</a>&gt;</a></strong></dt>
+
+<dd>
+<p>Documentation and website.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="see_also">SEE ALSO</a></h1>
+<p><strong>tomoyo-pstree</strong>(8)</p>
+<p>See &lt;<a href="https://tomoyo.osdn.jp">https://tomoyo.osdn.jp</a>&gt; for more information.</p>
+
+</body>
+
+</html>

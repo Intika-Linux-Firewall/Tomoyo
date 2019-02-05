@@ -1,0 +1,184 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="en-US">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 2.5.x : The userspace tools</title>
+</head>
+
+<body>
+
+<div id="titlebar">
+<a href="../../index.html.en"><img src="../../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left" title="TOMOYO Linux"></a>
+</div>
+
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../../index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="../../about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="../../download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelogs"><a href="../../changelogs.html.en" title="TOMOYO Linux ChangeLogs">ChangeLogs</a></li>
+<li id="tomoyo-documentation"><a href="../../documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-support"><a href="../../support.html.en" title="Support information">Support</a></li>
+<li id="tomoyo-links"><a href="../../links.html.en" title="Links">Links</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="index.html.ja" title="Go to Japanese page">Japanese page</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="documentation">
+
+<div id="navheader">
+<p><a href="../index.html.en">&lt;Index&gt;</a></p>
+</div>
+
+<h2>The userspace tools</h2>
+
+<h3><a name="tomoyo-auditd">tomoyo-auditd</a></h3>
+
+<p>This tool is a logging daemon that can be used to write log files of access requests that have been rejected (and/or granted). It reads from the <a href="../policy-specification/securityfs-interface.html.en#audit">/sys/kernel/security/tomoyo/audit</a> interface and can be controlled using a configuration file.</p>
+
+<p>See the <a href="tomoyo-auditd.html.en">man page</a> for more information.</p>
+
+<h3><a name="tomoyo-checkpolicy">tomoyo-checkpolicy</a></h3>
+
+<p>This tool can read policy from standard input and check if the syntax is correct.</p>
+
+<p>See the <a href="tomoyo-checkpolicy.html.en">man page</a> for more information.</p>
+
+<h3><a name="tomoyo-diffpolicy">tomoyo-diffpolicy</a></h3>
+
+<p>This tool can print a diff of two domain policy files to standard output that can be used to easily change currently loaded domain policy.</p>
+
+<p>See the <a href="tomoyo-diffpolicy.html.en">man page</a> for more information.</p>
+
+<h3><a name="tomoyo-domainmatch">tomoyo-domainmatch</a></h3>
+
+<p>This tool can be used to search domain policy currently loaded in kernel memory for a given pathname. This is similar to using <code>fgrep</code>.</p>
+
+<p>See the <a href="tomoyo-domainmatch.html.en">man page</a> for more information.</p>
+
+<h3><a name="tomoyo-editpolicy">tomoyo-editpolicy</a></h3>
+
+<p>This tool can be used to edit either policy within "/etc/tomoyo/" or policy currently loaded in kernel memory.</p>
+
+<p>See the <a href="tomoyo-editpolicy.html.en">man page</a> for more information.</p>
+
+<h3><a name="tomoyo-editpolicy-agent">tomoyo-editpolicy-agent</a></h3>
+
+<p>This tool is an agent that can be used to edit policy remotely. It is designed for systems in which running <code><a href="#tomoyo-editpolicy">tomoyo-editpolicy</a></code> is difficult due to resource limitations.</p>
+
+<p>See the <a href="tomoyo-editpolicy-agent.html.en">man page</a> for more information.</p>
+
+<h3><a name="tomoyo-findtemp">tomoyo-findtemp</a></h3>
+
+<p>This tool can be used to read domain policy from standard input and prints the non-existent pathnames to standard output. These are likely to be temporary files.</p>
+
+<p>See the <a href="tomoyo-findtemp.html.en">man page</a> for more information.</p>
+
+<h3><a name="tomoyo-loadpolicy">tomoyo-loadpolicy</a></h3>
+
+<p>This tool can be used to read policy from standard input and load into kernel memory via the <a href="../policy-specification/securityfs-interface.html.en">/sys/kernel/security/tomoyo/</a> interface.</p>
+
+<p>See the <a href="tomoyo-loadpolicy.html.en">man page</a> for more information.</p>
+
+<h3><a name="tomoyo-notifyd">tomoyo-notifyd</a></h3>
+
+<p>This tool is a notification daemon that can be used to notify administrators of policy violations in enforcing mode. It can be controlled via a configuration file and supports the running of any arbitrary command, such as <code>mail</code>.</p>
+
+<p>See the <a href="tomoyo-notifyd.html.en">man page</a> for more information.</p>
+
+<h3><a name="tomoyo-patternize">tomoyo-patternize</a></h3>
+
+<p>This tool can be used to manage pathnames/numbers/addresses within domain policy. It can replace pathnames with expressions as defined in a configuration file.</p>
+
+<p>See the <a href="tomoyo-patternize.html.en">man page</a> for more information.</p>
+
+<h3><a name="tomoyo-pstree">tomoyo-pstree</a></h3>
+
+<p>This tool can be used to list (like <code>pstree</code>) currently running processes, their PID, the domain name that they belong to, and the profile number of that domain.</p>
+
+<p>See the <a href="tomoyo-pstree.html.en">man page</a> for more information.</p>
+
+<h3><a name="tomoyo-queryd">tomoyo-queryd</a></h3>
+
+<p>This tool can be used to manage access requests that violated policy in enforcing mode in real-time, choosing whether to accept or reject any requests that applications make.</p>
+
+<p>See the <a href="tomoyo-queryd.html.en">man page</a> for more information.</p>
+
+<h3><a name="tomoyo-savepolicy">tomoyo-savepolicy</a></h3>
+
+<p>This tool can be used to save the policy currently loaded in kernel memory to "/etc/tomoyo/".</p>
+
+<p>See the <a href="tomoyo-savepolicy.html.en">man page</a> for more information.</p>
+
+<h3><a name="tomoyo-selectpolicy">tomoyo-selectpolicy</a></h3>
+
+<p>This tool can be used to read domain policy and print the policy of the specified domain(s).</p>
+
+<p>See the <a href="tomoyo-selectpolicy.html.en">man page</a> for more information.</p>
+
+<h3><a name="tomoyo-setlevel">tomoyo-setlevel</a></h3>
+
+<p>This tool can be used to modify the configuration of profiles.</p>
+
+<p>See the <a href="tomoyo-setlevel.html.en">man page</a> for more information.</p>
+
+<h3><a name="tomoyo-setprofile">tomoyo-setprofile</a></h3>
+
+<p>This tool can be used to set the profile number for the specified domain(s).</p>
+
+<p>See the <a href="tomoyo-setprofile.html.en">man page</a> for more information.</p>
+
+<h3><a name="tomoyo-sortpolicy">tomoyo-sortpolicy</a></h3>
+
+<p>This tool can be used to sort domain policy by domain name and remove duplicate entries. It is designed for sorting and compressing audit logs saved by <code><a href="#tomoyo-auditd">tomoyo-auditd</a></code>.</p>
+
+<p>See the <a href="tomoyo-sortpolicy.html.en">man page</a> for more information.</p>
+
+<h3><a name="init_policy">init_policy</a></h3>
+
+<p>This tool can be used to initialize policy in preparation for system analysis or restriction.</p>
+
+<p>See the <a href="init_policy.html.en">man page</a> for more information.</p>
+
+</div><!-- documentation -->
+
+</div><!-- content -->
+
+<div id="navfooter">
+<hr>
+<table>
+<tr>
+<td class="docs-previous">
+</td>
+<td class="docs-index">
+<a href="../index.html.en">Index</a>
+</td>
+<td class="docs-next">
+</td>
+</tr>
+<tr>
+<td class="docs-previous-description">
+</td>
+<td class="docs-home">
+</td>
+<td class="docs-next-description">
+</td>
+</tr>
+</table>
+</div>
+
+<div id="footer">
+<p class="language">Go to <a href="index.html.ja">Japanese page</a>.</p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="https://www.nttdata.com/global/en/">NTT DATA Corporation</a>.</p>
+<p><a href="https://osdn.jp/"><img src="https://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
+</div>
+
+</body>
+</html>

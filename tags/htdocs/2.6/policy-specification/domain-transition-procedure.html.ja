@@ -1,0 +1,219 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="ja-JP">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 2.5.x : ポリシー仕様 : ドメイン遷移</title>
+</head>
+
+<body>
+
+<div id="titlebar">
+<a href="../../index.html.ja"><img src="../../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left" title="TOMOYO Linux"></a>
+</div>
+
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../../index.html.ja" title="TOMOYO Linux ホーム">ホーム</a></li>
+<li id="tomoyo-about"><a href="../../about.html.ja" title="TOMOYO Linux の詳細">詳細</a></li>
+<li id="tomoyo-download"><a href="../../download.html.ja" title="TOMOYO Linux を入手">ダウンロード</a></li>
+<li id="tomoyo-changelogs"><a href="../../changelogs.html.ja" title="TOMOYO Linux 変更履歴">変更履歴</a></li>
+<li id="tomoyo-documentation"><a href="../../documentation.html.ja" title="公式ドキュメント">ドキュメント</a></li>
+<li id="tomoyo-support"><a href="../../support.html.ja" title="サポート情報">サポート</a></li>
+<li id="tomoyo-links"><a href="../../links.html.ja" title="Links">リンク</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="domain-transition-procedure.html.en" title="Go to English page">English page</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="documentation">
+
+<div id="navheader">
+<p><a href="securityfs-interface.html.ja">&lt;前&gt;</a> <a href="index.html.ja">&lt;目次&gt;</a> <a href="expression-rules.html.ja">&lt;次&gt;</a></p>
+</div>
+
+<h2>ドメイン遷移</h2>
+
+<p>ドメイン遷移には２種類あります。１つはプログラムの実行要求（ execve() システムコール）を伴うドメイン遷移です。もう１つはプログラムの実行要求を伴わないドメイン遷移です。</p>
+
+<h3><a name="transition_by_execute">プログラム実行要求による遷移</a></h3>
+
+<p>この種類のドメイン遷移はアクセス制御のモードに依存します。プロセスがプログラムを実行しようとすると、以下の処理が行われます。</p>
+
+<p><strong>[source]</strong> は現在のドメイン名（例： &lt;kernel&gt; /usr/sbin/sshd /bin/bash ）または現在のドメイン名の最後のパス名（例： /bin/bash ）を表します。</p>
+
+<p><strong>[current_domain]</strong> は現在のドメイン名（例： &lt;kernel&gt; /usr/sbin/sshd /bin/bash ）を表します。</p>
+
+<p><strong>[current_namespace]</strong> は現在のドメインの名前空間の名前（例： &lt;kernel&gt; /usr/sbin/sshd /bin/bash ドメインの場合は &lt;kernel&gt; ）を表します。</p>
+
+<p><strong>[destination]</strong> はプログラムの実行要求が成功した場合に遷移するドメイン名（例： &lt;kernel&gt; /usr/sbin/sshd /bin/bash /bin/cat ）を表します。</p>
+
+<p><strong>[candidate]</strong> はパーミッションのチェックの対象となるパス名（例： /bin/cat ）を表します。</p>
+
+<div class="simple-table-wrap">
+<table>
+<tr>
+<th><p>ステップ</p></th>
+<th><p>内容</p></th>
+</tr>
+<tr>
+<td><p>(1) プログラムのパス名を取得</p></td>
+<td><p>要求されたプログラムのパス名を取得し、それを [candidate] とします。<br>
+シンボリックリンクとして提供されているプログラムに対処するために、パス名の最後のシンボリックリンクは解決しないようにします。</p></td>
+</tr>
+<tr>
+<td><p>(2) aggregator ディレクティブのチェック</p></td>
+<td><p>もし、例外ポリシーに<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.ja#aggregator">aggregator</a> [candidate] [pathname]<br>
+というエントリが存在している場合、 [pathname] を [candidate] にします。</p></td>
+</tr>
+<tr>
+<td><p>(3) file execute ディレクティブのチェック</p></td>
+<td><p>ドメインポリシーに<br>
+&nbsp;&nbsp;<a href="domain-policy-syntax.html.ja#file_execute">file execute</a> [candidate] keep<br>
+というエントリが存在している場合、 [current_domain] を [destination] にしてステップ (5) へ進みます。</p>
+<br>
+<p>ドメインポリシーに<br>
+&nbsp;&nbsp;file execute [candidate] child<br>
+というエントリが存在している場合、 [current_domain] [candidate] を [destination] にしてステップ (5) へ進みます。</p>
+<br>
+<p>ドメインポリシーに<br>
+&nbsp;&nbsp;file execute [candidate] reset<br>
+というエントリが存在している場合、 &lt;[candidate]&gt; を [destination] にしてステップ (5) へ進みます。</p>
+<br>
+<p>ドメインポリシーに<br>
+&nbsp;&nbsp;file execute [candidate] initialize<br>
+というエントリが存在している場合、 [current_namespace] [candidate] を [destination] にしてステップ (5) へ進みます。</p>
+<br>
+<p>ドメインポリシーに<br>
+&nbsp;&nbsp;file execute [candidate] parent<br>
+というエントリが存在している場合、 [current_domain] の親ドメインを [destination] にしてステップ (5) へ進みます。</p>
+<br>
+<p>ドメインポリシーに<br>
+&nbsp;&nbsp;file execute [candidate] [domainname]<br>
+というエントリが存在している場合、 [domainname] を [destination] にしてステップ (5) へ進みます。</p>
+<br>
+<p>ドメインポリシーに<br>
+&nbsp;&nbsp;file execute [candidate] [pathname]<br>
+というエントリが存在している場合、 [current_domain] [pathname] を [destination] にしてステップ (5) へ進みます。</p>
+<br>
+<p>ドメインポリシーに<br>
+&nbsp;&nbsp;file execute [candidate]<br>
+というエントリが存在している場合、ステップ (4) に進みます。</p>
+<br>
+<p>その他の場合、プロファイルの <a href="../chapter-9.html.ja#9.2.2">CONFIG または CONFIG::file または CONFIG::file::execute</a> （後者が前者より優先されます）で mode=enforcing という設定が行われていた場合にはプログラムの実行要求は拒否されます。</p></td>
+</tr>
+<tr>
+<td><p>(4) デフォルトのドメイン遷移の決定</p></td>
+<td><p>
+１番最初に、例外ポリシーに<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.ja#reset_domain">reset_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;reset_domain any from [source]<br>
+&nbsp;&nbsp;reset_domain any from any<br>
+の何れかのエントリが存在しており、かつ、<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.ja#no_reset_domain">no_reset_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;no_reset_domain any from [source]<br>
+&nbsp;&nbsp;no_reset_domain any from any<br>
+の何れのエントリも存在しない場合、 &lt;[candidate]&gt; を [destination] にしてステップ (5) へ進みます。</p>
+<br>
+<p>
+２番目に、例外ポリシーに<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.ja#initialize_domain">initialize_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;initialize_domain any from [source]<br>
+&nbsp;&nbsp;initialize_domain any from any<br>
+の何れかのエントリが存在しており、かつ、<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.ja#no_initialize_domain">no_initialize_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;no_initialize_domain any from [source]<br>
+&nbsp;&nbsp;no_initialize_domain any from any<br>
+の何れのエントリも存在しない場合、 [current_namespace] [candidate] を [destination] にしてステップ (5) へ進みます。</p>
+<br>
+<p>
+３番目に、例外ポリシーに<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.ja#keep_domain">keep_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;keep_domain any from [source]<br>
+&nbsp;&nbsp;keep_domain any from any<br>
+の何れかのエントリが存在しており、かつ、<br>
+&nbsp;&nbsp;<a href="exception-policy-syntax.html.ja#no_keep_domain">no_keep_domain</a> [candidate] from [source]<br>
+&nbsp;&nbsp;no_keep_domain any from [source]<br>
+&nbsp;&nbsp;no_keep_domain any from any<br>
+の何れのエントリも存在しない場合、 [current_domain] を [destination] にしてステップ (5) へ進みます。</p>
+<br>
+<p>４番目に、 [current_domain] [candidate] を [destination] にします。</p></td>
+</tr>
+<tr>
+<td><p>(5) 遷移先ドメインの作成</p></td>
+<td><p>ステップ (3) または (4) で決定した [destination] が存在しない場合には作成します。</p>
+<br>
+<p>ステップ (3) で決定された [destination] を作成できなかった場合には、プログラムの実行要求は拒否されます。</p>
+<br>
+<p>reset_domain で決定された [destination] を作成できなかった場合には、プログラムの実行要求は拒否されます。</p>
+<br>
+<p>ステップ (4) で決定された [destination] を作成できなかった場合で、かつ、プロファイルの <a href="../chapter-9.html.ja#9.2.2">CONFIG または CONFIG::file または CONFIG::file::execute</a> （後者が前者より優先されます）で mode=enforcing という設定が行われていた場合にはプログラムの実行要求は拒否されます。<br>
+そうではない場合、 <a href="domain-policy-syntax.html.ja#transition_failed">transition_failed</a> ディレクティブを設定して、ドメイン遷移を行わないまま実行要求の処理を継続します。</p></td>
+</tr>
+<tr>
+<td><p>(6) 環境変数のチェック</p></td>
+<td><p>もし、１個以上の環境変数の許可が [destination] ドメインに与えられておらず、かつ [destination] ドメインに割り当てられているプロファイル（ <a href="../chapter-9.html.ja#9.2.2">CONFIG または CONFIG::misc または CONFIG::misc::env</a> （後者が前者より優先されます））のモードが mode=enforcing の場合、実行要求は拒否されます。</p></td>
+</tr>
+<tr>
+<td><p>(7) インタプリターのチェック</p></td>
+<td><p>（インタプリタを必要とするプログラムの場合、）インタプリタに対する読み込み許可が [destination] ドメインに与えられておらず、かつ [destination] ドメインに割り当てられているプロファイル（ <a href="../chapter-9.html.ja#9.2.2">CONFIG または CONFIG::file または CONFIG::file::open</a> （後者が前者より優先されます））のモードが mode=enforcing の場合、実行要求は拒否されます。</p></td>
+</tr>
+<tr>
+<td><p>(8) プログラムの実行</p></td>
+<td><p>もし、カレントプロセスが要求されたプログラムによって正常に置き換えられた場合、カレントプロセスは [destination] ドメインへと遷移します。</p></td>
+</tr>
+</table>
+</div>
+
+<h3><a name="transition_by_non_execute">プログラム実行要求によらない遷移</a></h3>
+
+<p>この種類のドメイン遷移はアクセス制御のモードに依存しません。ポリシーで許可されていないドメイン遷移要求は常に拒否されます。</p>
+
+<p>もし、ドメインに対して <a href="domain-policy-syntax.html.ja#task_manual_domain_transition">task manual_domain_transition</a> ディレクティブが指定されていた場合、カレントプロセスは <a href="securityfs-interface.html.ja#self_domain">/sys/kernel/security/tomoyo/self_domain</a> インタフェースに対してこのディレクティブで指定されているドメイン名を書き込むことにより、そのドメインへと遷移します。</p>
+
+</div><!-- documentation -->
+
+</div><!-- content -->
+
+<div id="navfooter">
+<hr>
+<table>
+<tr>
+<td class="docs-previous">
+<a href="securityfs-interface.html.ja">前</a>
+</td>
+<td class="docs-index">
+<a href="index.html.ja">目次</a>
+</td>
+<td class="docs-next">
+<a href="expression-rules.html.ja">次</a>
+</td>
+</tr>
+<tr>
+<td class="docs-previous-description">
+<p>A1: /sys/kernel/security/tomoyo/ インタフェース</p>
+</td>
+<td class="docs-home">
+<a href="../index.html.ja">大目次</a>
+</td>
+<td class="docs-next-description">
+<p>A3: 表記規則</p>
+</td>
+</tr>
+</table>
+</div>
+
+<div id="footer">
+<p class="language">Go to <a href="domain-transition-procedure.html.en">English page</a>.</p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; は世界各国における Linus Torvalds の登録商標です。 TOMOYO&reg; は<a href="http://www.nttdata.co.jp/">株式会社ＮＴＴデータ</a>の登録商標です。</p>
+<p><a href="https://osdn.jp/"><img src="https://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
+</div>
+
+</body>
+</html>

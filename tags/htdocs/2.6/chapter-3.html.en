@@ -1,0 +1,262 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="en-US">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 2.5.x : The Official Guide : Chapter 3</title>
+</head>
+
+<body>
+
+<div id="titlebar">
+<a href="../index.html.en"><img src="../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left" title="TOMOYO Linux"></a>
+</div>
+
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="../about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="../download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelogs"><a href="../changelogs.html.en" title="TOMOYO Linux ChangeLogs">ChangeLogs</a></li>
+<li id="tomoyo-documentation"><a href="../documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-support"><a href="../support.html.en" title="Support information">Support</a></li>
+<li id="tomoyo-links"><a href="../links.html.en" title="Links">Links</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="chapter-3.html.ja" title="Go to Japanese page">Japanese page</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="documentation">
+
+<div class="navheader">
+<p><a href="chapter-2.html.en">&lt;Prev&gt;</a> <a href="index.html.en">&lt;Index&gt;</a> <a href="chapter-4.html.en">&lt;Next&gt;</a></p>
+</div>
+
+<h2>Chapter 3: How do I install TOMOYO Linux?</h2>
+
+<h3><a name="3.1">3.1. Install the kernel</a></h3>
+
+<h4><a name="3.1.1">3.1.1. Determine if your kernel has TOMOYO Linux enabled</a></h4>
+
+<p>TOMOYO Linux 2.5.x is integrated with the upstream kernel source, but is only enabled when certain kernel configuration options are set. You can determine if your kernel has TOMOYO Linux enabled by running the following command:</p>
+
+<pre class="command">
+$ grep tomoyo_write_inet_network /proc/kallsyms
+</pre>
+<pre class="output">
+ffffffff8115e460 T tomoyo_write_inet_network
+</pre>
+
+<p>If the output of the above command includes a line with "tomoyo_write_inet_network", then the running kernel was built with TOMOYO Linux support and you can proceed to <a href="#3.2">3.2 Install the userspace tools</a>.</p>
+
+<p>If not, then the running kernel was not built with TOMOYO Linux support and you should follow the steps below.</p>
+
+<p>If you wish to obtain the most functionality out of TOMOYO Linux, then you may wish to use either the 1.x branch (which requires you to build your own kernel), or AKARI (which is a module and does not require you to build your own kernel). AKARI module currently provides more functionality than the 2.x branch, but is missing a small number of features that the 1.x branch provides. It is easy to use with any kernel from Linux 2.6.0 and later, depending on how the kernel has been configured and the CPU architecture. <a href="https://akari.osdn.jp/comparison.html.en">This chart</a> provides a detailed comparison between AKARI and both the 1.x and 2.x branches. If you would prefer to use this module, please visit the <a href="https://akari.osdn.jp/">AKARI website</a>.</p>
+
+<h4><a name="3.1.2">3.1.2. Install dependencies</a></h4>
+
+<p>These packages are required for compiling the kernel and the userspace tools:</p>
+<ul>
+<li><strong>wget</strong>: to download sources</li>
+<li><strong>patch</strong>: to patch the kernel</li>
+<li><strong>gcc</strong>: to build the kernel and tools</li>
+<li><strong>make</strong>: to build the kernel and tools</li>
+<li><strong>ncurses-devel</strong> or <strong>libncurses-dev</strong>: to build the tools</li>
+</ul>
+
+<p>These can be installed with the following commands:</p>
+
+<p><strong>RedHat distributions</strong></p>
+<pre class="command">
+# yum -y install wget patch gcc make ncurses-devel
+</pre>
+<p><strong>Debian distributions</strong></p>
+<pre class="command">
+# apt-get -y install wget patch gcc make libncurses-dev
+</pre>
+<p><strong>SUSE distributions</strong></p>
+<pre class="command">
+# yast -i wget patch gcc make ncurses-devel
+</pre>
+
+<h4><a name="3.1.3">3.1.3. Download the kernel</a></h4>
+
+<p>Download the kernel source from "<a href="https://www.kernel.org/pub/linux/kernel/v3.x/">linux-3</a>" or "<a href="https://www.kernel.org/pub/linux/kernel/v4.x/">linux-4</a>" or "<a href="https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git">linux git tree</a>".<br>
+Linux kernel 2.6.33 and later are supported.</p>
+
+<p>Extract the kernel source and go to the extracted directory.</p>
+
+<p>If you want to use TOMOYO 2.5 on Linux kernels between 2.6.33 and 3.4, download a backport patch that matches your kernel version from <a href="https://tomoyo.osdn.jp/2.5/patches/">https://tomoyo.osdn.jp/2.5/patches/</a> and run the following commands. ("$KERNELVERSION" should for example be replaced with "2.6.33" if using Linux kernel 2.6.33):</p>
+
+<pre class="command">
+$ wget https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.5.tar.bz2
+$ tar -jxf linux-3.5.tar.bz2 --strip 1 linux-3.5/security/tomoyo/
+$ wget https://tomoyo.osdn.jp/2.5/patches/tomoyo-2.5-backport-for-$KERNELVERSION.patch
+$ patch -p1 &lt; tomoyo-2.5-backport-for-$KERNELVERSION.patch
+</pre>
+
+<h4><a name="3.1.4">3.1.4. Configure the kernel</a></h4>
+
+<pre class="command">
+$ make -s menuconfig
+</pre>
+
+<p>Choose the following options in the "Security options" section (although <i>"Default security module"</i> is optional):</p>
+
+<pre>
+[*] Enable different security models
+-*- Enable the securityfs filesystem
+-*- Security hooks for pathname based access control
+[*] TOMOYO Linux Support
+(2048) Default maximal count for learning mode
+(1024) Default maximal count for audit log
+[ ]   Activate without calling userspace policy loader.
+(/sbin/tomoyo-init) Location of userspace policy loader
+(/sbin/init) Trigger for calling userspace policy loader
+    Default security module (TOMOYO)
+</pre>
+
+<p>There are two types of TOMOYO policy configuration. The former is embedded into the kernel and the latter is saved as files on the filesystem (e.g. /etc/tomoyo/ directory). You will need to rebuild the kernel whenever updating the former, but allows you to load policy without using userspace policy loader (e.g. /sbin/tomoyo-init ). The latter is loaded by executing userspace policy loader when the access control by TOMOYO is about to be activated (e.g. when /sbin/init starts). <em>Activate without calling userspace policy loader.</em> allows you to activate access control by TOMOYO as soon as the former is loaded. This option is useful when it is difficult to call policy loader (e.g. embedded systems).</p>
+
+<p><em>Location of userspace policy loader</em> is available only when <em>Activate without calling userspace policy loader.</em> is not selected. This option specifies the default pathname of the userspace policy loader. You can override this setting via the "TOMOYO_loader=" kernel command-line option.</p>
+
+<p><em>Trigger for calling userspace policy loader</em> is available only when <em>Activate without calling userspace policy loader.</em> is not selected. This option specifies the default pathname of the activation trigger. You can override this setting via the "TOMOYO_trigger=" kernel command-line option. For example, if you pass "init=/usr/lib/systemd/systemd" option, you may also want to pass "TOMOYO_trigger=/usr/lib/systemd/systemd" option.</p>
+
+<h4><a name="3.1.5">3.1.5. Compile and install the kernel</a></h4>
+
+<p>Once the kernel has been configured, compile and install the kernel with the following commands:</p>
+
+<pre class="command">
+$ make -s
+$ su
+# make -s modules_install install
+</pre>
+
+<p>Create initrd/initramfs if required.</p>
+
+<h3><a name="3.2">3.2. Install the userspace tools</a></h3>
+
+<h4><a name="3.2.1">3.2.1. Determine if binary packages are provided</a></h4>
+
+<p>If your repository provides tomoyo-tools or tomoyotools package, and the package's version is 2.5, you can use that package. Install and proceed to <a href="#3.3">3.3. Initialize configuration</a>.</p>
+
+<h4><a name="3.2.2">3.2.2. Install tools from source</a></h4>
+
+<p>Make sure the dependencies described above have been installed. Compile and install the tools with the following commands:</p>
+
+<pre class="command">
+$ wget -O tomoyo-tools-2.5.0-20170102.tar.gz 'https://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/53357/tomoyo-tools-2.5.0-20170102.tar.gz'
+$ wget -O tomoyo-tools-2.5.0-20170102.tar.gz.asc 'https://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/53357/tomoyo-tools-2.5.0-20170102.tar.gz.asc'
+$ wget https://tomoyo.osdn.jp/kumaneko-key
+$ gpg --import kumaneko-key
+$ gpg tomoyo-tools-2.5.0-20170102.tar.gz.asc
+$ tar -zxf tomoyo-tools-2.5.0-20170102.tar.gz
+$ cd tomoyo-tools/
+$ make -s USRLIBDIR=/usr/lib
+$ su
+# make -s USRLIBDIR=/usr/lib install
+</pre>
+
+<p>Please change USRLIBDIR=/usr/lib to USRLIBDIR=/usr/lib64 (for 64bits userspace) or USRLIBDIR=/usr/lib32 (for 32bits userspace) if needed.</p>
+
+<h3><a name="3.3">3.3. Initialize configuration</a></h3>
+
+<p>You will probably want to add the location of the userspace tools (/usr/sbin) to your PATH so that the commands can be run easily. If you are using bash, append the following line to ~/.bashrc:</p>
+
+<pre>
+export PATH=$PATH:/usr/sbin
+</pre>
+
+<p>Before you can make use of TOMOYO Linux, an initialization procedure must take place. This prepares the files in which policy information will be stored. All policy files are <strong>stored in the "/etc/tomoyo/" directory</strong>.</p>
+
+<p>You should see the following output by executing <code>/usr/lib/tomoyo/init_policy</code>:</p>
+
+<pre class="command">
+# /usr/lib/tomoyo/init_policy
+</pre>
+<pre class="output">
+Creating policy directory... OK
+Creating configuration directory... OK
+Creating exception policy... OK
+Creating domain policy... OK
+Creating manager policy... OK
+Creating default profile... OK
+Creating stat policy... OK
+Creating configuration file for tomoyo-editpolicy ... OK
+Creating configuration file for tomoyo-auditd ... OK
+Creating configuration file for tomoyo-patternize ... OK
+Creating configuration file for tomoyo-notifyd ... OK
+</pre>
+
+<p>Note that the policy configuration is not compatible between TOMOYO 2.3 and TOMOYO 2.5. If policy has been developed for TOMOYO 2.3 then the "/etc/tomoyo/" directory needs to be deleted or renamed, otherwise there will be a kernel panic on the next boot.</p>
+
+<h3><a name="3.4">3.4. Configure bootloader</a></h3>
+
+<p>Now edit your bootloader (e.g. GRUB) to include the kernel you have just compiled. If your kernel config does not contain "CONFIG_DEFAULT_SECURITY_TOMOYO=y", then edit your bootloader to include "security=tomoyo" in the kernel boot options. Depending on your distribution, the bootloader configuration file will probably be one of "/boot/grub/grub.conf" or "/boot/grub/menu.lst" (for GRUB version 1) or "/boot/grub/grub.cfg" or "/boot/grub2/grub.cfg" (for GRUB version 2). Consult your distribution documentation for information on how to configure the bootloader.</p>
+
+<p>TOMOYO Linux supports "TOMOYO_trigger" kernel boot option. This option is useful for systems that run a program other than <code>/sbin/init</code> on startup. For example, RHEL 7 is using systemd which runs <code>/usr/lib/systemd/systemd</code> on startup. In this case, you need to include "TOMOYO_trigger=/usr/lib/systemd/systemd" in the kernel boot options unless you specified /usr/lib/systemd/systemd at <a href="#3.3.3">3.3.3. Configure the kernel</a>.</p>
+
+<p>You may directly edit /boot/grub2/grub.cfg file. But it is recommended that you also edit GRUB_CMDLINE_LINUX line in <code>/etc/default/grub</code> file like below in case you update kernel packages in the future:</p>
+
+<pre>
+GRUB_CMDLINE_LINUX="vconsole.keymap=us crashkernel=auto  vconsole.font=latarcyrheb-sun16 rhgb quiet security=tomoyo TOMOYO_trigger=/usr/lib/systemd/systemd"
+</pre>
+
+<h3><a name="3.5">3.5. Rebooting your system</a></h3>
+
+<p>Now you have finished all preparation. You can't wait any more? Now it's time to make use of your newly installed kernel. Reboot your system and choose the entry with TOMOYO Linux kernel at the GRUB screen, or at whatever other bootloader you have installed:</p>
+
+<img src="media/grub-screen.png" alt="grub-screen.png" title="Select TOMOYO enabled kernel" width="500" height="375">
+
+<p>If everything was installed properly and the bootloader was correctly configured, the kernel should boot as normal and TOMOYO Linux should be activated:</p>
+
+<img src="media/tomoyo-activated.png" alt="tomoyo-activated.png" title="TOMOYO activated" width="675" height="375">
+
+<h3><a name="3.6">3.6. How can I disable/uninstall TOMOYO Linux?</a></h3>
+
+<p>If your system becomes unable to boot during the course of this guide or any time in the future, it may be due to policy configuration or something related to TOMOYO Linux. If this is the case, it is possible that the kernel can still be booted by disabling TOMOYO Linux. This can be done by appending "security=none" at the kernel command-line parameters.</p>
+
+</div><!-- documentation -->
+
+</div><!-- content -->
+
+<div id="navfooter">
+<hr>
+<table>
+<tr>
+<td class="docs-previous">
+<a href="chapter-2.html.en">Prev</a>
+</td>
+<td class="docs-index">
+<a href="index.html.en">Index</a>
+</td>
+<td class="docs-next">
+<a href="chapter-4.html.en">Next</a>
+</td>
+</tr>
+<tr>
+<td class="docs-previous-description">
+<p>Chapter 2: Why do I need TOMOYO Linux?</p>
+</td>
+<td class="docs-home">
+</td>
+<td class="docs-next-description">
+<p>Chapter 4: How does TOMOYO Linux work?</p>
+</td>
+</tr>
+</table>
+</div>
+
+<div id="footer">
+<p class="language">Go to <a href="chapter-3.html.ja">Japanese page</a>.</p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="https://www.nttdata.com/global/en/">NTT DATA Corporation</a>.</p>
+<p><a href="https://osdn.jp/"><img src="https://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
+</div>
+
+</body>
+</html>

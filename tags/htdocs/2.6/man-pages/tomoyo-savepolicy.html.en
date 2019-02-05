@@ -1,0 +1,154 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="https://www.w3.org/1999/xhtml">
+<head>
+<title>tomoyo-savepolicy</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body style="background-color: white">
+
+
+<!-- INDEX BEGIN -->
+<div name="index">
+<p><a name="__index__"></a></p>
+
+<ul>
+
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#options">OPTIONS</a></li>
+	<li><a href="#examples">EXAMPLES</a></li>
+	<li><a href="#bugs">BUGS</a></li>
+	<li><a href="#authors">AUTHORS</a></li>
+	<li><a href="#see_also">SEE ALSO</a></li>
+</ul>
+
+<hr name="index" />
+</div>
+<!-- INDEX END -->
+
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>tomoyo-savepolicy - save TOMOYO Linux policy</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<p><strong>tomoyo-savepolicy</strong> [<em>directory</em>]</p>
+<p><strong>tomoyo-savepolicy</strong> [<em>directory</em>] [<em>remote_ip:remote:port</em>]</p>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<p>This program saves TOMOYO Linux policy onto disk from kernel memory.</p>
+<p>The directory <em class="file">/etc/tomoyo/policy/YY-MM-DD.hh:mm:ss</em> is created with four files inside: <em class="file">domain_policy.conf</em>, <em class="file">exception_policy.conf</em>, <em class="file">profile.conf</em>, and <em class="file">manager.conf</em>. The symbolic links <em class="file">/etc/tomoyo/policy/previous</em> and <em class="file">/etc/tomoyo/policy/current</em> are updated to point to the previous and current <em class="file">YY-MM-DD.hh:mm:ss</em> directories respectively.</p>
+<p>The following symbolic links should exist within the <em class="file">/etc/tomoyo</em> directory:</p>
+<pre>
+  domain_policy.conf -&gt; policy/current/domain_policy.conf
+  exception_policy.conf -&gt; policy/current/exception_policy.conf
+  profile.conf -&gt; policy/current/profile.conf
+  manager.conf -&gt; policy/current/manager.conf
+  policy/current -&gt; policy/YY-MM-DD.hh:mm:ss
+  policy/previous -&gt; policy/YY-MM-DD.hh:mm:ss</pre>
+<p>You can therefore access the current policy files without having to descend into subdirectories, and without having to determine which <em class="file">YY-MM-DD.hh:mm:ss</em> directory is the most recent.</p>
+<p>If the policy type is specified, this program works similar to <strong>cat</strong>(1).</p>
+<p>
+</p>
+<hr />
+<h1><a name="options">OPTIONS</a></h1>
+<dl>
+<dt><strong><a name="e" class="item"><strong>-e</strong></a></strong></dt>
+
+<dd>
+<p>Print <em class="file">/sys/kernel/security/tomoyo/exception_policy</em> to standard output.</p>
+</dd>
+<dt><strong><a name="d" class="item"><strong>-d</strong></a></strong></dt>
+
+<dd>
+<p>Print <em class="file">/sys/kernel/security/tomoyo/domain_policy</em> to standard output.</p>
+</dd>
+<dt><strong><a name="p" class="item"><strong>-p</strong></a></strong></dt>
+
+<dd>
+<p>Print <em class="file">/sys/kernel/security/tomoyo/profile</em> to standard output.</p>
+</dd>
+<dt><strong><a name="m" class="item"><strong>-m</strong></a></strong></dt>
+
+<dd>
+<p>Print <em class="file">/sys/kernel/security/tomoyo/manager</em> to standard output.</p>
+</dd>
+<dt><strong><a name="s" class="item"><strong>-s</strong></a></strong></dt>
+
+<dd>
+<p>Print <em class="file">/sys/kernel/security/tomoyo/stat</em> to standard output.</p>
+</dd>
+<dt><strong><a name="directory" class="item"><em>directory</em></a></strong></dt>
+
+<dd>
+<p>Save policy to an alternative directory, rather than the default <em class="file">/etc/tomoyo</em> directory.</p>
+</dd>
+<dt><strong><a name="remote_ip_remote_port" class="item"><em>remote_ip:remote_port</em></a></strong></dt>
+
+<dd>
+<p>Save policy on a remote system via an agent waiting at port <em>remote_port</em> on IP address <em>remote_ip</em>.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="examples">EXAMPLES</a></h1>
+<dl>
+<dt><strong><a name="save_policy_to_disk" class="item"><strong>Save policy to disk</strong></a></strong></dt>
+
+<dd>
+<pre>
+  tomoyo-savepolicy</pre>
+</dd>
+<dt><strong><a name="print_sys_kernel_security_tomoyo_exception_policy_to_standard_output" class="item"><strong>Print <code>/sys/kernel/security/tomoyo/exception_policy</code> to standard output</strong></a></strong></dt>
+
+<dd>
+<pre>
+  tomoyo-savepolicy -e</pre>
+</dd>
+<dt><strong><a name="retrieve_policy_from_a_remote_system_and_save_in_a_local_directory" class="item"><strong>Retrieve policy from a remote system and save in a local directory</strong></a></strong></dt>
+
+<dd>
+<pre>
+  tomoyo-savepolicy /etc/tomoyo/192.168.1.1/ 192.168.1.1:10000</pre>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="bugs">BUGS</a></h1>
+<p>If you find any bugs, send an email to &lt;<a href="mailto:tomoyo-users-en@lists.osdn.me">tomoyo-users-en@lists.osdn.me</a>&gt;.</p>
+<p>
+</p>
+<hr />
+<h1><a name="authors">AUTHORS</a></h1>
+<dl>
+<dt><strong><a name="tetsuo_handa_penguin_kernel_i_love_sakura_ne_jp" class="item">Tetsuo Handa &lt;<a href="mailto:penguin-kernel@I-love.SAKURA.ne.jp">penguin-kernel@I-love.SAKURA.ne.jp</a>&gt;</a></strong></dt>
+
+<dd>
+<p>Main author.</p>
+</dd>
+<dt><strong><a name="jamie_nguyen_jamie_tomoyolinux_co_uk" class="item">Jamie Nguyen &lt;<a href="mailto:jamie@tomoyolinux.co.uk">jamie@tomoyolinux.co.uk</a>&gt;</a></strong></dt>
+
+<dd>
+<p>Documentation and website.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="see_also">SEE ALSO</a></h1>
+<p><strong>tomoyo-editpolicy-agent</strong>(8), <strong>tomoyo-loadpolicy</strong>(8)</p>
+<p>See &lt;<a href="https://tomoyo.osdn.jp">https://tomoyo.osdn.jp</a>&gt; for more information.</p>
+
+</body>
+
+</html>

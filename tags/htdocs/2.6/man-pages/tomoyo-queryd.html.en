@@ -1,0 +1,110 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="https://www.w3.org/1999/xhtml">
+<head>
+<title>tomoyo-queryd</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body style="background-color: white">
+
+
+<!-- INDEX BEGIN -->
+<div name="index">
+<p><a name="__index__"></a></p>
+
+<ul>
+
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#options">OPTIONS</a></li>
+	<li><a href="#examples">EXAMPLES</a></li>
+	<li><a href="#bugs">BUGS</a></li>
+	<li><a href="#authors">AUTHORS</a></li>
+	<li><a href="#see_also">SEE ALSO</a></li>
+</ul>
+
+<hr name="index" />
+</div>
+<!-- INDEX END -->
+
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>tomoyo-queryd - real-time access request management utility for TOMOYO Linux</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<p><strong>tomoyo-queryd</strong></p>
+<p><strong>tomoyo-queryd</strong> [<em>remote_ip:remote_port</em>]</p>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<p>This program detects policy violations that occur in domains set to enforcing mode. The violation is displayed and a number of options are given to either grant or reject this request. Programs are frozen until a response is provided by the administrator.</p>
+<p>This is useful when upgrading packages on the system, as errors due to changes in permissions can be avoided.</p>
+<p>Carefully analyze access requests before you grant them, as they could be coming from a compromised process or malicious attacker.</p>
+<p>Before this program can be invoked, you must register it in <em class="file">/sys/kernel/security/tomoyo/manager</em>. After initializing policy, this is usually as simple as rebooting the system.</p>
+<p>
+</p>
+<hr />
+<h1><a name="options">OPTIONS</a></h1>
+<dl>
+<dt><strong><a name="remote_ip_remote_port" class="item"><em>remote_ip:remote_port</em></a></strong></dt>
+
+<dd>
+<p>Instead of managing local policy violations, manage remote policy via an agent waiting at port <em>remote_port</em> on IP address <em>remote_ip</em>.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="examples">EXAMPLES</a></h1>
+<dl>
+<dt><strong><a name="handle_policy_violations_on_the_local_system" class="item"><strong>Handle policy violations on the local system</strong></a></strong></dt>
+
+<dd>
+<pre>
+  tomoyo-queryd</pre>
+</dd>
+<dt><strong><a name="handle_policy_violations_on_a_remote_system" class="item"><strong>Handle policy violations on a remote system</strong></a></strong></dt>
+
+<dd>
+<pre>
+  tomoyo-queryd 192.168.1.1:10000</pre>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="bugs">BUGS</a></h1>
+<p>If you find any bugs, send an email to &lt;<a href="mailto:tomoyo-users-en@lists.osdn.me">tomoyo-users-en@lists.osdn.me</a>&gt;.</p>
+<p>
+</p>
+<hr />
+<h1><a name="authors">AUTHORS</a></h1>
+<dl>
+<dt><strong><a name="tetsuo_handa_penguin_kernel_i_love_sakura_ne_jp" class="item">Tetsuo Handa &lt;<a href="mailto:penguin-kernel@I-love.SAKURA.ne.jp">penguin-kernel@I-love.SAKURA.ne.jp</a>&gt;</a></strong></dt>
+
+<dd>
+<p>Main author.</p>
+</dd>
+<dt><strong><a name="jamie_nguyen_jamie_tomoyolinux_co_uk" class="item">Jamie Nguyen &lt;<a href="mailto:jamie@tomoyolinux.co.uk">jamie@tomoyolinux.co.uk</a>&gt;</a></strong></dt>
+
+<dd>
+<p>Documentation and website.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="see_also">SEE ALSO</a></h1>
+<p><strong>tomoyo-editpolicy-agent</strong>(8), <strong>tomoyo-notifyd</strong>(8)</p>
+<p>See &lt;<a href="https://tomoyo.osdn.jp">https://tomoyo.osdn.jp</a>&gt; for more information.</p>
+
+</body>
+
+</html>

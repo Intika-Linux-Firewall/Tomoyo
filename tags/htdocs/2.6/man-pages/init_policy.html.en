@@ -1,0 +1,141 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="https://www.w3.org/1999/xhtml">
+<head>
+<title>init_policy</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body style="background-color: white">
+
+
+<!-- INDEX BEGIN -->
+<div name="index">
+<p><a name="__index__"></a></p>
+
+<ul>
+
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#options">OPTIONS</a></li>
+	<li><a href="#examples">EXAMPLES</a></li>
+	<li><a href="#bugs">BUGS</a></li>
+	<li><a href="#authors">AUTHORS</a></li>
+	<li><a href="#see_also">SEE ALSO</a></li>
+</ul>
+
+<hr name="index" />
+</div>
+<!-- INDEX END -->
+
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>init_policy - initialize TOMOYO Linux policy</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<p><strong>init_policy</strong> [<em>option</em>]</p>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<p>This program generates templates for all policy files. However, the output should be reviewed because automatically generated exception policy may contain dangerous or redundant entries.</p>
+<p>This program only needs to be run once.</p>
+<p>
+</p>
+<hr />
+<h1><a name="options">OPTIONS</a></h1>
+<dl>
+<dt><strong><a name="file_only_profile" class="item"><strong>--file-only-profile</strong></a></strong></dt>
+
+<dd>
+<p>Create profiles with only file-related functionality enabled.</p>
+</dd>
+<dt><strong><a name="full_profile" class="item"><strong>--full-profile</strong></a></strong></dt>
+
+<dd>
+<p>Create profiles with all functionality enabled. [default]</p>
+</dd>
+<dt><strong><a name="use_profile_integer" class="item"><strong>--use_profile=</strong><em>integer</em></a></strong></dt>
+
+<dd>
+<p>Set the default profile number for the &quot;&lt;kernel&gt;&quot; domain to the specified integer, which must be between 0 and 255. [default=0]</p>
+</dd>
+<dt><strong><a name="use_group_integer" class="item"><strong>--use_group=</strong><em>integer</em></a></strong></dt>
+
+<dd>
+<p>Set the default group number for the &quot;&lt;kernel&gt;&quot; domain to the specified integer, which must be between 0 and 255. [default=0]</p>
+</dd>
+<dt><strong><a name="max_audit_log_integer" class="item"><strong>--max_audit_log=</strong><em>integer</em></a></strong></dt>
+
+<dd>
+<p>Set the default maximal audit log entries that the kernel will spool in the <em class="file">/sys/kernel/security/tomoyo/audit</em> interface. This value must be an integer, and can be set to 0 if audit logs are not required. Maximum memory used can also be controlled via the <em class="file">/sys/kernel/security/tomoyo/stat</em> interface. [default=1024]</p>
+</dd>
+<dt><strong><a name="max_learning_entry_integer" class="item"><strong>--max_learning_entry=</strong><em>integer</em></a></strong></dt>
+
+<dd>
+<p>Set the default maximum number of ACL entries automatically added to each domain by the kernel when using learning mode. This value must be an integer, and can be set to o if you do not need learning mode. Maximum memory used can also be controlled using the <em class="file">/sys/kernel/security/tomoyo/stat</em> interface.</p>
+</dd>
+<dt><strong><a name="grant_log_value" class="item"><strong>--grant_log=</strong><em>value</em></a></strong></dt>
+
+<dd>
+<p>Set whether grant logs should be audited. This value can either be <code>yes</code> or <code>no</code>. [default=no]</p>
+</dd>
+<dt><strong><a name="reject_log_value" class="item"><strong>--reject_log=</strong><em>value</em></a></strong></dt>
+
+<dd>
+<p>Set whether reject logs should be audited. This value can either be <code>yes</code> or <code>no</code>. [default=yes]</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="examples">EXAMPLES</a></h1>
+<dl>
+<dt><strong><a name="initialize_policy" class="item"><strong>Initialize policy</strong></a></strong></dt>
+
+<dd>
+<pre>
+  /usr/lib/tomoyo/init_policy</pre>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="bugs">BUGS</a></h1>
+<p>If you find any bugs, send an email to &lt;<a href="mailto:tomoyo-users-en@lists.osdn.me">tomoyo-users-en@lists.osdn.me</a>&gt;.</p>
+<p>
+</p>
+<hr />
+<h1><a name="authors">AUTHORS</a></h1>
+<dl>
+<dt><strong><a name="tetsuo_handa_penguin_kernel_i_love_sakura_ne_jp" class="item">Tetsuo Handa &lt;<a href="mailto:penguin-kernel@I-love.SAKURA.ne.jp">penguin-kernel@I-love.SAKURA.ne.jp</a>&gt;</a></strong></dt>
+
+<dd>
+<p>Main author.</p>
+</dd>
+<dt><strong><a name="jamie_nguyen_jamie_tomoyolinux_co_uk" class="item">Jamie Nguyen &lt;<a href="mailto:jamie@tomoyolinux.co.uk">jamie@tomoyolinux.co.uk</a>&gt;</a></strong></dt>
+
+<dd>
+<p>Documentation and website.</p>
+</dd>
+<dt><strong><a name="naohiro_aoto_naoto_namazu_org" class="item">Naohiro Aoto &lt;<a href="mailto:naoto@namazu.org">naoto@namazu.org</a>&gt;</a></strong></dt>
+
+<dd>
+<p>Bug fix for 64bit Gentoo.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="see_also">SEE ALSO</a></h1>
+<p><strong>tomoyo-init</strong>(8)</p>
+<p>See &lt;<a href="https://tomoyo.osdn.jp">https://tomoyo.osdn.jp</a>&gt; for more information.</p>
+
+</body>
+
+</html>
