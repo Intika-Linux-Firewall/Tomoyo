@@ -2,7 +2,7 @@
 # directory which should be created by executing /usr/lib/tomoyo/init_policy .
 # You can create this file as meta-tomoyo/recipes-tomoyo/tomoyo-tools_2.5.0.bbappend
 # after downloading meta-tomoyo/recipes-tomoyo/tomoyo-tools_2.5.0.bb explained at
-# http://tomoyo.osdn.jp/2.5/yocto-arm.html#step4 .
+# https://tomoyo.osdn.jp/2.5/yocto-arm.html#step4 .
 
 do_install_append() {
     mkdir -p ${D}/etc/tomoyo/

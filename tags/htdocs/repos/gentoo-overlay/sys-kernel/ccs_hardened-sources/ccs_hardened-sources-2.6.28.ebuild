@@ -12,10 +12,10 @@ detect_version
 
 CCS_TGP="ccs-patch-1.6.5-20081225"
 CCS_TGP_SRC="mirror://osdn.jp/tomoyo/30297/${CCS_TGP}.tar.gz"
-CCS_HARDENED_URI="http://svn.osdn.jp/cgi-bin/viewcvs.cgi/*checkout*/branches/ccs-patch-2.6.27%2Bgrsecurity-2.1.12-2.6.27.10.diff?rev=2038&root=tomoyo"
+CCS_HARDENED_URI="https://svn.osdn.jp/cgi-bin/viewcvs.cgi/*checkout*/branches/ccs-patch-2.6.27%2Bgrsecurity-2.1.12-2.6.27.10.diff?rev=2038&root=tomoyo"
 
 HGPV="${KV_MAJOR}.${KV_MINOR}.${KV_PATCH}-1"
-HGPV_URI="http://dev.gentoo.org/~gengor/distfiles/${CATEGORY}/${PN}/hardened-patches-${HGPV}.extras.tar.bz2
+HGPV_URI="https://dev.gentoo.org/~gengor/distfiles/${CATEGORY}/${PN}/hardened-patches-${HGPV}.extras.tar.bz2
 	mirror://gentoo/hardened-patches-${HGPV}.extras.tar.bz2"
 
 DESCRIPTION="TOMOYO Linux sources for the hardened kernel ${KV_MAJOR}.${KV_MINOR}"

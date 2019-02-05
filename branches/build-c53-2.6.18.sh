@@ -20,12 +20,12 @@ rpm -ivh kernel-2.6.18-128.7.1.el5.src.rpm || die "Can't install source package.
 cd /usr/src/redhat/SOURCES/ || die "Can't chdir to /usr/src/redhat/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.5-20181225.tar.gz ]
 then
-    wget -O ccs-patch-1.8.5-20181225.tar.gz 'http://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.5-20181225.tar.gz' || die "Can't download patch."
+    wget -O ccs-patch-1.8.5-20181225.tar.gz 'https://osdn.jp/frs/redir.php?f=/tomoyo/49684/ccs-patch-1.8.5-20181225.tar.gz' || die "Can't download patch."
 fi
 
 if [ ! -r ccs-patch-2.6.18-centos-5.3-20110614.diff ]
 then
-    wget -O ccs-patch-2.6.18-centos-5.3-20110614.diff 'http://osdn.jp/projects/tomoyo/svn/view/branches/ccs-patch-2.6.18-centos-5.3.diff?revision=5185&root=tomoyo' || die "Can't download patch."
+    wget -O ccs-patch-2.6.18-centos-5.3-20110614.diff 'https://osdn.jp/projects/tomoyo/svn/view/branches/ccs-patch-2.6.18-centos-5.3.diff?revision=5185&root=tomoyo' || die "Can't download patch."
 fi
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."

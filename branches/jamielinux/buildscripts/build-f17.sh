@@ -3,9 +3,9 @@ set -e
 
 DOWNLOAD_DIR="${HOME}/sources"
 
-URL_CCS="http://osdn.jp/frs/redir.php?f=/tomoyo/49684"
-URL_CCS_SVN="http://osdn.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches"
-URL_KERNEL="http://mirror.bytemark.co.uk/fedora/linux/updates/17/SRPMS"
+URL_CCS="https://osdn.jp/frs/redir.php?f=/tomoyo/49684"
+URL_CCS_SVN="https://osdn.jp/projects/tomoyo/svn/view/trunk/1.8.x/ccs-patch/patches"
+URL_KERNEL="https://archives.fedoraproject.org/pub/archive/fedora/linux/updates/17/SRPMS"
 
 ARCH="$(uname -m)"
 CCS_VER="1.8.3p7"
