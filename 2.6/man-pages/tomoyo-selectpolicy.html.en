@@ -1,0 +1,105 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="https://www.w3.org/1999/xhtml">
+<head>
+<title>tomoyo-selectpolicy</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:root@localhost" />
+</head>
+
+<body style="background-color: white">
+
+
+<!-- INDEX BEGIN -->
+<div name="index">
+<p><a name="__index__"></a></p>
+
+<ul>
+
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#options">OPTIONS</a></li>
+	<li><a href="#examples">EXAMPLES</a></li>
+	<li><a href="#bugs">BUGS</a></li>
+	<li><a href="#authors">AUTHORS</a></li>
+	<li><a href="#see_also">SEE ALSO</a></li>
+</ul>
+
+<hr name="index" />
+</div>
+<!-- INDEX END -->
+
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>tomoyo-selectpolicy - policy selection utility for TOMOYO Linux</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<p><strong>tomoyo-selectpolicy</strong> [<em>options</em>] <em>&lt;domain&gt;</em> ...</p>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<p>This program reads domain policy from standard input, and outputs policy from the specified domain to standard output.</p>
+<p>
+</p>
+<hr />
+<h1><a name="options">OPTIONS</a></h1>
+<dl>
+<dt><strong><a name="r" class="item"><strong>-r</strong></a></strong></dt>
+
+<dd>
+<p>Pick up all domains whose domain name starts with the specified string.</p>
+</dd>
+<dt><strong><a name="domain" class="item"><em>&lt;domain&gt;</em></a></strong></dt>
+
+<dd>
+<p>The string must be quoted or escaped to avoid misinterpretation by the shell. It only matches an exact string unless the <a href="#r"><code>-r</code></a> option is specified.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="examples">EXAMPLES</a></h1>
+<dl>
+<dt><strong><a name="pick_up_domain_policy_for_sshd_and_its_descendents" class="item"><strong>Pick up domain policy for sshd and its descendents</strong></a></strong></dt>
+
+<dd>
+<pre>
+  tomoyo-selectpolicy -r '&lt;kernel&gt; /usr/sbin/sshd' &lt; /sys/kernel/security/tomoyo/domain_policy</pre>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="bugs">BUGS</a></h1>
+<p>If you find any bugs, send an email to &lt;<a href="mailto:tomoyo-users-en@lists.osdn.me">tomoyo-users-en@lists.osdn.me</a>&gt;.</p>
+<p>
+</p>
+<hr />
+<h1><a name="authors">AUTHORS</a></h1>
+<dl>
+<dt><strong><a name="tetsuo_handa_penguin_kernel_i_love_sakura_ne_jp" class="item">Tetsuo Handa &lt;<a href="mailto:penguin-kernel@I-love.SAKURA.ne.jp">penguin-kernel@I-love.SAKURA.ne.jp</a>&gt;</a></strong></dt>
+
+<dd>
+<p>Main author.</p>
+</dd>
+<dt><strong><a name="jamie_nguyen_jamie_tomoyolinux_co_uk" class="item">Jamie Nguyen &lt;<a href="mailto:jamie@tomoyolinux.co.uk">jamie@tomoyolinux.co.uk</a>&gt;</a></strong></dt>
+
+<dd>
+<p>Documentation and website.</p>
+</dd>
+</dl>
+<p>
+</p>
+<hr />
+<h1><a name="see_also">SEE ALSO</a></h1>
+<p><strong>tomoyo-sortpolicy</strong>(8)</p>
+<p>See &lt;<a href="https://tomoyo.osdn.jp">https://tomoyo.osdn.jp</a>&gt; for more information.</p>
+
+</body>
+
+</html>

@@ -1,0 +1,424 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html lang="en-US">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
+<title>TOMOYO Linux 2.5.x : TOMOYO Linux on Android</title>
+</head>
+
+<body>
+
+<div id="titlebar">
+<a href="../index.html.en"><img src="../media/tomoyotitle.png" alt="tomoyotitle.png" width="320" height="40" border="0" align="left" title="TOMOYO Linux"></a>
+</div>
+
+<div id="navbar" class="tomoyo-documentation">
+<ul id="navbarlist">
+<li id="tomoyo-home"><a href="../index.html.en" title="TOMOYO Linux Home Page">Home</a></li>
+<li id="tomoyo-about"><a href="../about.html.en" title="About TOMOYO Linux">About</a></li>
+<li id="tomoyo-download"><a href="../download.html.en" title="Get TOMOYO Linux">Download</a></li>
+<li id="tomoyo-changelogs"><a href="../changelogs.html.en" title="TOMOYO Linux ChangeLogs">ChangeLogs</a></li>
+<li id="tomoyo-documentation"><a href="../documentation.html.en" title="Official Documentation">Documentation</a></li>
+<li id="tomoyo-support"><a href="../support.html.en" title="Support information">Support</a></li>
+<li id="tomoyo-links"><a href="../links.html.en" title="Links">Links</a></li>
+</ul>
+<ul id="switch-language">
+<li id="tomoyo-switch-language"><a href="android-arm.html.ja" title="Go to Japanese page">Japanese page</a></li>
+</ul>
+</div>
+
+<div id="content">
+
+<div id="regular-content">
+
+<h2>TOMOYO Linux on Android</h2>
+
+<p>This page describes how to run TOMOYO Linux on Android emulator for ARM architecture. This page assumes Ubuntu 10.04.3 for x86_64 architecture as the host environment.</p>
+
+<h3>Step 1: Install required packages.</h3>
+
+<p>Install packages as suggested at <a href="https://source.android.com/source/download.html">https://source.android.com/source/download.html</a> .</p>
+
+<pre class="command">
+sudo add-apt-repository "deb http://archive.canonical.com/ lucid partner"
+sudo add-apt-repository "deb-src http://archive.canonical.com/ubuntu lucid partner"
+sudo apt-get update
+sudo apt-get install sun-java6-jdk
+sudo apt-get install git-core gnupg flex bison gperf build-essential zip curl zlib1g-dev libc6-dev \
+lib32ncurses5-dev ia32-libs x11proto-core-dev libx11-dev lib32readline5-dev lib32z-dev \
+libgl1-mesa-dev g++-multilib mingw32 tofrodos python-markdown libxml2-utils xsltproc
+</pre>
+
+<h3>Step 2: Set environment variables.</h3>
+
+<p>Set environment variables shown below. Adding to user's initrc script (e.g. ~/.bashrc ) is recommended.</p>
+
+<pre class="command">
+export ANDROID_HOME=$HOME/mydroid/
+export ANDROID_IMG=$ANDROID_HOME/image/
+</pre>
+
+<p>Create directories.</p>
+
+<pre class="command">
+mkdir -p $ANDROID_HOME
+mkdir -p $ANDROID_HOME/tmp
+mkdir -p $ANDROID_HOME/tmp/policy
+mkdir -p $ANDROID_IMG
+mkdir -p $ANDROID_IMG/tmp
+sudo mkdir -p /var/log/tomoyo
+sudo chown -R `id -u` /var/log/tomoyo/
+</pre>
+
+<h3>Step 3: Build the Android environment.</h3>
+
+<p>Download the source code and compile the emulator.</p>
+
+<pre class="command">
+cd $ANDROID_HOME
+wget https://dl-ssl.google.com/dl/googlesource/git-repo/repo
+chmod 755 repo
+./repo init -u https://android.googlesource.com/platform/manifest -b android-4.0.1_r1
+./repo sync
+source build/envsetup.sh
+lunch full-eng
+make
+</pre>
+
+<h3>Step 4: Compile tools for host environment.</h3>
+
+<p>Install TOMOYO Linux's userland tools into host environment in order to manage Android emulator remotely.</p>
+
+<pre class="command">
+cd $ANDROID_HOME/tmp/
+wget -O tomoyo-tools-2.5.0-20170102.tar.gz 'https://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/53357/tomoyo-tools-2.5.0-20170102.tar.gz'
+wget -O tomoyo-tools-2.5.0-20170102.tar.gz.asc 'https://osdn.jp/frs/redir.php?m=jaist&amp;f=/tomoyo/53357/tomoyo-tools-2.5.0-20170102.tar.gz.asc'
+wget https://tomoyo.osdn.jp/kumaneko-key
+gpg --import kumaneko-key
+gpg tomoyo-tools-2.5.0-20170102.tar.gz.asc
+tar -zxf tomoyo-tools-2.5.0-20170102.tar.gz
+cd tomoyo-tools
+make
+sudo make install
+</pre>
+
+<p>Also, create default configuration in order to prepare for policy management tools.</p>
+
+<pre class="command">
+sudo /usr/lib/tomoyo/init_policy
+sudo chown -R `id -u` /etc/tomoyo/
+echo 'rewrite head_pattern /acct/uid/\$/' &gt;&gt; /etc/tomoyo/tools/patternize.conf
+</pre>
+
+<h3>Step 5: Compile tools for emulator environment.</h3>
+
+<p>Install TOMOYO Linux's agent program into Android emulator environment.</p>
+
+<pre class="command">
+cd $ANDROID_HOME/tmp/
+wget -O agcc https://plausible.org/andy/agcc
+sed -i -e 's@4\.2\.1@4.4.3@g' -e 's@interwork/@@g' -- agcc
+chmod 755 agcc
+./agcc -o tomoyo-editpolicy-agent $ANDROID_HOME/tmp/tomoyo-tools/usr_lib_tomoyo/tomoyo-editpolicy-agent.c
+chmod 700 tomoyo-editpolicy-agent
+</pre>
+
+<h3>Step 6: Create initial policy.</h3>
+
+<p>Create initial policy which will be embedded into the kernel.</p>
+
+<ul>
+<li>Use profile 1 (which is a profile for "learning mode") to all domains.</li>
+<li>Give some permission from the beginning.</li>
+<li>Only /sbin/tomoyo-editpolicy-agent is allowed to modify policy via /sys/kernel/security/tomoyo/ interface.</li>
+</ul>
+
+<p>An example with conditions above is shown below.</p>
+
+<pre class="command">
+cd $ANDROID_HOME/tmp/policy/
+cat &gt; profile.conf &lt;&lt; "EOF"
+PROFILE_VERSION=20100903
+0-COMMENT=-----Disabled Mode-----
+0-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048  }
+0-CONFIG={ mode=disabled grant_log=no reject_log=yes }
+1-COMMENT=-----Learning Mode-----
+1-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048  }
+1-CONFIG={ mode=learning grant_log=no reject_log=yes }
+2-COMMENT=-----Permissive Mode-----
+2-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048  }
+2-CONFIG={ mode=permissive grant_log=no reject_log=yes }
+3-COMMENT=-----Enforcing Mode-----
+3-PREFERENCE={ max_audit_log=1024 max_learning_entry=2048  }
+3-CONFIG={ mode=enforcing grant_log=no reject_log=yes }
+EOF
+cat &gt; exception_policy.conf &lt;&lt; "EOF"
+path_group ANY_PATHNAME /
+path_group ANY_PATHNAME /\{\*\}/
+path_group ANY_PATHNAME /\{\*\}/\*
+path_group ANY_PATHNAME /\*
+path_group ANY_PATHNAME \*:/
+path_group ANY_PATHNAME \*:/\{\*\}/
+path_group ANY_PATHNAME \*:/\{\*\}/\*
+path_group ANY_PATHNAME \*:/\*
+path_group ANY_PATHNAME \*:[\$]
+path_group ANY_PATHNAME socket:[family=\$:type=\$:protocol=\$]
+acl_group 0 file getattr @ANY_PATHNAME
+acl_group 0 file ioctl @ANY_PATHNAME 0-0xFFFFFFFF
+acl_group 0 file read /dev/urandom
+acl_group 0 file read /system/bin/linker
+acl_group 0 file read /system/lib/lib\*.so
+acl_group 0 misc env _
+acl_group 0 misc env ANDROID_ASSETS
+acl_group 0 misc env ANDROID_BOOTLOGO
+acl_group 0 misc env ANDROID_DATA
+acl_group 0 misc env ANDROID_DNS_MODE
+acl_group 0 misc env ANDROID_PROPERTY_WORKSPACE
+acl_group 0 misc env ANDROID_ROOT
+acl_group 0 misc env ANDROID_SOCKET_\*
+acl_group 0 misc env ASEC_MOUNTPOINT
+acl_group 0 misc env BOOTCLASSPATH
+acl_group 0 misc env EXTERNAL_STORAGE
+acl_group 0 misc env HOME
+acl_group 0 misc env LD_LIBRARY_PATH
+acl_group 0 misc env LOOP_MOUNTPOINT
+acl_group 0 misc env ndns
+acl_group 0 misc env PATH
+acl_group 0 misc env qemu
+acl_group 0 misc env RANDOM
+acl_group 0 misc env SHELL
+acl_group 0 misc env TERM
+EOF
+cat &gt; domain_policy.conf &lt;&lt; "EOF"
+&lt;kernel&gt;
+use_profile 1
+use_group 0
+EOF
+echo /sbin/tomoyo-editpolicy-agent &gt; manager.conf
+echo &gt; stat.conf
+</pre>
+
+<h3>Step 7: Build the Android kernel.</h3>
+
+<p>Download Linux 2.6.33 or later, and extract and go to the extracted directory. Hereafter, I call the extracted directory as $ANDROID_HOME/tmp/common/ .</p>
+
+<pre class="command">
+cd $ANDROID_HOME/tmp/common/
+</pre>
+
+<p>Then, if you use Linux 2.6.33 to 3.3, download Linux 3.4 and overwrite security/tomoyo/ directory by extracting from it.</p>
+
+<pre class="command">
+wget https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.4.tar.bz2
+tar -jxf linux-3.4.tar.bz2 --strip 1 linux-3.4/security/tomoyo/
+</pre>
+
+<p>Then, if you use Linux 2.6.33 to 3.2, download a backport patch from <a href="https://tomoyo.osdn.jp/2.5/patches/">https://tomoyo.osdn.jp/2.5/patches/</a> and apply it.</p>
+
+<p>Then, create a default kernel configuration.</p>
+
+<pre class="command">
+ARCH=arm CROSS_COMPILE=$ANDROID_EABI_TOOLCHAIN/arm-linux-androideabi- make -s goldfish_armv7_defconfig
+</pre>
+
+<p>Enable TOMOYO Linux.</p>
+
+<pre class="command">
+cd $ANDROID_HOME/tmp/common/
+sed -i -e 's/# CONFIG_SECURITY_TOMOYO is not set/CONFIG_SECURITY_TOMOYO=y/' -e 's/# CONFIG_DEFAULT_SECURITY_TOMOYO is not set/CONFIG_DEFAULT_SECURITY_TOMOYO=y/' -- .config
+sed -i -e 's/# CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER is not set/CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER=y/' -- .config
+mkdir -p security/tomoyo/policy/
+cp -p $ANDROID_HOME/tmp/policy/*.conf security/tomoyo/policy/
+</pre>
+
+<p>Compile the kernel.</p>
+
+<pre class="command">
+cd $ANDROID_HOME/tmp/common/
+ARCH=arm CROSS_COMPILE=$ANDROID_EABI_TOOLCHAIN/arm-linux-androideabi- make -s
+cp -p arch/arm/boot/zImage $ANDROID_IMG/kernel.img
+</pre>
+
+<h3>Step 8: Copy Android's image files.</h3>
+
+<p>Copy image file used by Android emulator.</p>
+
+<pre class="command">
+cd $ANDROID_HOME/out/target/product/generic/
+cp -p system.img ramdisk.img userdata.img $ANDROID_IMG
+</pre>
+
+<h3>Step 9: Edit Android's ramdisk image.</h3>
+
+<p>Copy the agent program into Android emulator's ramdisk and configure the agent to be automatically executed upon boot.</p>
+
+<pre class="command">
+cd $ANDROID_IMG/tmp/
+zcat ../ramdisk.img | cpio -id
+echo &gt;&gt; init.rc
+echo 'service tomoyo_agent /sbin/tomoyo-editpolicy-agent 0.0.0.0:7000' &gt;&gt; init.rc
+echo '&nbsp;&nbsp;&nbsp;&nbsp;class core' &gt;&gt; init.rc
+echo '&nbsp;&nbsp;&nbsp;&nbsp;oneshot' &gt;&gt; init.rc
+cp -p $ANDROID_HOME/tmp/tomoyo-editpolicy-agent sbin/
+find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img
+</pre>
+
+<h3>Step 10: Start the Android emulator.</h3>
+
+<p>Start the Android emulator. Specify the kernel made at step 7 and the ramdisk made at step 9.</p>
+
+<pre class="command">
+emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysdir $ANDROID_IMG \
+-data $ANDROID_IMG/userdata.img -show-kernel
+</pre>
+
+<h3>Step 11: Enable TCP port forwarding.</h3>
+
+<p>Configure port forwarding in order to communicate with the agent program running in the emulator. Below line makes TCP connection requests sent to host environment's port 10000 are forwarded to emulator environment's port 7000. As you have configures tomoyo-editpolicy-agent to listen at port 7000 at step 9, you can communicate with the agent program by connecting to host environment's port 10000.</p>
+
+<pre class="command">
+adb forward tcp:10000 tcp:7000
+</pre>
+
+<h3>Step 12: Operate via agent.</h3>
+
+<p>You can browse/edit policy via agent program by starting tomoyo-editpolicy as shown below.</p>
+
+<pre class="command">
+/usr/sbin/tomoyo-editpolicy 127.0.0.1:10000
+</pre>
+
+<p>You can save audit logs by starting tomoyo-auditd as shown below. Please be careful with disk's free space because a lot of logs are generated.</p>
+
+<pre class="command">
+/usr/sbin/tomoyo-auditd 127.0.0.1:10000
+</pre>
+
+<p>You can interactively handle policy violation in enforcing mode by starting tomoyo-queryd as shown below. Press Ctrl-C to terminate tomoyo-queryd.</p>
+
+<pre class="command">
+/usr/sbin/tomoyo-queryd 127.0.0.1:10000
+</pre>
+
+<p>You can make patterns by running tomoyo-patternize as show below. Edit /etc/tomoyo/tools/patternize.conf as needed since the rules for making patterns are defined in that file.</p>
+
+<pre class="command">
+cd $ANDROID_HOME/tmp/policy/
+/usr/sbin/tomoyo-savepolicy -d 127.0.0.1:10000 &gt; domain_policy.old
+/usr/sbin/tomoyo-patternize &lt; domain_policy.old &gt; domain_policy.new
+/usr/sbin/tomoyo-diffpolicy domain_policy.old domain_policy.new &gt; domain_policy.diff
+less domain_policy.diff
+/usr/sbin/tomoyo-loadpolicy -d 127.0.0.1:10000 &lt; domain_policy.diff
+</pre>
+
+<h3>Step 13: Updating policy</h3>
+
+<p>Since the policy updated after the boot resides only in the kernel memory, the updated policy will be lost when the emulator is terminated. Be sure to save the updated policy before terminating the emulator.</p>
+
+<pre class="command">
+cd $ANDROID_HOME/tmp/policy/
+/usr/sbin/tomoyo-savepolicy -e 127.0.0.1:10000 &gt; exception_policy.conf
+/usr/sbin/tomoyo-savepolicy -d 127.0.0.1:10000 &gt; domain_policy.conf
+/usr/sbin/tomoyo-savepolicy -p 127.0.0.1:10000 &gt; profile.conf
+</pre>
+
+<p>Run below commands to update policy which will be embedded into the kernel.</p>
+
+<pre class="command">
+cp -p $ANDROID_HOME/tmp/policy/*.conf $ANDROID_HOME/tmp/common/security/tomoyo/policy/
+</pre>
+
+<p>Recompile the Android kernel.</p>
+
+<pre class="command">
+cd $ANDROID_HOME/tmp/common/
+ARCH=arm CROSS_COMPILE=$ANDROID_EABI_TOOLCHAIN/arm-linux-androideabi- make -s
+cp -p arch/arm/boot/zImage $ANDROID_IMG/kernel.img
+</pre>
+
+<p>Restart the Android emulator.</p>
+
+<pre class="command">
+emulator -kernel $ANDROID_IMG/kernel.img -ramdisk $ANDROID_IMG/ramdisk.img -sysdir $ANDROID_IMG \
+-data $ANDROID_IMG/userdata.img -show-kernel
+</pre>
+
+<p>When you have finished developing the final policy files, you can specify a profile for enforcing mode (use_profile 3) to domain_policy.conf which will be embedded into the kernel. By using a profile for enforcing mode, you can enable access control from the moment /init in the initramfs is executed. After you have verified that the emulator works as expected with a profile for enforcing mode, you can remove /sbin/tomoyo-editpolicy-agent added at step 9. Also, you can remove tomoyo-editpolicy-agent from /init.rc and from profile.conf which will be embedded into the kernel.</p>
+
+<h3>Appendix: Hints for allowing policy updates after boot</h3>
+
+<p>Regarding Android devices, users can add applications which are not shipped with the device. Therefore, you may want to allow updating policy when special applications are added. In that case, you can split policy files into the "fixed" part which will be embedded into the kernel for use at the boot stage and the "variant" part which will not be embedded into the kernel for use after the boot stage.</p>
+
+<p>You can reduce the risk of tampering the "fixed" part by deploying the kernel into the read-only partition. But you may not be able to reduce the risk of tampering the "variant" part because the "variant" part will likely be located into the read-write partition. In that case, you can use (e.g.) GPG signature and append the policy into the kernel only when you verified that the "variant" part is not tampered.</p>
+
+<p>TOMOYO Linux provides a mechanism for querying external userland application when a policy violation in enforcing mode has occurred. You can implement a program like tomoyo-queryd and daemonize the program instead of tomoyo-editpolicy-agent .</p>
+
+<h3>Appendix: Hints for not embedding policy into the kernel</h3>
+
+<p>If you want not to embed policy files into your kernel by some reason, you can replace</p>
+
+<pre class="command">
+sed -i -e 's/# CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER is not set/CONFIG_SECURITY_TOMOYO_OMIT_USERSPACE_LOADER=y/' -- .config
+mkdir -p security/tomoyo/policy/
+cp -p $ANDROID_HOME/tmp/policy/*.conf security/tomoyo/policy/
+</pre>
+
+<p>with</p>
+
+<pre class="command">
+sed -i -e 's@CONFIG_SECURITY_TOMOYO_ACTIVATION_TRIGGER="/sbin/init"@CONFIG_SECURITY_TOMOYO_ACTIVATION_TRIGGER="/init"@' -- .config
+</pre>
+
+<p>in Step 7. If you do so, you will need to copy /sbin/tomoyo-init (as a policy loader, and /system/bin/linker /system/lib/libc.so /system/lib/libm.so which /sbin/tomoyo-init depends on) into ramdisk image. You cannot use symlinks to files in /system/ partition because /system/ partition is not yet mounted as of /sbin/tomoyo-init is executed. Also, please modify tomoyo-init.c as needed (for example, embed the content of $ANDROID_HOME/tmp/policy/*.conf into tomoyo-init.c) because it is designed to read policy files from /etc/tomoyo/ directory. Below example changes tomoyo-init.c to read policy files from /tomoyo/ directory because /init.rc in Android emulator's ramdisk creates /etc as a symlink to /system/etc/ directory.</p>
+
+<pre class="command">
+cd $ANDROID_HOME/tmp/
+sed -e 's:etc/tomoyo:tomoyo:g' $ANDROID_HOME/tmp/tomoyo-tools/sbin/tomoyo-init.c &gt; $ANDROID_HOME/tmp/tomoyo-tools/sbin/tomoyo-init2.c
+./agcc -o tomoyo-init $ANDROID_HOME/tmp/tomoyo-tools/sbin/tomoyo-init2.c
+cd $ANDROID_IMG/tmp/
+mkdir -p sbin system/bin system/lib
+cp -p $ANDROID_HOME/tmp/tomoyo-init sbin/
+cp -p $ANDROID_HOME/out/target/product/generic/system/bin/linker system/bin/
+cp -p $ANDROID_HOME/out/target/product/generic/system/lib/libc.so system/lib/
+cp -p $ANDROID_HOME/out/target/product/generic/system/lib/libm.so system/lib/
+chmod 700 sbin/tomoyo-init system/bin/linker system/lib/libc.so system/lib/libm.so
+find . -print0 | cpio -o0 -H newc | gzip -9 &gt; ../ramdisk.img
+</pre>
+
+</div><!-- regular-content -->
+
+</div><!-- content -->
+
+<div id="navfooter">
+<hr>
+<table>
+<tr>
+<td class="docs-previous">
+</td>
+<td class="docs-index">
+<a href="index.html.en">Index</a>
+</td>
+<td class="docs-next">
+</td>
+</tr>
+<tr>
+<td class="docs-previous-description">
+</td>
+<td class="docs-home">
+</td>
+<td class="docs-next-description">
+</td>
+</tr>
+</table>
+</div>
+
+<div id="footer">
+<p class="language">Go to <a href="android-arm.html.ja">Japanese page</a>.</p>
+<p class="timestamp">Last modified: $Date$</p>
+<p class="trademark">Linux&reg; is a registered trademark of Linus Torvalds world-wide. TOMOYO&reg; is a registered trademark of <a href="https://www.nttdata.com/global/en/">NTT DATA Corporation</a>.</p>
+<p><a href="https://osdn.jp/"><img src="https://osdn.jp/sflogo.php?group_id=1973" width="96" height="31" alt="sflogo.php" title="SourceForge.jp"></a></p>
+</div>
+
+</body>
+</html>
