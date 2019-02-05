@@ -712,7 +712,8 @@ struct ccs_domain2_info {
 	struct list_head acl_info_list;
 	/* Name of this domain. Never NULL.          */
 	const struct ccs_path_info *domainname;
-	u8 group;          /* Group number to use.   */
+	/* Group numbers to use.   */
+	bool group[CCS_MAX_ACL_GROUPS];
 	u8 profile;        /* Profile number to use. */
 	bool is_deleted;   /* Delete flag.           */
 	bool flags[CCS_MAX_DOMAIN_INFO_FLAGS];
@@ -3637,8 +3638,7 @@ static int ccs_write_domain(void)
 	}
 	if (sscanf(data, "use_group %u\n", &idx) == 1 &&
 	    idx < CCS_MAX_ACL_GROUPS) {
-		if (!is_delete)
-			domain->group = (u8) idx;
+		domain->group[idx] = !is_delete;
 		return 0;
 	}
 	for (idx = 0; idx < CCS_MAX_DOMAIN_INFO_FLAGS; idx++) {
@@ -4024,7 +4024,7 @@ static void ccs_read_domain(void)
 			if (domain->flags[i])
 				cprintf("%s", ccs_dif[i]);
 		for (i = 0; i < CCS_MAX_ACL_GROUPS; i++)
-			if (domain->group == i)
+			if (domain->group[i])
 				cprintf("use_group %u\n", i);
 		cprintf("\n");
 		ccs_read_domain2(&domain->acl_info_list);
