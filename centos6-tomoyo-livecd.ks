@@ -1,6 +1,6 @@
 # Kickstart file for CentOS 6 + TOMOYO LiveCD.
-# based on http://people.centos.org/arrfab/CentOS6/SRPMS/livecd-tools-0.3.6-1.el6.src.rpm
-# and http://people.centos.org/arrfab/CentOS6/LiveCD-DVD/centos6-liveCD-desktop.cfg
+# based on https://people.centos.org/arrfab/CentOS6/SRPMS/livecd-tools-0.3.6-1.el6.src.rpm
+# and https://people.centos.org/arrfab/CentOS6/LiveCD-DVD/centos6-liveCD-desktop.cfg
 #
 # Usage: livecd-creator -f "CentOS-6.9-i386-TOMOYO-LiveCD" --cache=/var/cache/livecd -c this_file
 lang en_US.UTF-8
@@ -11,7 +11,7 @@ selinux --enforcing
 firewall --enabled --service=mdns
 repo --name=base    --baseurl=http://ftp.riken.jp/Linux/centos/6.9/os/i386/
 repo --name=updates --baseurl=http://ftp.riken.jp/Linux/centos/6.9/updates/i386/
-repo --name=ccs     --baseurl=http://tomoyo.osdn.jp/repos-1.8/CentOS6/
+repo --name=ccs     --baseurl=https://tomoyo.osdn.jp/repos-1.8/CentOS6/
 repo --name=adobe   --baseurl=http://linuxdownload.adobe.com/linux/i386/
 
 xconfig --startxonboot
@@ -1233,9 +1233,9 @@ mv /etc/hosts /etc/hosts.tmp
 echo '202.221.179.11 osdn.jp' > /etc/hosts
 echo '202.221.179.17 ja.osdn.net' >> /etc/hosts
 echo '202.221.179.28 svn.osdn.net' >> /etc/hosts
-wget -O centos6-live.html.en 'http://osdn.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos6-live.html.en?revision=HEAD&root=tomoyo'
-wget -O centos6-live.html.ja 'http://osdn.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos6-live.html.ja?revision=HEAD&root=tomoyo'
-wget -O - 'http://osdn.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/media.centos6.tar.gz?root=tomoyo&view=tar' | tar -zxf -
+wget -O centos6-live.html.en 'https://osdn.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos6-live.html.en?revision=HEAD&root=tomoyo'
+wget -O centos6-live.html.ja 'https://osdn.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/centos6-live.html.ja?revision=HEAD&root=tomoyo'
+wget -O - 'https://osdn.jp/projects/tomoyo/svn/view/tags/htdocs/1.8/media.centos6.tar.gz?root=tomoyo&view=tar' | tar -zxf -
 mv /etc/hosts.tmp /etc/hosts
 ln -s centos6-live.html.en index.html.en
 ln -s centos6-live.html.ja index.html.ja
@@ -1270,7 +1270,7 @@ rm -f kumaneko-key
 cat > /etc/yum.repos.d/ccs.repo << EOF_ccs_repo 
 [ccs]
 name=TOMOYO Linux kernels and tools
-baseurl=http://tomoyo.osdn.jp/repos-1.8/CentOS6/
+baseurl=https://tomoyo.osdn.jp/repos-1.8/CentOS6/
 enabled=1
 gpgcheck=1
 EOF_ccs_repo
