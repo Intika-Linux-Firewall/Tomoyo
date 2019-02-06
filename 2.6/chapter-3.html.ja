@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 <meta http-equiv="content-style-type" content="text/css">
 <link rel="stylesheet" href="../media/tomoyolinux.css" media="all" type="text/css">
-<title>TOMOYO Linux 2.5.x : 導入ガイド : Chapter 3</title>
+<title>TOMOYO Linux 2.6.x : 導入ガイド : Chapter 3</title>
 </head>
 
 <body>
@@ -42,7 +42,7 @@
 
 <h4><a name="3.1.1">3.1.1. 既に TOMOYO Linux 対応カーネルであるかどうか判断する</a></h4>
 
-<p>TOMOYO Linux 2.5 はメインラインカーネルのソースに既に含まれていますが、特定のカーネルコンフィグオプションを有効にしないと利用できません。以下の手順により利用中のカーネルで TOMOYO Linux を利用できるかどうかを判断することができます。</p>
+<p>TOMOYO Linux 2.6 はメインラインカーネルのソースに既に含まれていますが、特定のカーネルコンフィグオプションを有効にしないと利用できません。以下の手順により利用中のカーネルで TOMOYO Linux を利用できるかどうかを判断することができます。</p>
 
 <pre class="command">
 $ grep tomoyo_write_inet_network /proc/kallsyms
@@ -85,19 +85,10 @@ ffffffff8115e460 T tomoyo_write_inet_network
 
 <h4><a name="3.1.3">3.1.3. カーネルソースの入手</a></h4>
 
-<p>カーネルのソースを "<a href="https://www.kernel.org/pub/linux/kernel/v3.x/">linux-3</a>" または "<a href="https://www.kernel.org/pub/linux/kernel/v4.x/">linux-4</a>" または "<a href="https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git">linux git tree</a>" からダウンロードして展開してください。<br>
-カーネル 2.6.33 以降に対応しています。</p>
+<p>カーネルのソースを "<a href="https://www.kernel.org/pub/linux/kernel/v5.x/">linux-5</a>" または "<a href="https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git">linux git tree</a>" からダウンロードして展開してください。<br>
+カーネル 5.1 以降に対応しています。</p>
 
 <p>カーネルのソースを展開して、そのディレクトリに移動してください。</p>
-
-<p>カーネル 2.6.33 ～ 3.4 で TOMOYO 2.5 を利用したい場合、カーネルのバージョンに合ったバックポートパッチを <a href="https://tomoyo.osdn.jp/2.5/patches/">https://tomoyo.osdn.jp/2.5/patches/</a> からダウンロードし、以下のコマンドを実行してください（例えばカーネル 2.6.33 を使う場合、 $KERNELVERSION を 2.6.33 に置き換えてください）：</p>
-
-<pre class="command">
-$ wget https://www.kernel.org/pub/linux/kernel/v3.x/linux-3.5.tar.bz2
-$ tar -jxf linux-3.5.tar.bz2 --strip 1 linux-3.5/security/tomoyo/
-$ wget https://tomoyo.osdn.jp/2.5/patches/tomoyo-2.5-backport-for-$KERNELVERSION.patch
-$ patch -p1 &lt; tomoyo-2.5-backport-for-$KERNELVERSION.patch
-</pre>
 
 <h4><a name="3.1.4">3.1.4. カーネルコンパイルオプションの設定</a></h4>
 
@@ -105,7 +96,7 @@ $ patch -p1 &lt; tomoyo-2.5-backport-for-$KERNELVERSION.patch
 $ make -s menuconfig
 </pre>
 
-<p>Security options の画面に移動して、以下のオプションを選択してください。（ <i>Default security module</i> として TOMOYO を指定するかどうかは任意です。）</p>
+<p>Security options の画面に移動して、以下のオプションを選択してください。</p>
 
 <pre>
 [*] Enable different security models
@@ -117,7 +108,7 @@ $ make -s menuconfig
 [ ]   Activate without calling userspace policy loader.
 (/sbin/tomoyo-init) Location of userspace policy loader
 (/sbin/init) Trigger for calling userspace policy loader
-    Default security module (TOMOYO)
+(...) Ordered list of enabled LSMs
 </pre>
 
 <p>TOMOYO のポリシーは２種類存在します。前者はカーネル内に埋め込まれ、後者はファイルシステム上（ /etc/tomoyo/ ディレクトリ内）のファイルとして保存されます。前者のポリシーを変更する場合にはカーネルの再コンパイルが必要になりますが、ポリシーローダ（例： /sbin/tomoyo-init ）を使用せずにポリシーをロードできるようになります。後者は TOMOYO のアクセス制御が有効になる（例： /sbin/init が実行される）直前にポリシーローダを実行することで読み込まれます。 <em>Activate without calling userspace policy loader.</em> オプションを選択した場合、前者のポリシーだけをロードした時点で TOMOYO のアクセス制御が有効になります。このオプションは、（組込みシステムなど）ポリシーローダを実行することが困難な場合に便利です。</p>
@@ -125,6 +116,8 @@ $ make -s menuconfig
 <p><em>Location of userspace policy loader</em> オプションは、 <em>Activate without calling userspace policy loader.</em> オプションを選択しない場合のみ指定できます。このオプションにはポリシーローダとして使用するパス名のデフォルトを指定します。この設定は、カーネルのコマンドラインで TOMOYO_loader= オプションで上書きできます。</p>
 
 <p><em>Trigger for calling userspace policy loader</em> オプションは、 <em>Activate without calling userspace policy loader.</em> オプションを選択しない場合のみ指定できます。このオプションにはアクセス制御を開始するトリガとして利用するパス名のデフォルトを指定します。この設定は、カーネルのコマンドラインで TOMOYO_trigger= オプションで上書きできます。例えば、 init=/usr/lib/systemd/systemd というオプションを指定する場合、 TOMOYO_trigger=/usr/lib/systemd/systemd というオプションも指定することになるでしょう。</p>
+
+<p><em>Ordered list of enabled LSMs</em> オプションは、カーネル起動時に有効にする全てのＬＳＭモジュールのリストのデフォルトを指定します。この設定は、カーネルのコマンドラインで lsm= オプションで上書きできます。何らかの理由により TOMOYO Linux だけを有効化／無効化する際には、カーネルのコマンドラインから lsm= オプションで指定することになるため、設定内容をメモしておいてください。</p>
 
 <h4><a name="3.1.5">3.1.5. カーネルのコンパイルおよびインストール</a></h4>
 
@@ -142,7 +135,7 @@ $ su
 
 <h4><a name="3.2.1">3.2.1. バイナリパッケージが提供されているかどうか判断する</a></h4>
 
-<p>tomoyo-tools あるいは tomoyotools というパッケージが提供されており、そのバージョンが 2.5 である場合、それを利用することができます。インストールして <a href="#3.3">3.3. 設定の初期化</a>へと進んでください。</p>
+<p>tomoyo-tools あるいは tomoyotools というパッケージが提供されており、そのバージョンが 2.6 である場合、それを利用することができます。インストールして <a href="#3.3">3.3. 設定の初期化</a>へと進んでください。</p>
 
 <h4><a name="3.2.2">3.2.2. ツールをソースからコンパイルする</a></h4>
 
@@ -192,18 +185,16 @@ Creating configuration file for tomoyo-patternize ... OK
 Creating configuration file for tomoyo-notifyd ... OK
 </pre>
 
-<p>なお、 TOMOYO 2.3 用のポリシーと TOMOYO 2.5 用のポリシーとの間には互換性がありません。既に TOMOYO 2.3 用のポリシーを策定済みであっても、 /etc/tomoyo/ ディレクトリを削除（またはリネーム）してから上記のコマンドを実行する必要があります。さもないと、起動時にカーネルパニックに遭遇します。</p>
-
 <h3><a name="3.4">3.4. ブートローダの設定</a></h3>
 
-<p>前述の手順でインストールされたカーネルをブートローダ（例えば GRUB など）から選択できるように、ブートローダの設定を行ってください。もし、カーネルコンフィグで CONFIG_DEFAULT_SECURITY_TOMOYO=y という指定が行われていない場合、 security=tomoyo という指定をカーネル起動時のコマンドラインオプションに含めることを忘れないでください。ディストリビューションにより、ブートローダの設定ファイルの場所が異なります。 GRUB バージョン１を利用している場合には /boot/grub/grub.conf または /boot/grub/menu.lst のどちらか、 GRUB バージョン２を利用している場合には /boot/grub/grub.cfg または /boot/grub2/grub.cfg のどちらかであると思います。詳しくはお使いのディストリビューションのドキュメントを参照してください。</p>
+<p>前述の手順でインストールされたカーネルをブートローダ（例えば GRUB など）から選択できるように、ブートローダの設定を行ってください。ディストリビューションにより、ブートローダの設定ファイルの場所が異なります。 GRUB バージョン１を利用している場合には /boot/grub/grub.conf または /boot/grub/menu.lst のどちらか、 GRUB バージョン２を利用している場合には /boot/grub/grub.cfg または /boot/grub2/grub.cfg のどちらかであると思います。詳しくはお使いのディストリビューションのドキュメントを参照してください。</p>
 
-<p>TOMOYO Linux では、 TOMOYO_trigger というカーネルのコマンドラインオプションをサポートしています。このオプションは、最初に実行されるプログラムとして <code>/sbin/init</code> 以外を利用しているシステムにおいて便利です。例えば、 RHEL 7 では systemd を利用しているので、 <code>/usr/lib/systemd/systemd</code> が最初に実行されます。 <a href="#3.3.3">3.3.3. カーネルコンパイルオプションの設定</a>で /usr/lib/systemd/systemd を指定しなかった場合、 TOMOYO_trigger=/usr/lib/systemd/systemd という指定をする必要があります。</p>
+<p>TOMOYO Linux では、 TOMOYO_trigger というカーネルのコマンドラインオプションをサポートしています。このオプションは、最初に実行されるプログラムとして <code>/sbin/init</code> 以外を利用しているシステムにおいて便利です。例えば、 RHEL 7 では systemd を利用しているので、 <code>/usr/lib/systemd/systemd</code> が最初に実行されます。 <a href="#3.1.4">3.1.4. カーネルコンパイルオプションの設定</a>で /usr/lib/systemd/systemd を指定しなかった場合、 TOMOYO_trigger=/usr/lib/systemd/systemd という指定をする必要があります。</p>
 
 <p>/boot/grub2/grub.cfg を直接編集するだけでも構いません。しかし、将来カーネルパッケージをアップデートする場合のために、以下のように /etc/default/grub の GRUB_CMDLINE_LINUX 行も編集しておくことを推奨します：</p>
 
 <pre>
-GRUB_CMDLINE_LINUX="vconsole.keymap=jp106 crashkernel=auto  vconsole.font=latarcyrheb-sun16 rhgb quiet security=tomoyo TOMOYO_trigger=/usr/lib/systemd/systemd"
+GRUB_CMDLINE_LINUX="vconsole.keymap=jp106 crashkernel=auto  vconsole.font=latarcyrheb-sun16 rhgb quiet TOMOYO_trigger=/usr/lib/systemd/systemd"
 </pre>
 
 <h3><a name="3.5">3.5. システムの再起動</a></h3>
@@ -218,7 +209,7 @@ GRUB_CMDLINE_LINUX="vconsole.keymap=jp106 crashkernel=auto  vconsole.font=latarc
 
 <h3><a name="3.6">3.6. どのようにすれば TOMOYO Linux を無効化またはアンインストールできますか？</a></h3>
 
-<p>もし、このガイドに従って操作している間またはそれ以降にシステムが起動しなくなってしまった場合、ポリシーの設定が不適切である場合を含めて TOMOYO Linux に原因があるかもしれません。その場合、 security=none というパラメータをカーネルに対するコマンドラインオプションに指定することにより、 TOMOYO Linux が無効な状態でカーネルがロードされます。</p>
+<p>もし、このガイドに従って操作している間またはそれ以降にシステムが起動しなくなってしまった場合、ポリシーの設定が不適切である場合を含めて TOMOYO Linux に原因があるかもしれません。その場合、 <a href="#3.1.4">3.1.4. カーネルコンパイルオプションの設定</a>で説明した <em>Ordered list of enabled LSMs</em> オプションの設定内容から tomoyo を除外したものを、カーネルに対するコマンドラインオプションの lsm= というパラメータで指定することにより、 TOMOYO Linux が無効な状態でカーネルがロードされます。</p>
 
 </div><!-- documentation -->
 
