@@ -108,7 +108,6 @@ $ make -s menuconfig
 [ ]   Activate without calling userspace policy loader.
 (/sbin/tomoyo-init) Location of userspace policy loader
 (/sbin/init) Trigger for calling userspace policy loader
-(...) Ordered list of enabled LSMs
 </pre>
 
 <p>There are two types of TOMOYO policy configuration. The former is embedded into the kernel and the latter is saved as files on the filesystem (e.g. /etc/tomoyo/ directory). You will need to rebuild the kernel whenever updating the former, but allows you to load policy without using userspace policy loader (e.g. /sbin/tomoyo-init ). The latter is loaded by executing userspace policy loader when the access control by TOMOYO is about to be activated (e.g. when /sbin/init starts). <em>Activate without calling userspace policy loader.</em> allows you to activate access control by TOMOYO as soon as the former is loaded. This option is useful when it is difficult to call policy loader (e.g. embedded systems).</p>
@@ -116,8 +115,6 @@ $ make -s menuconfig
 <p><em>Location of userspace policy loader</em> is available only when <em>Activate without calling userspace policy loader.</em> is not selected. This option specifies the default pathname of the userspace policy loader. You can override this setting via the "TOMOYO_loader=" kernel command-line option.</p>
 
 <p><em>Trigger for calling userspace policy loader</em> is available only when <em>Activate without calling userspace policy loader.</em> is not selected. This option specifies the default pathname of the activation trigger. You can override this setting via the "TOMOYO_trigger=" kernel command-line option. For example, if you pass "init=/usr/lib/systemd/systemd" option, you may also want to pass "TOMOYO_trigger=/usr/lib/systemd/systemd" option.</p>
-
-<p><em>Ordered list of enabled LSMs</em> is a list of  LSM modules which should be enabled by default upon boot. You can override this setting via the "lsm=" kernel command-line option. Please remember this list because you will need to specify using lsm= option when you want to enable/disable only TOMOYO Linux for some reason.</p>
 
 <h4><a name="3.1.5">3.1.5. Compile and install the kernel</a></h4>
 
@@ -194,22 +191,35 @@ Creating configuration file for tomoyo-notifyd ... OK
 <p>You may directly edit /boot/grub2/grub.cfg file. But it is recommended that you also edit GRUB_CMDLINE_LINUX line in <code>/etc/default/grub</code> file like below in case you update kernel packages in the future:</p>
 
 <pre>
-GRUB_CMDLINE_LINUX="vconsole.keymap=us crashkernel=auto  vconsole.font=latarcyrheb-sun16 rhgb quiet TOMOYO_trigger=/usr/lib/systemd/systemd"
+GRUB_CMDLINE_LINUX="vconsole.keymap=us crashkernel=auto vconsole.font=latarcyrheb-sun16 rhgb quiet TOMOYO_trigger=/usr/lib/systemd/systemd"
 </pre>
 
 <h3><a name="3.5">3.5. Rebooting your system</a></h3>
 
-<p>Now you have finished all preparation. You can't wait any more? Now it's time to make use of your newly installed kernel. Reboot your system and choose the entry with TOMOYO Linux kernel at the GRUB screen, or at whatever other bootloader you have installed:</p>
+<p>Now you have finished all preparation. You can't wait any more? Now it's time to make use of your newly installed kernel. Reboot your system and choose the entry with TOMOYO Linux kernel at the GRUB screen, or at whatever other bootloader you have installed. If everything was installed properly and the bootloader was correctly configured, the kernel should boot as normal.</p>
 
-<img src="media/grub-screen.png" alt="grub-screen.png" title="Select TOMOYO enabled kernel" width="500" height="375">
+<p>After the kernel booted normally, please login and check the content of <code>/sys/kernel/security/lsm</code>. If the output contains <em>tomoyo</em>, the kernel was booted with TOMOYO Linux enabled.</p>
 
-<p>If everything was installed properly and the bootloader was correctly configured, the kernel should boot as normal and TOMOYO Linux should be activated:</p>
+<pre class="command">
+$ cat /sys/kernel/security/lsm
+</pre>
+<pre class="output">
+capability,yama,loadpin,safesetid,selinux,tomoyo
+</pre>
 
-<img src="media/tomoyo-activated.png" alt="tomoyo-activated.png" title="TOMOYO activated" width="675" height="375">
+<p>If the output does not contain <em>tomoyo</em>, the kernel was booted with TOMOYO Linux disabled. If this is the case, please reboot the kernel with "lsm" kernel boot option (with <em>tomoyo</em> appended to the content of <code>/sys/kernel/security/lsm</code>).</p>
+
+<pre>
+lsm=capability,yama,loadpin,safesetid,selinux,tomoyo
+</pre>
 
 <h3><a name="3.6">3.6. How can I disable/uninstall TOMOYO Linux?</a></h3>
 
-<p>If your system becomes unable to boot during the course of this guide or any time in the future, it may be due to policy configuration or something related to TOMOYO Linux. If this is the case, it is possible that the kernel can still be booted by disabling TOMOYO Linux. This can be done by appending "lsm=" parameter (with "tomoyo" excluded from the list at <em>Ordered list of enabled LSMs</em> at <a href="#3.1.4">3.1.4. Configure the kernel</a>) to the kernel command-line parameters.</p>
+<p>If your system becomes unable to boot during the course of this guide or any time in the future, it may be due to policy configuration or something related to TOMOYO Linux. If this is the case, please reboot the kernel with "lsm" kernel boot option (with <em>tomoyo</em> removed from the content of <code>/sys/kernel/security/lsm</code>).</p>
+
+<pre>
+lsm=capability,yama,loadpin,safesetid,selinux
+</pre>
 
 </div><!-- documentation -->
 
