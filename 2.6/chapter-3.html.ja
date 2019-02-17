@@ -108,7 +108,6 @@ $ make -s menuconfig
 [ ]   Activate without calling userspace policy loader.
 (/sbin/tomoyo-init) Location of userspace policy loader
 (/sbin/init) Trigger for calling userspace policy loader
-(...) Ordered list of enabled LSMs
 </pre>
 
 <p>TOMOYO のポリシーは２種類存在します。前者はカーネル内に埋め込まれ、後者はファイルシステム上（ /etc/tomoyo/ ディレクトリ内）のファイルとして保存されます。前者のポリシーを変更する場合にはカーネルの再コンパイルが必要になりますが、ポリシーローダ（例： /sbin/tomoyo-init ）を使用せずにポリシーをロードできるようになります。後者は TOMOYO のアクセス制御が有効になる（例： /sbin/init が実行される）直前にポリシーローダを実行することで読み込まれます。 <em>Activate without calling userspace policy loader.</em> オプションを選択した場合、前者のポリシーだけをロードした時点で TOMOYO のアクセス制御が有効になります。このオプションは、（組込みシステムなど）ポリシーローダを実行することが困難な場合に便利です。</p>
@@ -116,8 +115,6 @@ $ make -s menuconfig
 <p><em>Location of userspace policy loader</em> オプションは、 <em>Activate without calling userspace policy loader.</em> オプションを選択しない場合のみ指定できます。このオプションにはポリシーローダとして使用するパス名のデフォルトを指定します。この設定は、カーネルのコマンドラインで TOMOYO_loader= オプションで上書きできます。</p>
 
 <p><em>Trigger for calling userspace policy loader</em> オプションは、 <em>Activate without calling userspace policy loader.</em> オプションを選択しない場合のみ指定できます。このオプションにはアクセス制御を開始するトリガとして利用するパス名のデフォルトを指定します。この設定は、カーネルのコマンドラインで TOMOYO_trigger= オプションで上書きできます。例えば、 init=/usr/lib/systemd/systemd というオプションを指定する場合、 TOMOYO_trigger=/usr/lib/systemd/systemd というオプションも指定することになるでしょう。</p>
-
-<p><em>Ordered list of enabled LSMs</em> オプションは、カーネル起動時に有効にする全てのＬＳＭモジュールのリストのデフォルトを指定します。この設定は、カーネルのコマンドラインで lsm= オプションで上書きできます。何らかの理由により TOMOYO Linux だけを有効化／無効化する際には、カーネルのコマンドラインから lsm= オプションで指定することになるため、設定内容をメモしておいてください。</p>
 
 <h4><a name="3.1.5">3.1.5. カーネルのコンパイルおよびインストール</a></h4>
 
@@ -191,25 +188,38 @@ Creating configuration file for tomoyo-notifyd ... OK
 
 <p>TOMOYO Linux では、 TOMOYO_trigger というカーネルのコマンドラインオプションをサポートしています。このオプションは、最初に実行されるプログラムとして <code>/sbin/init</code> 以外を利用しているシステムにおいて便利です。例えば、 RHEL 7 では systemd を利用しているので、 <code>/usr/lib/systemd/systemd</code> が最初に実行されます。 <a href="#3.1.4">3.1.4. カーネルコンパイルオプションの設定</a>で /usr/lib/systemd/systemd を指定しなかった場合、 TOMOYO_trigger=/usr/lib/systemd/systemd という指定をする必要があります。</p>
 
-<p>/boot/grub2/grub.cfg を直接編集するだけでも構いません。しかし、将来カーネルパッケージをアップデートする場合のために、以下のように /etc/default/grub の GRUB_CMDLINE_LINUX 行も編集しておくことを推奨します：</p>
+<p>/boot/grub2/grub.cfg を直接編集するだけでも構いません。しかし、将来カーネルパッケージをアップデートする場合のために、以下のように <code>/etc/default/grub</code> の GRUB_CMDLINE_LINUX 行も編集しておくことを推奨します：</p>
 
 <pre>
-GRUB_CMDLINE_LINUX="vconsole.keymap=jp106 crashkernel=auto  vconsole.font=latarcyrheb-sun16 rhgb quiet TOMOYO_trigger=/usr/lib/systemd/systemd"
+GRUB_CMDLINE_LINUX="vconsole.keymap=jp106 crashkernel=auto vconsole.font=latarcyrheb-sun16 rhgb quiet TOMOYO_trigger=/usr/lib/systemd/systemd"
 </pre>
 
 <h3><a name="3.5">3.5. システムの再起動</a></h3>
 
-<p>ここまでで準備は完了です。（お疲れさまでした。）それでは、新しくインストールされたカーネルを使用してみましょう。システムを再起動し、 GRUB の画面（あるいは使用している他のブートローダの画面）で TOMOYO Linux カーネルを選択してください：</p>
+<p>ここまでで準備は完了です。（お疲れさまでした。）それでは、新しくインストールされたカーネルを使用してみましょう。システムを再起動し、 GRUB の画面（あるいは使用している他のブートローダの画面）で TOMOYO Linux カーネルを選択してください。正常にインストールが完了し、ブートローダの設定が適切に行われていれば、正常にカーネルがロードされる筈です。</p>
 
-<img src="media/grub-screen.png" alt="grub-screen.png" title="Select TOMOYO enabled kernel" width="500" height="375">
+<p>正常に起動されたらログインして、 <code>/sys/kernel/security/lsm</code> の内容を確認してください。出力の中に tomoyo が含まれていれば、 TOMOYO Linux が有効な状態で起動されています。</p>
 
-<p>正常にインストールが完了し、ブートローダの設定が適切に行われていれば、正常にカーネルがロードされ、 TOMOYO Linux が有効になる筈です：</p>
+<pre class="command">
+$ cat /sys/kernel/security/lsm
+</pre>
+<pre class="output">
+capability,yama,loadpin,safesetid,selinux,tomoyo
+</pre>
 
-<img src="media/tomoyo-activated.png" alt="tomoyo-activated.png" title="TOMOYO activated" width="675" height="375">
+<p>出力の中に tomoyo が含まれていない場合、 TOMOYO Linux が無効な状態で起動されています。その場合、 <code>/sys/kernel/security/lsm</code> の出力に tomoyo を追加したものを、 lsm というカーネルのコマンドラインオプションを用いて指定してから再起動してください。</p>
+
+<pre>
+lsm=capability,yama,loadpin,safesetid,selinux,tomoyo
+</pre>
 
 <h3><a name="3.6">3.6. どのようにすれば TOMOYO Linux を無効化またはアンインストールできますか？</a></h3>
 
-<p>もし、このガイドに従って操作している間またはそれ以降にシステムが起動しなくなってしまった場合、ポリシーの設定が不適切である場合を含めて TOMOYO Linux に原因があるかもしれません。その場合、 <a href="#3.1.4">3.1.4. カーネルコンパイルオプションの設定</a>で説明した <em>Ordered list of enabled LSMs</em> オプションの設定内容から tomoyo を除外したものを、カーネルに対するコマンドラインオプションの lsm= というパラメータで指定することにより、 TOMOYO Linux が無効な状態でカーネルがロードされます。</p>
+<p>もし、このガイドに従って操作している間またはそれ以降にシステムが起動しなくなってしまった場合、ポリシーの設定が不適切である場合を含めて TOMOYO Linux に原因があるかもしれません。その場合、 <code>/sys/kernel/security/lsm</code> の出力から tomoyo を除外したものを、 lsm というカーネルのコマンドラインオプションを用いて指定してから再起動してください。</p>
+
+<pre>
+lsm=capability,yama,loadpin,safesetid,selinux
+</pre>
 
 </div><!-- documentation -->
 
