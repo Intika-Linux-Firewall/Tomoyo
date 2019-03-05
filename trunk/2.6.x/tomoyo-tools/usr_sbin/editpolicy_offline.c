@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.5.0+   2017/01/02
+ * Version: 2.6.0   2019/03/05
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -701,7 +701,7 @@ struct ccs_policy_namespace {
 	struct list_head acl_group[CCS_MAX_ACL_GROUPS];
 	/* List for connecting to ccs_namespace_list list. */
 	struct list_head namespace_list;
-	/* Profile version. Currently only 20110903 is supported. */
+	/* Profile version. Currently only 20150505 is supported. */
 	unsigned int profile_version;
 	/* Name of this namespace (e.g. "<kernel>", "</usr/sbin/httpd>" ). */
 	const char *name;
@@ -2326,7 +2326,7 @@ static struct ccs_policy_namespace *ccs_assign_namespace(const char *domainname)
 		name[len] = '\0';
 		entry->name = name;
 	}
-	entry->profile_version = 20110903;
+	entry->profile_version = 20150505;
 	for (len = 0; len < CCS_MAX_ACL_GROUPS; len++)
 		INIT_LIST_HEAD(&entry->acl_group[len]);
 	ccs_namespace_enabled = !list_empty(&ccs_namespace_list);
@@ -3374,14 +3374,6 @@ static void ccs_read_profile(void)
 				     + CCS_MAX_MAC_CATEGORY_INDEX; i++) {
 				const u8 config = profile->config[i];
 				if (config == CCS_CONFIG_USE_DEFAULT)
-					continue;
-				/*
-				 * Don't print TOMOYO 2.5 entries when using
-				 * TOMOYO 2.4's profile.
-				 */
-				if (ns->profile_version < 20110903 &&
-				    i > CCS_MAC_FILE_PIVOT_ROOT && i !=
-				    CCS_MAX_MAC_INDEX + CCS_MAC_CATEGORY_FILE)
 					continue;
 				ccs_print_namespace(ns);
 				if (i < CCS_MAX_MAC_INDEX)
