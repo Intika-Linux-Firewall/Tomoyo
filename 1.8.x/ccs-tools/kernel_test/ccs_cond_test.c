@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2005-2011  NTT DATA CORPORATION
  *
- * Version: 1.8.5   2015/11/11
+ * Version: 1.8.5+   2015/11/11
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -388,7 +388,10 @@ static void stage_cond_test(void)
 int main(int argc, char *argv[])
 {
 	ccs_test_init();
-	fprintf(domain_fp, "ignore_global\n");
+	fprintf(domain_fp, "%s " BINDIR "/true\n", self_domain);
+	fprintf(domain_fp, "use_profile 255\n");
+	fprintf(domain_fp, "use_group 0\n");
+	fprintf(domain_fp, "%s\n", self_domain);
 	fprintf(domain_fp, "file read/write %s\n", proc_policy_domain_policy);
 	set_profile(3, "file::execute");
 	set_profile(3, "file::open");

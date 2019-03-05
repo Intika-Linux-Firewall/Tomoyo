@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.5.0+   2017/01/02
+ * Version: 2.6.0   2019/03/05
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -924,7 +924,7 @@ static void make_profile(void)
 	fprintf(stderr, "Creating default profile... ");
 	if (file_only_profile)
 		file_only = "::file";
-	fprintf(fp, "PROFILE_VERSION=20110903\n");
+	fprintf(fp, "PROFILE_VERSION=20150505\n");
 	fprintf(fp, "0-COMMENT=-----Disabled Mode-----\n"
 		"0-PREFERENCE={ max_audit_log=%u max_learning_entry=%u }\n"
 		"0-CONFIG%s={ mode=disabled grant_log=%s reject_log=%s }\n",

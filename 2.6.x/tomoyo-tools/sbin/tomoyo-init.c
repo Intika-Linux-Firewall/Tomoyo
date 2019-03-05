@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.5.0+   2012/04/14
+ * Version: 2.6.0   2019/03/05
  *
  * This program is executed automatically by kernel
  * when execution of /sbin/init is requested.
@@ -266,8 +266,8 @@ static void disable_profile(void)
 }
 
 /*
- * Upgrade from TOMOYO 2.4's profile (PROFILE_VERSION=20100903) to TOMOYO 2.5's
- * profile (PROFILE_VERSION=20110903) as needed.
+ * Upgrade from TOMOYO 2.5's profile (PROFILE_VERSION=20110903) to TOMOYO 2.6's
+ * profile (PROFILE_VERSION=20150505) as needed.
  */
 static void upgrade_profile(void)
 {
@@ -290,17 +290,9 @@ static void upgrade_profile(void)
 		} else
 			cp = buffer;
 		if (sscanf(cp, "PROFILE_VERSION=%u", &version) == 1)
-			in_section = version == 20100903;
-		if (!in_section)
-			continue;
-		if (sscanf(cp, "%u", &version) != 1) {
-			fprintf(fp_out, "%s PROFILE_VERSION=20110903\n", ns);
-			continue;
-		}
-		fprintf(fp_out, "%s %u-CONFIG::network={ mode=disabled }\n",
-			ns, version);
-		fprintf(fp_out, "%s %u-CONFIG::misc={ mode=disabled }\n",
-			ns, version);
+			in_section = version == 20110903;
+		if (in_section && sscanf(cp, "%u", &version) != 1)
+			fprintf(fp_out, "%s PROFILE_VERSION=20150505\n", ns);
 	}
 	fclose(fp_in);
 	fclose(fp_out);

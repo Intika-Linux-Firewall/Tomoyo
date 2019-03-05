@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2005-2012  NTT DATA CORPORATION
  *
- * Version: 2.5.0+   2017/01/02
+ * Version: 2.6.0   2019/03/05
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License v2 as published by the
@@ -2796,7 +2796,7 @@ static void add_entry(void)
 			fprintf(fp, "%s ", current_ns->name);
 		break;
 	case SCREEN_NS_LIST:
-		fprintf(fp, "%s PROFILE_VERSION=20100903\n", line);
+		fprintf(fp, "%s PROFILE_VERSION=20150505\n", line);
 		line[0] = '\0';
 		break;
 	default:
