@@ -10,12 +10,12 @@ die () {
 
 cd /tmp/ || die "Can't chdir to /tmp/ ."
 
-if [ ! -r kernel-3.10.0-957.5.1.el7.src.rpm ]
+if [ ! -r kernel-3.10.0-957.10.1.el7.src.rpm ]
 then
-    wget http://vault.centos.org/centos/7/updates/Source/SPackages/kernel-3.10.0-957.5.1.el7.src.rpm || die "Can't download source package."
+    wget http://vault.centos.org/centos/7/updates/Source/SPackages/kernel-3.10.0-957.10.1.el7.src.rpm || die "Can't download source package."
 fi
-LANG=C rpm --checksig kernel-3.10.0-957.5.1.el7.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
-rpm -ivh kernel-3.10.0-957.5.1.el7.src.rpm || die "Can't install source package."
+LANG=C rpm --checksig kernel-3.10.0-957.10.1.el7.src.rpm | grep -F ': rsa sha1 (md5) pgp md5 OK' || die "Can't verify signature."
+rpm -ivh kernel-3.10.0-957.10.1.el7.src.rpm || die "Can't install source package."
 
 cd ~/rpmbuild/SOURCES/ || die "Can't chdir to ~/rpmbuild/SOURCES/ ."
 if [ ! -r ccs-patch-1.8.5-20190305.tar.gz ]
