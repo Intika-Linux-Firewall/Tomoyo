@@ -1,0 +1,52 @@
+From 96e0741839f56c461f85d83e20bf5ae6baac9a3a Mon Sep 17 00:00:00 2001
+From: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Date: Thu, 23 May 2019 05:57:52 +0900
+Subject: [PATCH] printk: Monitor change of console loglevel.
+
+We are seeing syzbot reports [1] where printk() messages prior to panic()
+are missing for unknown reason. To test whether it is due to some testcase
+changing console loglevel, let's panic() as soon as console loglevel has
+changed. This patch is intended for testing on linux-next.git only, and
+will be removed after we found what is wrong.
+
+[1] https://lkml.kernel.org/r/127c9c3b-f878-174f-7065-66dc50fcabcf@i-love.sakura.ne.jp
+
+Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Cc: Dmitry Vyukov <dvyukov@google.com>
+Cc: Sergey Senozhatsky <sergey.senozhatsky.work@gmail.com>
+Cc: Petr Mladek <pmladek@suse.com>
+---
+ kernel/printk/printk.c | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+
+diff --git a/kernel/printk/printk.c b/kernel/printk/printk.c
+index 1888f6a..5326015 100644
+--- a/kernel/printk/printk.c
++++ b/kernel/printk/printk.c
+@@ -3343,3 +3343,23 @@ void kmsg_dump_rewind(struct kmsg_dumper *dumper)
+ EXPORT_SYMBOL_GPL(kmsg_dump_rewind);
+ 
+ #endif
++
++#ifdef CONFIG_DEBUG_AID_FOR_SYZBOT
++static int initial_loglevel;
++static void check_loglevel(struct timer_list *timer)
++{
++	if (console_loglevel < initial_loglevel)
++		panic("Console loglevel changed (%d->%d)!", initial_loglevel,
++		      console_loglevel);
++	mod_timer(timer, jiffies + HZ);
++}
++static int __init loglevelcheck_init(void)
++{
++	static DEFINE_TIMER(timer, check_loglevel);
++
++	initial_loglevel = console_loglevel;
++	mod_timer(&timer, jiffies + HZ);
++	return 0;
++}
++late_initcall(loglevelcheck_init);
++#endif
+-- 
+1.8.3.1
+
