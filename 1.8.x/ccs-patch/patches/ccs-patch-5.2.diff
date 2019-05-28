@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for kernel 5.2-rc1.
+This is TOMOYO Linux patch for kernel 5.2-rc2.
 
-Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.tar.gz
+Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc2.tar.gz
 ---
  fs/exec.c                 |    2 -
  fs/open.c                 |    2 +
@@ -28,9 +28,9 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  security/security.c       |    5 ++-
  24 files changed, 144 insertions(+), 29 deletions(-)
 
---- linux-5.2-rc1.orig/fs/exec.c
-+++ linux-5.2-rc1/fs/exec.c
-@@ -1697,7 +1697,7 @@ static int exec_binprm(struct linux_binp
+--- linux-5.2-rc2.orig/fs/exec.c
++++ linux-5.2-rc2/fs/exec.c
+@@ -1698,7 +1698,7 @@ static int exec_binprm(struct linux_binp
  	old_vpid = task_pid_nr_ns(current, task_active_pid_ns(current->parent));
  	rcu_read_unlock();
  
@@ -39,9 +39,9 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  	if (ret >= 0) {
  		audit_bprm(bprm);
  		trace_sched_process_exec(current, old_pid, bprm);
---- linux-5.2-rc1.orig/fs/open.c
-+++ linux-5.2-rc1/fs/open.c
-@@ -1180,6 +1180,8 @@ SYSCALL_DEFINE1(close, unsigned int, fd)
+--- linux-5.2-rc2.orig/fs/open.c
++++ linux-5.2-rc2/fs/open.c
+@@ -1181,6 +1181,8 @@ SYSCALL_DEFINE1(close, unsigned int, fd)
   */
  SYSCALL_DEFINE0(vhangup)
  {
@@ -50,8 +50,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-5.2-rc1.orig/fs/proc/version.c
-+++ linux-5.2-rc1/fs/proc/version.c
+--- linux-5.2-rc2.orig/fs/proc/version.c
++++ linux-5.2-rc2/fs/proc/version.c
 @@ -21,3 +21,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -59,12 +59,12 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 5.2-rc1 2019/05/20\n");
++	printk(KERN_INFO "Hook version: 5.2-rc2 2019/05/28\n");
 +	return 0;
 +}
 +fs_initcall(ccs_show_version);
---- linux-5.2-rc1.orig/include/linux/sched.h
-+++ linux-5.2-rc1/include/linux/sched.h
+--- linux-5.2-rc2.orig/include/linux/sched.h
++++ linux-5.2-rc2/include/linux/sched.h
 @@ -35,6 +35,7 @@ struct audit_context;
  struct backing_dev_info;
  struct bio_list;
@@ -84,8 +84,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  #ifdef CONFIG_GCC_PLUGIN_STACKLEAK
  	unsigned long			lowest_stack;
---- linux-5.2-rc1.orig/include/linux/security.h
-+++ linux-5.2-rc1/include/linux/security.h
+--- linux-5.2-rc2.orig/include/linux/security.h
++++ linux-5.2-rc2/include/linux/security.h
 @@ -57,6 +57,7 @@ struct mm_struct;
  struct fs_context;
  struct fs_parameter;
@@ -306,8 +306,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-5.2-rc1.orig/include/net/ip.h
-+++ linux-5.2-rc1/include/net/ip.h
+--- linux-5.2-rc2.orig/include/net/ip.h
++++ linux-5.2-rc2/include/net/ip.h
 @@ -306,6 +306,8 @@ void inet_get_local_port_range(struct ne
  #ifdef CONFIG_SYSCTL
  static inline int inet_is_local_reserved_port(struct net *net, int port)
@@ -326,8 +326,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  	return 0;
  }
  
---- linux-5.2-rc1.orig/init/init_task.c
-+++ linux-5.2-rc1/init/init_task.c
+--- linux-5.2-rc2.orig/init/init_task.c
++++ linux-5.2-rc2/init/init_task.c
 @@ -180,6 +180,10 @@ struct task_struct init_task
  #ifdef CONFIG_SECURITY
  	.security	= NULL,
@@ -339,8 +339,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  };
  EXPORT_SYMBOL(init_task);
  
---- linux-5.2-rc1.orig/kernel/kexec.c
-+++ linux-5.2-rc1/kernel/kexec.c
+--- linux-5.2-rc2.orig/kernel/kexec.c
++++ linux-5.2-rc2/kernel/kexec.c
 @@ -18,7 +18,7 @@
  #include <linux/syscalls.h>
  #include <linux/vmalloc.h>
@@ -359,8 +359,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  	/* Permit LSMs and IMA to fail the kexec */
  	result = security_kernel_load_data(LOADING_KEXEC_IMAGE);
---- linux-5.2-rc1.orig/kernel/module.c
-+++ linux-5.2-rc1/kernel/module.c
+--- linux-5.2-rc2.orig/kernel/module.c
++++ linux-5.2-rc2/kernel/module.c
 @@ -66,6 +66,7 @@
  #include <linux/audit.h>
  #include <uapi/linux/module.h>
@@ -387,9 +387,9 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  	return 0;
  }
---- linux-5.2-rc1.orig/kernel/ptrace.c
-+++ linux-5.2-rc1/kernel/ptrace.c
-@@ -1122,6 +1122,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
+--- linux-5.2-rc2.orig/kernel/ptrace.c
++++ linux-5.2-rc2/kernel/ptrace.c
+@@ -1123,6 +1123,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
  	long ret;
@@ -401,7 +401,7 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
-@@ -1269,6 +1274,11 @@ COMPAT_SYSCALL_DEFINE4(ptrace, compat_lo
+@@ -1270,6 +1275,11 @@ COMPAT_SYSCALL_DEFINE4(ptrace, compat_lo
  {
  	struct task_struct *child;
  	long ret;
@@ -413,9 +413,9 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-5.2-rc1.orig/kernel/reboot.c
-+++ linux-5.2-rc1/kernel/reboot.c
-@@ -16,6 +16,7 @@
+--- linux-5.2-rc2.orig/kernel/reboot.c
++++ linux-5.2-rc2/kernel/reboot.c
+@@ -17,6 +17,7 @@
  #include <linux/syscalls.h>
  #include <linux/syscore_ops.h>
  #include <linux/uaccess.h>
@@ -423,7 +423,7 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  /*
   * this indicates whether you can reboot with ctrl-alt-del: the default is yes
-@@ -324,6 +325,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
+@@ -325,6 +326,8 @@ SYSCALL_DEFINE4(reboot, int, magic1, int
  			magic2 != LINUX_REBOOT_MAGIC2B &&
  			magic2 != LINUX_REBOOT_MAGIC2C))
  		return -EINVAL;
@@ -432,9 +432,9 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  	/*
  	 * If pid namespaces are enabled and the current task is in a child
---- linux-5.2-rc1.orig/kernel/sched/core.c
-+++ linux-5.2-rc1/kernel/sched/core.c
-@@ -3936,6 +3936,8 @@ int can_nice(const struct task_struct *p
+--- linux-5.2-rc2.orig/kernel/sched/core.c
++++ linux-5.2-rc2/kernel/sched/core.c
+@@ -3937,6 +3937,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
  	long nice, retval;
@@ -443,9 +443,9 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-5.2-rc1.orig/kernel/signal.c
-+++ linux-5.2-rc1/kernel/signal.c
-@@ -3567,6 +3567,8 @@ static inline void prepare_kill_siginfo(
+--- linux-5.2-rc2.orig/kernel/signal.c
++++ linux-5.2-rc2/kernel/signal.c
+@@ -3568,6 +3568,8 @@ static inline void prepare_kill_siginfo(
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
  	struct kernel_siginfo info;
@@ -454,7 +454,7 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  	prepare_kill_siginfo(sig, &info);
  
-@@ -3747,6 +3749,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -3748,6 +3750,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -463,7 +463,7 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -3763,6 +3767,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
+@@ -3764,6 +3768,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -472,7 +472,7 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  	return do_tkill(0, pid, sig);
  }
-@@ -3775,6 +3781,8 @@ static int do_rt_sigqueueinfo(pid_t pid,
+@@ -3776,6 +3782,8 @@ static int do_rt_sigqueueinfo(pid_t pid,
  	if ((info->si_code >= 0 || info->si_code == SI_TKILL) &&
  	    (task_pid_vnr(current) != pid))
  		return -EPERM;
@@ -481,7 +481,7 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, info, pid);
-@@ -3822,6 +3830,8 @@ static int do_rt_tgsigqueueinfo(pid_t tg
+@@ -3823,6 +3831,8 @@ static int do_rt_tgsigqueueinfo(pid_t tg
  	if ((info->si_code >= 0 || info->si_code == SI_TKILL) &&
  	    (task_pid_vnr(current) != pid))
  		return -EPERM;
@@ -490,8 +490,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-5.2-rc1.orig/kernel/sys.c
-+++ linux-5.2-rc1/kernel/sys.c
+--- linux-5.2-rc2.orig/kernel/sys.c
++++ linux-5.2-rc2/kernel/sys.c
 @@ -204,6 +204,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -521,8 +521,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
---- linux-5.2-rc1.orig/kernel/time/timekeeping.c
-+++ linux-5.2-rc1/kernel/time/timekeeping.c
+--- linux-5.2-rc2.orig/kernel/time/timekeeping.c
++++ linux-5.2-rc2/kernel/time/timekeeping.c
 @@ -22,6 +22,7 @@
  #include <linux/pvclock_gtod.h>
  #include <linux/compiler.h>
@@ -556,8 +556,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  		/*
  		 * Validate if a timespec/timeval used to inject a time
---- linux-5.2-rc1.orig/net/ipv4/raw.c
-+++ linux-5.2-rc1/net/ipv4/raw.c
+--- linux-5.2-rc2.orig/net/ipv4/raw.c
++++ linux-5.2-rc2/net/ipv4/raw.c
 @@ -771,6 +771,10 @@ static int raw_recvmsg(struct sock *sk,
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -569,8 +569,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-5.2-rc1.orig/net/ipv4/udp.c
-+++ linux-5.2-rc1/net/ipv4/udp.c
+--- linux-5.2-rc2.orig/net/ipv4/udp.c
++++ linux-5.2-rc2/net/ipv4/udp.c
 @@ -1722,6 +1722,8 @@ try_again:
  	skb = __skb_recv_udp(sk, flags, noblock, &off, &err);
  	if (!skb)
@@ -580,9 +580,9 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  	ulen = udp_skb_len(skb);
  	copied = len;
---- linux-5.2-rc1.orig/net/ipv6/raw.c
-+++ linux-5.2-rc1/net/ipv6/raw.c
-@@ -482,6 +482,10 @@ static int rawv6_recvmsg(struct sock *sk
+--- linux-5.2-rc2.orig/net/ipv6/raw.c
++++ linux-5.2-rc2/net/ipv6/raw.c
+@@ -484,6 +484,10 @@ static int rawv6_recvmsg(struct sock *sk
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -593,8 +593,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-5.2-rc1.orig/net/ipv6/udp.c
-+++ linux-5.2-rc1/net/ipv6/udp.c
+--- linux-5.2-rc2.orig/net/ipv6/udp.c
++++ linux-5.2-rc2/net/ipv6/udp.c
 @@ -303,6 +303,8 @@ try_again:
  	skb = __skb_recv_udp(sk, flags, noblock, &off, &err);
  	if (!skb)
@@ -604,8 +604,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  
  	ulen = udp6_skb_len(skb);
  	copied = len;
---- linux-5.2-rc1.orig/net/socket.c
-+++ linux-5.2-rc1/net/socket.c
+--- linux-5.2-rc2.orig/net/socket.c
++++ linux-5.2-rc2/net/socket.c
 @@ -1767,6 +1767,10 @@ int __sys_accept4(int fd, struct sockadd
  	if (err < 0)
  		goto out_fd;
@@ -617,8 +617,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  	if (upeer_sockaddr) {
  		len = newsock->ops->getname(newsock,
  					(struct sockaddr *)&address, 2);
---- linux-5.2-rc1.orig/net/unix/af_unix.c
-+++ linux-5.2-rc1/net/unix/af_unix.c
+--- linux-5.2-rc2.orig/net/unix/af_unix.c
++++ linux-5.2-rc2/net/unix/af_unix.c
 @@ -2080,6 +2080,10 @@ static int unix_dgram_recvmsg(struct soc
  						EPOLLOUT | EPOLLWRNORM |
  						EPOLLWRBAND);
@@ -638,9 +638,9 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
  	mutex_unlock(&u->iolock);
  out:
  	return err;
---- linux-5.2-rc1.orig/security/Kconfig
-+++ linux-5.2-rc1/security/Kconfig
-@@ -289,5 +289,7 @@ config LSM
+--- linux-5.2-rc2.orig/security/Kconfig
++++ linux-5.2-rc2/security/Kconfig
+@@ -290,5 +290,7 @@ config LSM
  
  source "security/Kconfig.hardening"
  
@@ -648,8 +648,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
 +
  endmenu
  
---- linux-5.2-rc1.orig/security/Makefile
-+++ linux-5.2-rc1/security/Makefile
+--- linux-5.2-rc2.orig/security/Makefile
++++ linux-5.2-rc2/security/Makefile
 @@ -32,3 +32,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
@@ -657,8 +657,8 @@ Source code for this patch is https://git.kernel.org/torvalds/t/linux-5.2-rc1.ta
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/
---- linux-5.2-rc1.orig/security/security.c
-+++ linux-5.2-rc1/security/security.c
+--- linux-5.2-rc2.orig/security/security.c
++++ linux-5.2-rc2/security/security.c
 @@ -1468,7 +1468,9 @@ int security_task_alloc(struct task_stru
  
  	if (rc)
