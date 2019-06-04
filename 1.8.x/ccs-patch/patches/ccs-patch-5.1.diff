@@ -1,6 +1,6 @@
-This is TOMOYO Linux patch for kernel 5.1.5.
+This is TOMOYO Linux patch for kernel 5.1.7.
 
-Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux-5.1.5.tar.xz
+Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux-5.1.7.tar.xz
 ---
  fs/exec.c                 |    2 -
  fs/open.c                 |    2 +
@@ -14,7 +14,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  kernel/ptrace.c           |   10 ++++++
  kernel/reboot.c           |    3 ++
  kernel/sched/core.c       |    2 +
- kernel/signal.c           |   10 ++++++
+ kernel/signal.c           |   25 ++++++++++++++++
  kernel/sys.c              |    8 +++++
  kernel/time/timekeeping.c |    8 +++++
  net/ipv4/raw.c            |    4 ++
@@ -26,10 +26,10 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  security/Kconfig          |    2 +
  security/Makefile         |    3 ++
  security/security.c       |    5 ++-
- 24 files changed, 144 insertions(+), 29 deletions(-)
+ 24 files changed, 159 insertions(+), 29 deletions(-)
 
---- linux-5.1.5.orig/fs/exec.c
-+++ linux-5.1.5/fs/exec.c
+--- linux-5.1.7.orig/fs/exec.c
++++ linux-5.1.7/fs/exec.c
 @@ -1695,7 +1695,7 @@ static int exec_binprm(struct linux_binp
  	old_vpid = task_pid_nr_ns(current, task_active_pid_ns(current->parent));
  	rcu_read_unlock();
@@ -39,8 +39,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  	if (ret >= 0) {
  		audit_bprm(bprm);
  		trace_sched_process_exec(current, old_pid, bprm);
---- linux-5.1.5.orig/fs/open.c
-+++ linux-5.1.5/fs/open.c
+--- linux-5.1.7.orig/fs/open.c
++++ linux-5.1.7/fs/open.c
 @@ -1180,6 +1180,8 @@ SYSCALL_DEFINE1(close, unsigned int, fd)
   */
  SYSCALL_DEFINE0(vhangup)
@@ -50,8 +50,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  	if (capable(CAP_SYS_TTY_CONFIG)) {
  		tty_vhangup_self();
  		return 0;
---- linux-5.1.5.orig/fs/proc/version.c
-+++ linux-5.1.5/fs/proc/version.c
+--- linux-5.1.7.orig/fs/proc/version.c
++++ linux-5.1.7/fs/proc/version.c
 @@ -21,3 +21,10 @@ static int __init proc_version_init(void
  	return 0;
  }
@@ -59,12 +59,12 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
 +
 +static int __init ccs_show_version(void)
 +{
-+	printk(KERN_INFO "Hook version: 5.1.5 2019/05/28\n");
++	printk(KERN_INFO "Hook version: 5.1.7 2019/06/04\n");
 +	return 0;
 +}
 +fs_initcall(ccs_show_version);
---- linux-5.1.5.orig/include/linux/sched.h
-+++ linux-5.1.5/include/linux/sched.h
+--- linux-5.1.7.orig/include/linux/sched.h
++++ linux-5.1.7/include/linux/sched.h
 @@ -36,6 +36,7 @@ struct audit_context;
  struct backing_dev_info;
  struct bio_list;
@@ -84,8 +84,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  
  	/*
  	 * New fields for task_struct should be added above here, so that
---- linux-5.1.5.orig/include/linux/security.h
-+++ linux-5.1.5/include/linux/security.h
+--- linux-5.1.7.orig/include/linux/security.h
++++ linux-5.1.7/include/linux/security.h
 @@ -56,6 +56,7 @@ struct mm_struct;
  struct fs_context;
  struct fs_parameter;
@@ -306,8 +306,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  }
  #endif	/* CONFIG_SECURITY_PATH */
  
---- linux-5.1.5.orig/include/net/ip.h
-+++ linux-5.1.5/include/net/ip.h
+--- linux-5.1.7.orig/include/net/ip.h
++++ linux-5.1.7/include/net/ip.h
 @@ -302,6 +302,8 @@ void inet_get_local_port_range(struct ne
  #ifdef CONFIG_SYSCTL
  static inline int inet_is_local_reserved_port(struct net *net, int port)
@@ -326,8 +326,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  	return 0;
  }
  
---- linux-5.1.5.orig/init/init_task.c
-+++ linux-5.1.5/init/init_task.c
+--- linux-5.1.7.orig/init/init_task.c
++++ linux-5.1.7/init/init_task.c
 @@ -180,6 +180,10 @@ struct task_struct init_task
  #ifdef CONFIG_SECURITY
  	.security	= NULL,
@@ -339,8 +339,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  };
  EXPORT_SYMBOL(init_task);
  
---- linux-5.1.5.orig/kernel/kexec.c
-+++ linux-5.1.5/kernel/kexec.c
+--- linux-5.1.7.orig/kernel/kexec.c
++++ linux-5.1.7/kernel/kexec.c
 @@ -18,7 +18,7 @@
  #include <linux/syscalls.h>
  #include <linux/vmalloc.h>
@@ -359,8 +359,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  
  	/* Permit LSMs and IMA to fail the kexec */
  	result = security_kernel_load_data(LOADING_KEXEC_IMAGE);
---- linux-5.1.5.orig/kernel/module.c
-+++ linux-5.1.5/kernel/module.c
+--- linux-5.1.7.orig/kernel/module.c
++++ linux-5.1.7/kernel/module.c
 @@ -66,6 +66,7 @@
  #include <linux/audit.h>
  #include <uapi/linux/module.h>
@@ -378,7 +378,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  
  	if (strncpy_from_user(name, name_user, MODULE_NAME_LEN-1) < 0)
  		return -EFAULT;
-@@ -3546,6 +3549,8 @@ static int may_init_module(void)
+@@ -3551,6 +3554,8 @@ static int may_init_module(void)
  {
  	if (!capable(CAP_SYS_MODULE) || modules_disabled)
  		return -EPERM;
@@ -387,8 +387,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  
  	return 0;
  }
---- linux-5.1.5.orig/kernel/ptrace.c
-+++ linux-5.1.5/kernel/ptrace.c
+--- linux-5.1.7.orig/kernel/ptrace.c
++++ linux-5.1.7/kernel/ptrace.c
 @@ -1122,6 +1122,11 @@ SYSCALL_DEFINE4(ptrace, long, request, l
  {
  	struct task_struct *child;
@@ -413,8 +413,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  
  	if (request == PTRACE_TRACEME) {
  		ret = ptrace_traceme();
---- linux-5.1.5.orig/kernel/reboot.c
-+++ linux-5.1.5/kernel/reboot.c
+--- linux-5.1.7.orig/kernel/reboot.c
++++ linux-5.1.7/kernel/reboot.c
 @@ -16,6 +16,7 @@
  #include <linux/syscalls.h>
  #include <linux/syscore_ops.h>
@@ -432,8 +432,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  
  	/*
  	 * If pid namespaces are enabled and the current task is in a child
---- linux-5.1.5.orig/kernel/sched/core.c
-+++ linux-5.1.5/kernel/sched/core.c
+--- linux-5.1.7.orig/kernel/sched/core.c
++++ linux-5.1.7/kernel/sched/core.c
 @@ -3989,6 +3989,8 @@ int can_nice(const struct task_struct *p
  SYSCALL_DEFINE1(nice, int, increment)
  {
@@ -443,8 +443,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  
  	/*
  	 * Setpriority might change our priority at the same moment.
---- linux-5.1.5.orig/kernel/signal.c
-+++ linux-5.1.5/kernel/signal.c
+--- linux-5.1.7.orig/kernel/signal.c
++++ linux-5.1.7/kernel/signal.c
 @@ -3507,6 +3507,8 @@ static inline void prepare_kill_siginfo(
  SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
  {
@@ -454,7 +454,29 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  
  	prepare_kill_siginfo(sig, &info);
  
-@@ -3681,6 +3683,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
+@@ -3596,6 +3598,21 @@ SYSCALL_DEFINE4(pidfd_send_signal, int,
+ 	if (!access_pidfd_pidns(pid))
+ 		goto err;
+ 
++	{
++		struct task_struct t;
++		int pid0 = 0;
++
++		rcu_read_lock();
++		t = pid_task(pid, PIDTYPE_PID);
++		if (t)
++			pid0 = task_pid_vnr(t);
++		rcu_read_unlock();
++		if (t && ccs_kill_permission(pid0, sig)) {
++			ret = -EPERM;
++			goto err;
++		}
++	}
++
+ 	if (info) {
+ 		ret = copy_siginfo_from_user_any(&kinfo, info);
+ 		if (unlikely(ret))
+@@ -3681,6 +3698,8 @@ SYSCALL_DEFINE3(tgkill, pid_t, tgid, pid
  	/* This is only valid for single tasks */
  	if (pid <= 0 || tgid <= 0)
  		return -EINVAL;
@@ -463,7 +485,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  
  	return do_tkill(tgid, pid, sig);
  }
-@@ -3697,6 +3701,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
+@@ -3697,6 +3716,8 @@ SYSCALL_DEFINE2(tkill, pid_t, pid, int,
  	/* This is only valid for single tasks */
  	if (pid <= 0)
  		return -EINVAL;
@@ -472,7 +494,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  
  	return do_tkill(0, pid, sig);
  }
-@@ -3709,6 +3715,8 @@ static int do_rt_sigqueueinfo(pid_t pid,
+@@ -3709,6 +3730,8 @@ static int do_rt_sigqueueinfo(pid_t pid,
  	if ((info->si_code >= 0 || info->si_code == SI_TKILL) &&
  	    (task_pid_vnr(current) != pid))
  		return -EPERM;
@@ -481,7 +503,7 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  
  	/* POSIX.1b doesn't mention process groups.  */
  	return kill_proc_info(sig, info, pid);
-@@ -3756,6 +3764,8 @@ static int do_rt_tgsigqueueinfo(pid_t tg
+@@ -3756,6 +3779,8 @@ static int do_rt_tgsigqueueinfo(pid_t tg
  	if ((info->si_code >= 0 || info->si_code == SI_TKILL) &&
  	    (task_pid_vnr(current) != pid))
  		return -EPERM;
@@ -490,8 +512,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  
  	return do_send_specific(tgid, pid, sig, info);
  }
---- linux-5.1.5.orig/kernel/sys.c
-+++ linux-5.1.5/kernel/sys.c
+--- linux-5.1.7.orig/kernel/sys.c
++++ linux-5.1.7/kernel/sys.c
 @@ -204,6 +204,10 @@ SYSCALL_DEFINE3(setpriority, int, which,
  
  	if (which > PRIO_USER || which < PRIO_PROCESS)
@@ -521,8 +543,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  
  	errno = -EFAULT;
  	if (!copy_from_user(tmp, name, len)) {
---- linux-5.1.5.orig/kernel/time/timekeeping.c
-+++ linux-5.1.5/kernel/time/timekeeping.c
+--- linux-5.1.7.orig/kernel/time/timekeeping.c
++++ linux-5.1.7/kernel/time/timekeeping.c
 @@ -21,6 +21,7 @@
  #include <linux/stop_machine.h>
  #include <linux/pvclock_gtod.h>
@@ -556,8 +578,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  
  		/*
  		 * Validate if a timespec/timeval used to inject a time
---- linux-5.1.5.orig/net/ipv4/raw.c
-+++ linux-5.1.5/net/ipv4/raw.c
+--- linux-5.1.7.orig/net/ipv4/raw.c
++++ linux-5.1.7/net/ipv4/raw.c
 @@ -771,6 +771,10 @@ static int raw_recvmsg(struct sock *sk,
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
@@ -569,8 +591,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  
  	copied = skb->len;
  	if (len < copied) {
---- linux-5.1.5.orig/net/ipv4/udp.c
-+++ linux-5.1.5/net/ipv4/udp.c
+--- linux-5.1.7.orig/net/ipv4/udp.c
++++ linux-5.1.7/net/ipv4/udp.c
 @@ -1727,6 +1727,8 @@ try_again:
  	skb = __skb_recv_udp(sk, flags, noblock, &peeked, &off, &err);
  	if (!skb)
@@ -580,9 +602,9 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  
  	ulen = udp_skb_len(skb);
  	copied = len;
---- linux-5.1.5.orig/net/ipv6/raw.c
-+++ linux-5.1.5/net/ipv6/raw.c
-@@ -482,6 +482,10 @@ static int rawv6_recvmsg(struct sock *sk
+--- linux-5.1.7.orig/net/ipv6/raw.c
++++ linux-5.1.7/net/ipv6/raw.c
+@@ -484,6 +484,10 @@ static int rawv6_recvmsg(struct sock *sk
  	skb = skb_recv_datagram(sk, flags, noblock, &err);
  	if (!skb)
  		goto out;
@@ -593,8 +615,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  
  	copied = skb->len;
  	if (copied > len) {
---- linux-5.1.5.orig/net/ipv6/udp.c
-+++ linux-5.1.5/net/ipv6/udp.c
+--- linux-5.1.7.orig/net/ipv6/udp.c
++++ linux-5.1.7/net/ipv6/udp.c
 @@ -304,6 +304,8 @@ try_again:
  	skb = __skb_recv_udp(sk, flags, noblock, &peeked, &off, &err);
  	if (!skb)
@@ -604,8 +626,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  
  	ulen = udp6_skb_len(skb);
  	copied = len;
---- linux-5.1.5.orig/net/socket.c
-+++ linux-5.1.5/net/socket.c
+--- linux-5.1.7.orig/net/socket.c
++++ linux-5.1.7/net/socket.c
 @@ -1735,6 +1735,10 @@ int __sys_accept4(int fd, struct sockadd
  	if (err < 0)
  		goto out_fd;
@@ -617,8 +639,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  	if (upeer_sockaddr) {
  		len = newsock->ops->getname(newsock,
  					(struct sockaddr *)&address, 2);
---- linux-5.1.5.orig/net/unix/af_unix.c
-+++ linux-5.1.5/net/unix/af_unix.c
+--- linux-5.1.7.orig/net/unix/af_unix.c
++++ linux-5.1.7/net/unix/af_unix.c
 @@ -2080,6 +2080,10 @@ static int unix_dgram_recvmsg(struct soc
  						EPOLLOUT | EPOLLWRNORM |
  						EPOLLWRBAND);
@@ -638,8 +660,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
  	mutex_unlock(&u->iolock);
  out:
  	return err;
---- linux-5.1.5.orig/security/Kconfig
-+++ linux-5.1.5/security/Kconfig
+--- linux-5.1.7.orig/security/Kconfig
++++ linux-5.1.7/security/Kconfig
 @@ -287,5 +287,7 @@ config LSM
  
  	  If unsure, leave this as the default.
@@ -648,8 +670,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
 +
  endmenu
  
---- linux-5.1.5.orig/security/Makefile
-+++ linux-5.1.5/security/Makefile
+--- linux-5.1.7.orig/security/Makefile
++++ linux-5.1.7/security/Makefile
 @@ -32,3 +32,6 @@ obj-$(CONFIG_CGROUP_DEVICE)		+= device_c
  # Object integrity file lists
  subdir-$(CONFIG_INTEGRITY)		+= integrity
@@ -657,8 +679,8 @@ Source code for this patch is https://www.kernel.org/pub/linux/kernel/v5.x/linux
 +
 +subdir-$(CONFIG_CCSECURITY)		+= ccsecurity
 +obj-$(CONFIG_CCSECURITY)		+= ccsecurity/
---- linux-5.1.5.orig/security/security.c
-+++ linux-5.1.5/security/security.c
+--- linux-5.1.7.orig/security/security.c
++++ linux-5.1.7/security/security.c
 @@ -1457,7 +1457,9 @@ int security_task_alloc(struct task_stru
  
  	if (rc)
